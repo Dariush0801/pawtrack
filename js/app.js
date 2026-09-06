@@ -254,19 +254,12 @@ class App {
       }
 
       if (!email || !email.includes('@')) {
-        const userPromptEmail = (typeof window !== 'undefined' && window.prompt)
-          ? window.prompt('Enter your Google/Gmail account email to sign in:')
-          : '';
-        if (userPromptEmail && userPromptEmail.includes('@')) {
-          email = userPromptEmail.trim();
-        } else {
-          if (loginDialogModal) {
-            window.notifManager.openModal('login-dialog-modal');
-          }
-          window.notifManager.showToast('Please enter your Google/Gmail address above to sign in.', 'warning');
-          setTimeout(() => loginDialogEmail?.focus(), 150);
-          return;
+        if (loginDialogModal) {
+          window.notifManager.openModal('login-dialog-modal');
         }
+        window.notifManager.showToast('Please enter your email above to continue with Google.', 'warning');
+        setTimeout(() => loginDialogEmail?.focus(), 150);
+        return;
       }
 
       let accountName = customName || '';
