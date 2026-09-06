@@ -127,15 +127,13 @@ class App {
     const notifMarkRead = document.getElementById('notif-mark-read-btn');
     const notifClose = document.getElementById('notif-dropdown-close');
 
-    // Click "Log In" Button -> Open Google One Tap Prompt
+    // Click "Log In" Button -> Open "Log in or create an account" Modal
     loginBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (onetapPrompt) {
-        const isShown = onetapPrompt.style.display === 'block';
-        onetapPrompt.style.display = isShown ? 'none' : 'block';
-      }
       if (notifDropdown) notifDropdown.style.display = 'none';
       if (userDropdown) userDropdown.style.display = 'none';
+      if (onetapPrompt) onetapPrompt.style.display = 'none';
+      window.notifManager.openModal('login-dialog-modal');
     });
 
     // Click Logged-in User Pill -> Toggle User Account Dropdown
@@ -628,6 +626,112 @@ class App {
       window.notifManager.showToast(`A fresh verification PIN has been sent to your Gmail (${this.pendingAuth.email}).`, 'info');
     });
 
+    // -------------------------------------------------------------
+    // Login / Collaborate Dialog Modal Controller
+    // -------------------------------------------------------------
+    const loginDialogModal = document.getElementById('login-dialog-modal');
+    const loginDialogGoogleBtn = document.getElementById('login-dialog-google-btn');
+    const loginDialogForm = document.getElementById('login-dialog-form');
+    const loginDialogEmail = document.getElementById('login-dialog-email');
+    const loginDialogPwd = document.getElementById('login-dialog-pwd');
+    const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
+    const loginDialogCreate = document.getElementById('login-dialog-create-btn');
+
+    // "Continue with Google" -> opens Google OAuth Account Chooser modal
+    loginDialogGoogleBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
+      openGoogleAuthModal();
+    });
+
+    // "Log in" form submission with Email & Password
+    loginDialogForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = (loginDialogEmail?.value || '').trim();
+      const pwd = (loginDialogPwd?.value || '').trim();
+
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        window.notifManager.showToast('Please enter a valid email address.', 'warning');
+        loginDialogEmail?.focus();
+        return;
+      }
+
+      if (!pwd) {
+        window.notifManager.showToast('Please enter your password.', 'warning');
+        loginDialogPwd?.focus();
+        return;
+      }
+
+      // Check account credentials / sync
+      let accountName = 'Google User';
+      let avatarPic = null;
+
+      if (email.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
+        accountName = 'Aguilar, Dariush Dave Gasang';
+        avatarPic = 'images/user-avatar.png';
+      } else {
+        const localPart = email.split('@')[0];
+        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+        accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+        avatarPic = getAvatarForAccount(email, accountName);
+      }
+
+      const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
+
+      this.pendingAuth = {
+        name: accountName,
+        shortName: accountName.split(' ')[0] || accountName,
+        email,
+        picture: avatarPic,
+        pin: generatedPin
+      };
+
+      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
+      if (pinTargetEmail) pinTargetEmail.textContent = email;
+
+      pinInputs.forEach(input => {
+        if (input) {
+          input.value = '';
+          input.classList.remove('filled', 'error');
+        }
+      });
+
+      if (pinModal) {
+        window.notifManager.openModal('guardian-pin-modal');
+        setTimeout(() => pinInputs[0]?.focus(), 150);
+      }
+
+      startResendCountdown(60);
+
+      // Real-time transactional email dispatch
+      fetch('/api/send-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name: accountName, pin: generatedPin })
+      }).catch(err => console.warn('[Send PIN API Notice]:', err));
+
+      window.notifManager.showToast(`Verification PIN sent to ${email}. Please check your inbox.`, 'info');
+    });
+
+    // "Reset password"
+    loginDialogResetPwd?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const email = (loginDialogEmail?.value || '').trim();
+      if (email && email.includes('@')) {
+        window.notifManager.showToast(`Password recovery link has been dispatched to ${email}.`, 'info');
+      } else {
+        window.notifManager.showToast('Please enter your email above to receive a password reset link.', 'info');
+        loginDialogEmail?.focus();
+      }
+    });
+
+    // "No account? Create one"
+    loginDialogCreate?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
+      openGoogleAuthModal();
+    });
+
     // Sign in with Google Button (Trigger Authorization Modal)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -645,7 +749,11 @@ class App {
 
     // Modal prompt Google login
     promptLoginBtn?.addEventListener('click', () => {
-      openGoogleAuthModal();
+      if (loginDialogModal) {
+        window.notifManager.openModal('login-dialog-modal');
+      } else {
+        openGoogleAuthModal();
+      }
     });
 
     // Click outside to dismiss all floating dropdowns

@@ -19,12 +19,13 @@ const compCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'components.cs
 const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.js'), 'utf8');
 
 // Ensure modals are present in index.html
+assert(indexHtml.includes('id="login-dialog-modal"'), 'index.html must include #login-dialog-modal');
 assert(indexHtml.includes('id="google-auth-modal"'), 'index.html must include #google-auth-modal');
 assert(indexHtml.includes('id="guardian-pin-modal"'), 'index.html must include #guardian-pin-modal');
 assert(indexHtml.includes('id="privacy-policy-modal"'), 'index.html must include #privacy-policy-modal');
 assert(indexHtml.includes('id="terms-modal"'), 'index.html must include #terms-modal');
 assert(indexHtml.includes('id="pin-timer-badge"'), 'index.html must include #pin-timer-badge');
-console.log('[PASS] All Google Auth, 4-PIN verification, and Policy modals are present in index.html.');
+console.log('[PASS] All Login Collaborate Dialog, Google Auth, 4-PIN verification, and Policy modals are present in index.html.');
 
 // Ensure 4-PIN digit boxes are in index.html and auto-fill helper is removed
 assert(indexHtml.includes('id="pin-input-1"'), 'index.html must include #pin-input-1');

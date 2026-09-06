@@ -5070,3 +5070,241 @@
   color: #e3e3e3;
   text-decoration: underline;
 }
+
+/* ==========================================================================
+   Login / Collaborate Entry Dialog Modal Styles
+   ========================================================================== */
+
+.auth-dialog-card {
+  max-width: 440px !important;
+  width: 92% !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45) !important;
+  padding: 38px 34px 30px !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+[data-theme="dark"] .auth-dialog-card {
+  background: #18191d !important;
+  color: #f3f4f6 !important;
+  border-color: #2e323b !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85) !important;
+}
+
+.auth-dialog-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s;
+}
+
+.auth-dialog-close-btn:hover {
+  color: #111827;
+}
+
+[data-theme="dark"] .auth-dialog-close-btn:hover {
+  color: #ffffff;
+}
+
+.auth-dialog-title {
+  font-size: 25px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  color: #111827 !important;
+  line-height: 1.25 !important;
+  margin: 0 0 24px !important;
+  letter-spacing: -0.02em !important;
+}
+
+[data-theme="dark"] .auth-dialog-title {
+  color: #f9fafb !important;
+}
+
+.auth-google-continue-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+[data-theme="dark"] .auth-google-continue-btn {
+  background: #1f2128;
+  color: #f3f4f6;
+  border-color: #3e4451;
+}
+
+.auth-google-continue-btn:hover {
+  background: #f9fafb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+[data-theme="dark"] .auth-google-continue-btn:hover {
+  background: #282a33;
+  border-color: #8ab4f8;
+}
+
+.auth-dialog-divider {
+  text-align: center;
+  color: #6b7280;
+  font-size: 13.5px;
+  font-weight: 400;
+  margin: 18px 0 16px;
+}
+
+[data-theme="dark"] .auth-dialog-divider {
+  color: #9ca3af;
+}
+
+.auth-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-field-box {
+  background: #eaedf0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+[data-theme="dark"] .auth-field-box {
+  background: #24262e;
+  border-color: #323642;
+}
+
+.auth-field-box:focus-within {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+[data-theme="dark"] .auth-field-box:focus-within {
+  border-color: #8ab4f8;
+  background: #1f2128;
+  box-shadow: 0 0 0 1px #8ab4f8;
+}
+
+.auth-field-label {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+[data-theme="dark"] .auth-field-label {
+  color: #9ca3af;
+}
+
+.auth-field-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #111827;
+  padding: 0;
+}
+
+[data-theme="dark"] .auth-field-input {
+  color: #ffffff;
+}
+
+.auth-dialog-submit-btn {
+  width: 100%;
+  height: 44px;
+  background: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+[data-theme="dark"] .auth-dialog-submit-btn {
+  background: #ffffff;
+  color: #000000;
+}
+
+.auth-dialog-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.auth-dialog-submit-btn:active {
+  transform: scale(0.99);
+}
+
+.auth-dialog-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  font-size: 13.5px;
+}
+
+.auth-dialog-links .auth-link {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+[data-theme="dark"] .auth-dialog-links .auth-link {
+  color: #60a5fa;
+}
+
+.auth-dialog-links .auth-link:hover {
+  color: #1d4ed8;
+}
+
+[data-theme="dark"] .auth-dialog-links .auth-link:hover {
+  color: #93c5fd;
+}
+
+.auth-signup-row {
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+[data-theme="dark"] .auth-signup-row {
+  color: #9ca3af;
+}
+
