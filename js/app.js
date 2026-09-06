@@ -220,8 +220,6 @@ class App {
     const authConfirmBtn = document.getElementById('google-auth-confirm-btn');
     const authConsentCb = document.getElementById('google-auth-consent-cb');
     const authEmailInput = document.getElementById('google-auth-email-input');
-    const authPasswordInput = document.getElementById('google-auth-password-input');
-    const authPwdToggle = document.getElementById('google-auth-pwd-toggle');
     const authNameInput = document.getElementById('google-auth-name-input');
     const authPreviewEmail = document.getElementById('auth-preview-email');
     const authPreviewName = document.getElementById('auth-preview-name');
@@ -244,14 +242,6 @@ class App {
       const displayName = name || cleanEmail.split('@')[0] || 'User';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1a73e8&color=fff&bold=true&size=128`;
     };
-
-    // Toggle Password Visibility
-    authPwdToggle?.addEventListener('click', () => {
-      if (!authPasswordInput) return;
-      const isPwd = authPasswordInput.type === 'password';
-      authPasswordInput.type = isPwd ? 'text' : 'password';
-      authPwdToggle.textContent = isPwd ? '🔒' : '👁️';
-    });
 
     // 1. Live Real-Time Dynamic Input Synchronization for ANY Gmail Account
     const updateAuthPreviewCard = () => {
