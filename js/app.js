@@ -214,27 +214,35 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
     });
 
-    const GOOGLE_CLIENT_ID = '925763590050-p99a80m68g0j09s6h7knf5ks91i4g5n4.apps.googleusercontent.com';
-
+    // -------------------------------------------------------------
+    // Google OAuth Account Chooser & Password Challenge Modal Logic
+    // -------------------------------------------------------------
     const authModal = document.getElementById('google-auth-modal');
-    const authConfirmBtn = document.getElementById('google-auth-confirm-btn');
-    const authConsentCb = document.getElementById('google-auth-consent-cb');
-    const authEmailInput = document.getElementById('google-auth-email-input');
-    const authNameInput = document.getElementById('google-auth-name-input');
-    const authPreviewEmail = document.getElementById('auth-preview-email');
-    const authPreviewName = document.getElementById('auth-preview-name');
-    const authPreviewAvatarImg = document.getElementById('auth-preview-avatar-img');
-    const authAvatarUpload = document.getElementById('google-auth-avatar-upload');
-    const authDetectBrowserBtn = document.getElementById('auth-detect-browser-btn');
-    const authVerifiedBadge = document.getElementById('auth-verified-badge');
+    const viewChooser = document.getElementById('google-oauth-view-chooser');
+    const viewPwd = document.getElementById('google-oauth-view-pwd');
+    const viewCustom = document.getElementById('google-oauth-view-custom');
 
-    let currentCustomAvatar = null;
+    const accountSelectBtn = document.getElementById('google-account-select-btn');
+    const chooserAvatarImg = document.getElementById('google-chooser-avatar-img');
+    const chooserName = document.getElementById('google-chooser-name');
+    const chooserEmail = document.getElementById('google-chooser-email');
+
+    const useAnotherBtn = document.getElementById('google-use-another-btn');
+    const customEmailInput = document.getElementById('google-custom-email-input');
+    const customNameInput = document.getElementById('google-custom-name-input');
+    const customBackLink = document.getElementById('google-custom-back-link');
+    const customNextBtn = document.getElementById('google-custom-next-btn');
+
+    const pwdHiTitle = document.getElementById('google-pwd-hi-title');
+    const pwdUserPill = document.getElementById('google-pwd-user-pill');
+    const pwdAvatarImg = document.getElementById('google-pwd-avatar-img');
+    const pwdEmailText = document.getElementById('google-pwd-email-text');
+    const pwdInput = document.getElementById('google-oauth-pwd-input');
+    const showPwdCb = document.getElementById('google-oauth-show-pwd-cb');
+    const pwdNextBtn = document.getElementById('google-pwd-next-btn');
 
     // Helper: Generate or select avatar based on email, name, or custom photo
-    const getAvatarForAccount = (email, name, customPhoto) => {
-      if (customPhoto && customPhoto.startsWith('data:image')) {
-        return customPhoto;
-      }
+    const getAvatarForAccount = (email, name) => {
       const cleanEmail = (email || '').trim().toLowerCase();
       if (cleanEmail === 'aguilar.dariushdave.gasang@gmail.com') {
         return 'images/user-avatar.png';
@@ -243,136 +251,154 @@ class App {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1a73e8&color=fff&bold=true&size=128`;
     };
 
-    // 1. Live Real-Time Dynamic Input Synchronization for ANY Gmail Account
-    const updateAuthPreviewCard = () => {
-      const emailVal = authEmailInput?.value.trim() || 'your.email@gmail.com';
-      let nameVal = authNameInput?.value.trim();
-
-      // Auto derive display name from email if name was not manually customized
-      if (emailVal.includes('@')) {
-        const localPart = emailVal.split('@')[0];
-        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-        if (cleanWords.length > 0) {
-          const autoName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          if (emailVal !== 'aguilar.dariushdave.gasang@gmail.com' && (!nameVal || nameVal === 'Dariush Dave')) {
-            nameVal = autoName;
-            if (authNameInput) authNameInput.value = autoName;
-          }
-        }
-      }
-
-      if (authPreviewEmail) authPreviewEmail.textContent = emailVal;
-      if (authPreviewName) authPreviewName.textContent = nameVal || 'Guardian Name';
-      if (authVerifiedBadge) authVerifiedBadge.textContent = emailVal.endsWith('@gmail.com') ? 'Gmail Account' : 'Google Account';
-
-      const avatarSrc = getAvatarForAccount(emailVal, nameVal, currentCustomAvatar);
-      if (authPreviewAvatarImg) {
-        authPreviewAvatarImg.src = avatarSrc;
-      }
+    // State for currently selected Google account in OAuth flow
+    let activeOauthAccount = {
+      name: 'Aguilar, Dariush Dave Gasang',
+      shortName: 'Dariush Dave',
+      email: 'aguilar.dariushdave.gasang@gmail.com',
+      picture: 'images/user-avatar.png'
     };
 
-    authEmailInput?.addEventListener('input', updateAuthPreviewCard);
-    authNameInput?.addEventListener('input', updateAuthPreviewCard);
-
-    // 2. Real-Time Profile Picture Upload from Browser
-    authAvatarUpload?.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (re) => {
-          currentCustomAvatar = re.target.result;
-          if (authPreviewAvatarImg) {
-            authPreviewAvatarImg.src = currentCustomAvatar;
-          }
-          window.notifManager.showToast('Profile photo updated in real-time.', 'success');
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // 3. Reset / Re-analyze Browser Google Account
-    const syncBrowserAccount = () => {
-      const existingUser = window.pawStore.getGoogleUser();
-      if (existingUser && existingUser.email) {
-        if (authEmailInput) authEmailInput.value = existingUser.email;
-        if (authNameInput) authNameInput.value = existingUser.name;
-        currentCustomAvatar = existingUser.picture;
-      } else {
-        const activeEmail = 'aguilar.dariushdave.gasang@gmail.com';
-        const activeName = 'Dariush Dave';
-        if (authEmailInput) authEmailInput.value = activeEmail;
-        if (authNameInput) authNameInput.value = activeName;
-        currentCustomAvatar = null;
-      }
-      updateAuthPreviewCard();
-      window.notifManager.showToast('Account card updated.', 'info');
-    };
-
-    authDetectBrowserBtn?.addEventListener('click', () => {
-      syncBrowserAccount();
-    });
-
-    // 4. Global callback for Google Identity Services (GIS) One-Click / Account Picker
-    window.handleGoogleCredentialResponse = (response) => {
-      if (response && response.credential) {
-        try {
-          const base64Url = response.credential.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join(''));
-          const payload = JSON.parse(jsonPayload);
-
-          const realName = payload.name || 'Google User';
-          const realEmail = payload.email || 'aguilar.dariushdave.gasang@gmail.com';
-          const realPicture = payload.picture || getAvatarForAccount(realEmail, realName, null);
-          const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-
-          this.pendingAuth = {
-            name: realName,
-            shortName: payload.given_name || realName.split(' ')[0] || realName,
-            email: realEmail,
-            picture: realPicture,
-            pin: generatedPin
-          };
-
-          if (authModal) window.notifManager.closeModal('google-auth-modal');
-          if (pinTargetEmail) pinTargetEmail.textContent = realEmail;
-
-          // Clear PIN boxes and open verification modal
-          pinInputs.forEach(i => { if (i) { i.value = ''; i.classList.remove('filled', 'error'); } });
-          if (pinModal) {
-            window.notifManager.openModal('guardian-pin-modal');
-            setTimeout(() => pinInputs[0]?.focus(), 150);
-          }
-
-          startResendCountdown(60);
-
-          // Dispatch 4-digit PIN to selected Google account in real time
-          fetch('/api/send-pin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: realEmail, name: realName, pin: generatedPin })
-          }).catch(err => console.warn('[GIS Send PIN]:', err));
-
-          window.notifManager.showToast(`Selected Google account: ${realName} (${realEmail}). PIN sent to your Gmail inbox.`, 'info');
-        } catch (err) {
-          console.error('Failed to parse Google JWT credential:', err);
-          window.notifManager.showToast('Google Sign-In returned an unreadable token. Please enter your email manually.', 'warning');
-        }
-      }
+    const showOauthView = (viewName) => {
+      if (viewChooser) viewChooser.style.display = viewName === 'chooser' ? 'grid' : 'none';
+      if (viewPwd) viewPwd.style.display = viewName === 'pwd' ? 'grid' : 'none';
+      if (viewCustom) viewCustom.style.display = viewName === 'custom' ? 'grid' : 'none';
     };
 
     // Open Google Account Authorization & Terms Consent Modal
     const openGoogleAuthModal = () => {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
-      if (authModal) {
-        authModal.classList.add('active');
-        updateAuthPreviewCard();
+
+      // Load active user or default
+      const existingUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      if (existingUser && existingUser.email) {
+        activeOauthAccount = {
+          name: existingUser.name || 'Aguilar, Dariush Dave Gasang',
+          shortName: existingUser.shortName || 'Dariush Dave',
+          email: existingUser.email,
+          picture: existingUser.picture || getAvatarForAccount(existingUser.email, existingUser.name)
+        };
+      } else {
+        activeOauthAccount = {
+          name: 'Aguilar, Dariush Dave Gasang',
+          shortName: 'Dariush Dave',
+          email: 'aguilar.dariushdave.gasang@gmail.com',
+          picture: 'images/user-avatar.png'
+        };
       }
+
+      if (chooserName) chooserName.textContent = activeOauthAccount.name;
+      if (chooserEmail) chooserEmail.textContent = activeOauthAccount.email;
+      if (chooserAvatarImg) chooserAvatarImg.src = activeOauthAccount.picture;
+
+      showOauthView('chooser');
+      if (authModal) authModal.classList.add('active');
     };
 
+    const advanceToPasswordChallenge = (account) => {
+      activeOauthAccount = account;
+      // Derive greeting name:
+      // If name contains comma e.g. "Aguilar, Dariush Dave Gasang", take "Aguilar" or first part
+      let greeting = 'User';
+      if (account.name) {
+        const parts = account.name.split(/[\s,]+/);
+        greeting = parts[0] || 'User';
+      }
+      if (pwdHiTitle) pwdHiTitle.textContent = `Hi ${greeting},`;
+      if (pwdEmailText) pwdEmailText.textContent = account.email;
+      if (pwdAvatarImg) pwdAvatarImg.src = account.picture || getAvatarForAccount(account.email, account.name);
+
+      if (pwdInput) {
+        pwdInput.value = '';
+        pwdInput.type = 'password';
+      }
+      if (showPwdCb) {
+        showPwdCb.checked = false;
+      }
+
+      showOauthView('pwd');
+      setTimeout(() => pwdInput?.focus(), 150);
+    };
+
+    // Account Chooser: Select Active Account
+    accountSelectBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      advanceToPasswordChallenge(activeOauthAccount);
+    });
+
+    // Account Chooser: Click "Use another account"
+    useAnotherBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (customEmailInput) customEmailInput.value = '';
+      if (customNameInput) customNameInput.value = '';
+      showOauthView('custom');
+      setTimeout(() => customEmailInput?.focus(), 150);
+    });
+
+    // Custom Account View: Back to Chooser
+    customBackLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showOauthView('chooser');
+    });
+
+    // Custom Account View: Next Button
+    const handleCustomAccountNext = () => {
+      const email = (customEmailInput?.value || '').trim();
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        window.notifManager.showToast('Please enter a valid Google/Gmail account email.', 'warning');
+        customEmailInput?.focus();
+        return;
+      }
+
+      let name = (customNameInput?.value || '').trim();
+      if (!name) {
+        const localPart = email.split('@')[0];
+        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+        name = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+      }
+
+      const shortName = name.split(' ')[0] || name;
+      const avatar = getAvatarForAccount(email, name);
+
+      const customAcc = {
+        name,
+        shortName,
+        email,
+        picture: avatar
+      };
+
+      advanceToPasswordChallenge(customAcc);
+    };
+
+    customNextBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleCustomAccountNext();
+    });
+
+    customEmailInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCustomAccountNext();
+      }
+    });
+
+    // Password Challenge: Click User Pill to switch account (goes back to Chooser)
+    pwdUserPill?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showOauthView('chooser');
+    });
+
+    // Password Challenge: Show Password Checkbox
+    showPwdCb?.addEventListener('change', () => {
+      if (pwdInput) {
+        pwdInput.type = showPwdCb.checked ? 'text' : 'password';
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 4-Digit Gmail PIN Verification Modal Controller
+    // -------------------------------------------------------------
     const pinModal = document.getElementById('guardian-pin-modal');
     const pinTargetEmail = document.getElementById('pin-target-email');
     const pinInputs = [
@@ -384,7 +410,6 @@ class App {
     const pinVerifyBtn = document.getElementById('pin-verify-submit-btn');
     const pinResendBtn = document.getElementById('pin-resend-btn');
 
-    // 1-Minute (60s) Resend Countdown Timer Controller
     let resendTimerInterval = null;
     let resendCountdown = 60;
 
@@ -431,38 +456,29 @@ class App {
       }, 1000);
     };
 
-    // 5. Step 1: Confirm Authorization & Sign In -> Generate 4-PIN & Send to Target Gmail
-    authConfirmBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (authConsentCb && !authConsentCb.checked) {
-        window.notifManager.showToast('Please agree to the Privacy Policy and Terms of Service to authorize PawTrack.', 'error');
+    // Password Challenge: Submit Password & Trigger Real-Time PIN Dispatch
+    const handlePasswordSubmit = () => {
+      const pwdVal = (pwdInput?.value || '').trim();
+      if (!pwdVal) {
+        window.notifManager.showToast('Please enter your Google account password to continue.', 'warning');
+        pwdInput?.focus();
         return;
       }
 
-      const rawEmail = (authEmailInput?.value || '').trim();
-      if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) {
-        window.notifManager.showToast('Please enter a valid Gmail / Google Account address.', 'warning');
-        authEmailInput?.focus();
-        return;
-      }
-
-      const rawName = (authNameInput?.value || '').trim() || rawEmail.split('@')[0];
-      const shortName = rawName.split(' ')[0] || rawName;
-      const avatarPicture = getAvatarForAccount(rawEmail, rawName, currentCustomAvatar);
       const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
 
       this.pendingAuth = {
-        name: rawName,
-        shortName,
-        email: rawEmail,
-        picture: avatarPicture,
+        name: activeOauthAccount.name,
+        shortName: activeOauthAccount.shortName || activeOauthAccount.name.split(' ')[0] || 'User',
+        email: activeOauthAccount.email,
+        picture: activeOauthAccount.picture || getAvatarForAccount(activeOauthAccount.email, activeOauthAccount.name),
         pin: generatedPin
       };
 
       if (authModal) window.notifManager.closeModal('google-auth-modal');
-      if (pinTargetEmail) pinTargetEmail.textContent = rawEmail;
+      if (pinTargetEmail) pinTargetEmail.textContent = activeOauthAccount.email;
 
-      // Clear previous inputs
+      // Clear previous PIN inputs
       pinInputs.forEach(input => {
         if (input) {
           input.value = '';
@@ -475,20 +491,31 @@ class App {
         setTimeout(() => pinInputs[0]?.focus(), 150);
       }
 
-      // Start 60s resend timer
       startResendCountdown(60);
 
-      // Dispatch 4-digit PIN to recipient's Gmail inbox via backend endpoint
+      // Real-time transactional email dispatch to the user's Gmail
       fetch('/api/send-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: rawEmail, name: rawName, pin: generatedPin })
+        body: JSON.stringify({ email: activeOauthAccount.email, name: activeOauthAccount.name, pin: generatedPin })
       }).catch(err => console.warn('[Send PIN API Notice]:', err));
 
-      window.notifManager.showToast(`Security PIN sent to ${rawEmail}. Please check your primary inbox.`, 'info');
+      window.notifManager.showToast(`Security PIN sent to ${activeOauthAccount.email}. Please check your Gmail primary inbox.`, 'info');
+    };
+
+    pwdNextBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      handlePasswordSubmit();
     });
 
-    // 2. Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
+    pwdInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handlePasswordSubmit();
+      }
+    });
+
+    // Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
     pinInputs.forEach((input, index) => {
       if (!input) return;
 
@@ -550,7 +577,7 @@ class App {
           name: this.pendingAuth.name,
           shortName: this.pendingAuth.shortName,
           email: this.pendingAuth.email,
-          picture: this.pendingAuth.picture || currentAvatarData || 'images/user-avatar.png',
+          picture: this.pendingAuth.picture || 'images/user-avatar.png',
           avatarInitial: (this.pendingAuth.name[0] || 'D').toUpperCase(),
           avatarBg: '#1a73e8',
           verified: true,

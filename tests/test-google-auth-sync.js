@@ -39,12 +39,18 @@ assert(appJs.includes('/api/send-pin'), 'app.js must call /api/send-pin to dispa
 assert(appJs.includes('startResendCountdown'), 'app.js must include startResendCountdown controller');
 console.log('[PASS] /api/send-pin backend endpoint and 60-second countdown controller are configured.');
 
-// Ensure CSS supports avatar image rendering and PIN boxes
-assert(compCss.includes('.header-avatar-circle img'), 'components.css must define .header-avatar-circle img styling');
+// Ensure CSS supports avatar image rendering, Google OAuth box, and PIN boxes
+assert(compCss.includes('.google-oauth-box'), 'components.css must define .google-oauth-box styling');
+assert(compCss.includes('.google-account-item'), 'components.css must define .google-account-item styling');
 assert(compCss.includes('.pin-digit-box'), 'components.css must define .pin-digit-box styling');
-assert(indexHtml.includes('id="google-auth-avatar-upload"'), 'index.html must include photo upload input');
-assert(indexHtml.includes('id="auth-detect-browser-btn"'), 'index.html must include browser account sync button');
-console.log('[PASS] CSS avatar, photo upload trigger, and browser detection sync button are configured.');
+assert(indexHtml.includes('id="google-oauth-view-chooser"'), 'index.html must include #google-oauth-view-chooser');
+assert(indexHtml.includes('id="google-oauth-view-pwd"'), 'index.html must include #google-oauth-view-pwd');
+assert(indexHtml.includes('id="google-oauth-view-custom"'), 'index.html must include #google-oauth-view-custom');
+assert(indexHtml.includes('id="google-account-select-btn"'), 'index.html must include #google-account-select-btn');
+assert(indexHtml.includes('id="google-use-another-btn"'), 'index.html must include #google-use-another-btn');
+assert(indexHtml.includes('id="google-oauth-pwd-input"'), 'index.html must include #google-oauth-pwd-input');
+assert(indexHtml.includes('id="google-pwd-next-btn"'), 'index.html must include #google-pwd-next-btn');
+console.log('[PASS] CSS and Google OAuth account chooser + password challenge elements are configured.');
 
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
