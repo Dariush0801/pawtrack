@@ -1542,53 +1542,6 @@
     </div>
   </div>
 
-  <!-- 17. 4-Digit Gmail PIN Verification Modal -->
-  <div class="modal-overlay" id="guardian-pin-modal">
-    <div class="modal-box" style="max-width: 460px; background: #18191e; color: #e2e8f0; border: 1px solid #2d3139; border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
-      <div class="modal-header" style="border-bottom: 1px solid #2d3139; padding: 16px 20px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(26, 115, 232, 0.15); color: #8ab4f8; display: grid; place-items: center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <div>
-            <div style="font-weight: 700; font-size: 16px; color: #fff;">Verify Gmail Ownership</div>
-            <div style="font-size: 11.5px; color: #94a3b8;">4-Digit Pet Guardian Security PIN</div>
-          </div>
-        </div>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('guardian-pin-modal')" aria-label="Close" style="color:#9aa0a6;">&times;</button>
-      </div>
-
-      <div class="modal-body" style="padding: 20px; display:flex; flex-direction:column; gap:16px; text-align:center;">
-        <div style="font-size: 13.5px; color: #cbd5e1; line-height: 1.5;">
-          We sent a 4-digit verification PIN to your Google/Gmail account:
-        </div>
-
-        <div style="display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:8px 14px; background:#22242c; border-radius:8px; border:1px solid #323642; margin:0 auto;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8ab4f8" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <strong id="pin-target-email" style="color:#fff; font-size:13px;">aguilar.dariushdave.gasang@gmail.com</strong>
-        </div>
-
-        <!-- 4 PIN Input Digits -->
-        <div class="pin-input-container">
-          <input type="text" maxlength="1" class="pin-digit-box" id="pin-input-1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
-          <input type="text" maxlength="1" class="pin-digit-box" id="pin-input-2" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
-          <input type="text" maxlength="1" class="pin-digit-box" id="pin-input-3" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
-          <input type="text" maxlength="1" class="pin-digit-box" id="pin-input-4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
-        </div>
-
-        <div style="font-size: 12px; color: #94a3b8; display:flex; align-items:center; justify-content:center; gap:6px;">
-          <span>Didn't receive the email?</span>
-          <button type="button" id="pin-resend-btn" style="background:transparent; border:none; color:#8ab4f8; font-weight:700; cursor:pointer; text-decoration:underline; font-size:12px; padding:0;">Resend PIN</button>
-          <span id="pin-timer-badge" style="font-size:11px; color:#64748b;">(in 60s)</span>
-        </div>
-      </div>
-
-      <div class="modal-footer" style="border-top:1px solid #2d3139; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;">
-        <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('guardian-pin-modal')" style="color:#94a3b8; border-color:#333846;">Back</button>
-        <button type="button" id="pin-verify-submit-btn" class="btn btn-primary" style="background:#1a73e8; border:none; padding:9px 22px; font-weight:700;">Verify &amp; Activate Profile</button>
-      </div>
-    </div>
-  </div>
 
   <!-- 18. Interactive Privacy Policy Modal -->
   <div class="modal-overlay" id="privacy-policy-modal">

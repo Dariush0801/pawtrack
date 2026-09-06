@@ -21,35 +21,20 @@ const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.
 // Ensure modals are present in index.html
 assert(indexHtml.includes('id="login-dialog-modal"'), 'index.html must include #login-dialog-modal');
 assert(!indexHtml.includes('id="google-auth-modal"'), 'index.html must NOT include legacy #google-auth-modal');
-assert(indexHtml.includes('id="guardian-pin-modal"'), 'index.html must include #guardian-pin-modal');
+assert(!indexHtml.includes('id="guardian-pin-modal"'), 'index.html must NOT include #guardian-pin-modal');
 assert(indexHtml.includes('id="privacy-policy-modal"'), 'index.html must include #privacy-policy-modal');
 assert(indexHtml.includes('id="terms-modal"'), 'index.html must include #terms-modal');
-assert(indexHtml.includes('id="pin-timer-badge"'), 'index.html must include #pin-timer-badge');
-console.log('[PASS] Login Collaborate Dialog, 4-PIN verification, and Policy modals are present in index.html.');
+console.log('[PASS] Login Collaborate Dialog and Policy modals are present in index.html.');
 
-// Ensure 4-PIN digit boxes are in index.html and auto-fill helper is removed
-assert(indexHtml.includes('id="pin-input-1"'), 'index.html must include #pin-input-1');
-assert(indexHtml.includes('id="pin-input-4"'), 'index.html must include #pin-input-4');
-assert(!indexHtml.includes('id="pin-autofill-btn"'), 'index.html must NOT expose auto-fill PIN button on screen');
-console.log('[PASS] 4-digit PIN input fields are present and on-screen PIN display is removed.');
-
-// Ensure backend send-pin endpoint files exist
-const sendPinApi = path.join(__dirname, '..', 'api', 'send-pin.js');
-assert(fs.existsSync(sendPinApi), 'api/send-pin.js must exist for Vercel deployment');
-assert(appJs.includes('/api/send-pin'), 'app.js must call /api/send-pin to dispatch verification PIN');
-assert(appJs.includes('startResendCountdown'), 'app.js must include startResendCountdown controller');
-console.log('[PASS] /api/send-pin backend endpoint and 60-second countdown controller are configured.');
-
-// Ensure CSS supports avatar image rendering, Login Dialog, and PIN boxes
+// Ensure CSS supports avatar image rendering and Login Dialog
 assert(compCss.includes('.auth-dialog-card'), 'components.css must define .auth-dialog-card styling');
 assert(compCss.includes('.auth-google-continue-btn'), 'components.css must define .auth-google-continue-btn styling');
-assert(compCss.includes('.pin-digit-box'), 'components.css must define .pin-digit-box styling');
 assert(indexHtml.includes('id="login-dialog-google-btn"'), 'index.html must include #login-dialog-google-btn');
 assert(indexHtml.includes('id="login-dialog-form"'), 'index.html must include #login-dialog-form');
 assert(indexHtml.includes('id="login-dialog-email"'), 'index.html must include #login-dialog-email');
 assert(indexHtml.includes('id="login-dialog-pwd"'), 'index.html must include #login-dialog-pwd');
 assert(indexHtml.includes('id="login-dialog-submit-btn"'), 'index.html must include #login-dialog-submit-btn');
-console.log('[PASS] CSS and Collaborate Login Dialog + 4-PIN verification elements are configured.');
+console.log('[PASS] CSS and Collaborate Login Dialog elements are configured.');
 
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
@@ -70,32 +55,18 @@ const mockDom = {
   'google-onetap-prompt': { style: { display: 'none' } },
   'google-required-modal': { style: { display: 'none' } },
   'login-dialog-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
-  'guardian-pin-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
   'app-viewport': { innerHTML: '' }
 };
 
-// Simulate 4-PIN PIN Verification & Google User Authorization
+// Simulate Direct Login & Google User Authorization
 const sampleEmail = 'aguilar.dariushdave.gasang@gmail.com';
 const sampleName = 'Dariush Dave';
-const generatedPin = '4829';
 
-const pendingAuth = {
+currentUser = {
   name: sampleName,
   shortName: 'Dariush',
   email: sampleEmail,
   picture: 'images/user-avatar.png',
-  pin: generatedPin
-};
-
-// Simulate PIN check
-const enteredPin = '4829';
-assert.strictEqual(enteredPin, pendingAuth.pin, 'PIN match validation');
-
-currentUser = {
-  name: pendingAuth.name,
-  shortName: pendingAuth.shortName,
-  email: pendingAuth.email,
-  picture: pendingAuth.picture,
   avatarInitial: 'D',
   avatarBg: '#1a73e8',
   verified: true,
@@ -168,9 +139,8 @@ assert(mockDom['guardian-modal-avatar'].innerHTML.includes('images/user-avatar.p
 
 assert.strictEqual(mockDom['reg-owner-name'].value, 'Dariush Dave');
 
-console.log('[PASS] 4-PIN PIN matched and verified successfully.');
 console.log('[PASS] Header user pill displays "Dariush" with avatar photo.');
 console.log('[PASS] Dropdown displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
 console.log('[PASS] Guardian Profile modal displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
 console.log('[PASS] Pet Registration automatically prefills owner as "Dariush Dave".');
-console.log('\n=== All 4-PIN Verification & Profile Connection Tests Passed! ===');
+console.log('\n=== All Direct Login & Profile Connection Tests Passed! ===');

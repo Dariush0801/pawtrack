@@ -225,67 +225,9 @@ class App {
     };
 
     // -------------------------------------------------------------
-    // 4-Digit Gmail PIN Verification Modal Controller
+    // Direct User Authentication Handler
     // -------------------------------------------------------------
-    const pinModal = document.getElementById('guardian-pin-modal');
-    const pinTargetEmail = document.getElementById('pin-target-email');
-    const pinInputs = [
-      document.getElementById('pin-input-1'),
-      document.getElementById('pin-input-2'),
-      document.getElementById('pin-input-3'),
-      document.getElementById('pin-input-4')
-    ];
-    const pinVerifyBtn = document.getElementById('pin-verify-submit-btn');
-    const pinResendBtn = document.getElementById('pin-resend-btn');
-
-    let resendTimerInterval = null;
-    let resendCountdown = 60;
-
-    const startResendCountdown = (seconds = 60) => {
-      if (resendTimerInterval) {
-        clearInterval(resendTimerInterval);
-        resendTimerInterval = null;
-      }
-      resendCountdown = seconds;
-      if (pinResendBtn) {
-        pinResendBtn.disabled = true;
-        pinResendBtn.style.opacity = '0.45';
-        pinResendBtn.style.cursor = 'not-allowed';
-        pinResendBtn.style.pointerEvents = 'none';
-      }
-      const timerBadge = document.getElementById('pin-timer-badge');
-      const updateBadge = () => {
-        if (!timerBadge) return;
-        if (resendCountdown > 0) {
-          timerBadge.textContent = `(in ${resendCountdown}s)`;
-          timerBadge.style.display = 'inline';
-        } else {
-          timerBadge.textContent = '(Ready)';
-          timerBadge.style.display = 'none';
-        }
-      };
-      updateBadge();
-
-      resendTimerInterval = setInterval(() => {
-        resendCountdown--;
-        if (resendCountdown <= 0) {
-          clearInterval(resendTimerInterval);
-          resendTimerInterval = null;
-          if (pinResendBtn) {
-            pinResendBtn.disabled = false;
-            pinResendBtn.style.opacity = '1';
-            pinResendBtn.style.cursor = 'pointer';
-            pinResendBtn.style.pointerEvents = 'auto';
-          }
-          updateBadge();
-        } else {
-          updateBadge();
-        }
-      }, 1000);
-    };
-
-    // Helper: Dispatch 4-digit PIN to user's Gmail and open verification modal
-    const dispatchPinAndOpenVerification = (targetEmail = '', customName = '') => {
+    const performDirectLogin = (targetEmail = '', customName = '') => {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
 
@@ -310,160 +252,28 @@ class App {
         avatarPic = getAvatarForAccount(email, accountName);
       }
 
-      const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-
-      this.pendingAuth = {
+      const shortName = accountName.split(' ')[0] || accountName;
+      const userObj = {
         name: accountName,
-        shortName: accountName.split(' ')[0] || accountName,
-        email,
+        shortName: shortName,
+        email: email,
         picture: avatarPic,
-        pin: generatedPin
+        avatarInitial: (accountName[0] || 'D').toUpperCase(),
+        avatarBg: '#1a73e8',
+        verified: true,
+        emailVerified: true,
+        authenticatedAt: new Date().toISOString()
       };
 
+      try {
+        localStorage.setItem('pawtrack_last_email', userObj.email);
+      } catch (e) {}
+
+      window.pawStore.setGoogleUser(userObj);
+      this.updateGoogleAuthUI();
       if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      if (pinTargetEmail) pinTargetEmail.textContent = email;
-
-      // Clear previous PIN inputs
-      pinInputs.forEach(input => {
-        if (input) {
-          input.value = '';
-          input.classList.remove('filled', 'error');
-        }
-      });
-
-      if (pinModal) {
-        window.notifManager.openModal('guardian-pin-modal');
-        setTimeout(() => pinInputs[0]?.focus(), 150);
-      }
-
-      startResendCountdown(60);
-
-      // Real-time transactional email dispatch to the user's Gmail
-      fetch('/api/send-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name: accountName, pin: generatedPin })
-      }).catch(err => console.warn('[Send PIN API Notice]:', err));
-
-      window.notifManager.showToast(`Security PIN [${generatedPin}] sent to ${email}. Please check your primary Gmail inbox.`, 'info');
+      window.notifManager.showToast(`Logged in successfully as ${userObj.name} (${userObj.email}).`, 'success');
     };
-
-    // Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
-    pinInputs.forEach((input, index) => {
-      if (!input) return;
-
-      input.addEventListener('input', (e) => {
-        const val = input.value.replace(/\D/g, '');
-        input.value = val ? val[0] : '';
-
-        if (input.value) {
-          input.classList.add('filled');
-          input.classList.remove('error');
-          if (index < pinInputs.length - 1) {
-            pinInputs[index + 1]?.focus();
-          }
-        } else {
-          input.classList.remove('filled');
-        }
-
-        // If all 4 inputs filled, auto trigger verify
-        const enteredPin = pinInputs.map(i => i?.value || '').join('');
-        if (enteredPin.length === 4) {
-          this.verifyGuardianPin();
-        }
-      });
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Backspace' && !input.value && index > 0) {
-          pinInputs[index - 1]?.focus();
-        }
-      });
-
-      input.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
-        if (pasted.length >= 4) {
-          for (let i = 0; i < 4; i++) {
-            if (pinInputs[i]) {
-              pinInputs[i].value = pasted[i];
-              pinInputs[i].classList.add('filled');
-              pinInputs[i].classList.remove('error');
-            }
-          }
-          this.verifyGuardianPin();
-        }
-      });
-    });
-
-    // Verify PIN Function
-    this.verifyGuardianPin = () => {
-      if (!this.pendingAuth) return;
-
-      const enteredPin = pinInputs.map(i => i?.value || '').join('');
-      if (enteredPin.length < 4) {
-        window.notifManager.showToast('Please enter the full 4-digit security PIN.', 'warning');
-        return;
-      }
-
-      if (enteredPin === this.pendingAuth.pin) {
-        const userObj = {
-          name: this.pendingAuth.name,
-          shortName: this.pendingAuth.shortName,
-          email: this.pendingAuth.email,
-          picture: this.pendingAuth.picture || 'images/user-avatar.png',
-          avatarInitial: (this.pendingAuth.name[0] || 'D').toUpperCase(),
-          avatarBg: '#1a73e8',
-          verified: true,
-          emailVerified: true,
-          authenticatedAt: new Date().toISOString()
-        };
-
-        try {
-          localStorage.setItem('pawtrack_last_email', userObj.email);
-        } catch (e) {}
-
-        window.pawStore.setGoogleUser(userObj);
-        this.updateGoogleAuthUI();
-        if (pinModal) window.notifManager.closeModal('guardian-pin-modal');
-        if (onetapPrompt) onetapPrompt.style.display = 'none';
-        if (warningModal) warningModal.style.display = 'none';
-        window.notifManager.showToast(`Guardian email verified! Connected as ${userObj.name} (${userObj.email}).`, 'success');
-      } else {
-        pinInputs.forEach(i => i?.classList.add('error'));
-        window.notifManager.showToast('Incorrect 4-digit PIN. Please check your Gmail primary inbox.', 'danger');
-      }
-    };
-
-    pinVerifyBtn?.addEventListener('click', () => {
-      this.verifyGuardianPin();
-    });
-
-    // Resend PIN with 1-minute countdown lock
-    pinResendBtn?.addEventListener('click', () => {
-      if (!this.pendingAuth || resendCountdown > 0) return;
-      const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-      this.pendingAuth.pin = newPin;
-
-      pinInputs.forEach(input => {
-        if (input) {
-          input.value = '';
-          input.classList.remove('filled', 'error');
-        }
-      });
-      pinInputs[0]?.focus();
-
-      // Start 60s countdown lock
-      startResendCountdown(60);
-
-      // Dispatch new PIN to Gmail
-      fetch('/api/send-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: this.pendingAuth.email, name: this.pendingAuth.name, pin: newPin })
-      }).catch(err => console.warn('[Send PIN API Notice]:', err));
-
-      window.notifManager.showToast(`A fresh verification PIN [${newPin}] has been sent to your Gmail (${this.pendingAuth.email}).`, 'info');
-    });
 
     // -------------------------------------------------------------
     // Login / Collaborate Dialog Modal Controller
@@ -476,11 +286,11 @@ class App {
     const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
     const loginDialogCreate = document.getElementById('login-dialog-create-btn');
 
-    // "Continue with Google" -> triggers direct PIN verification to entered email or default
+    // "Continue with Google" -> triggers direct login to entered email or default
     loginDialogGoogleBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       const typedEmail = (loginDialogEmail?.value || '').trim();
-      dispatchPinAndOpenVerification(typedEmail);
+      performDirectLogin(typedEmail);
     });
 
     // "Log in" form submission with Email & Password
@@ -501,7 +311,7 @@ class App {
         return;
       }
 
-      dispatchPinAndOpenVerification(email);
+      performDirectLogin(email);
     });
 
     // "Reset password"
@@ -520,13 +330,13 @@ class App {
     loginDialogCreate?.addEventListener('click', (e) => {
       e.preventDefault();
       loginDialogEmail?.focus();
-      window.notifManager.showToast('Enter your Gmail address above and click Continue with Google or Log in to get started.', 'info');
+      window.notifManager.showToast('Enter your email address above and password, then click Log in or Continue with Google.', 'info');
     });
 
     // Sign in with Google Button (Trigger Authorization Flow)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      dispatchPinAndOpenVerification();
+      performDirectLogin();
     });
 
     // Continue as Guest
@@ -543,7 +353,7 @@ class App {
       if (loginDialogModal) {
         window.notifManager.openModal('login-dialog-modal');
       } else {
-        dispatchPinAndOpenVerification();
+        performDirectLogin();
       }
     });
 
