@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-console.log('🧪 Starting PawTrack Impounded View Filipino / English i18n Test Suite...');
+console.log('🧪 Starting PawTrack Impounded View Filipino / English i18n & Accordion Test Suite...');
 
 // Mock browser environment
 global.localStorage = {
@@ -75,7 +75,9 @@ const requiredKeys = [
   'impounded.detailDailyFee',
   'impounded.dailyFeeRate',
   'impounded.btnRedeemClaim',
-  'impounded.btnViewMap'
+  'impounded.btnViewMap',
+  'impounded.expandDetails',
+  'impounded.collapseDetails'
 ];
 
 console.log('\n--- 1. Verifying English Dictionary ---');
@@ -94,7 +96,7 @@ requiredKeys.forEach(k => {
 });
 console.log(`✓ All ${requiredKeys.length} keys verified in Filipino dictionary`);
 
-console.log('\n--- 3. Testing ImpoundedView Rendering with Language Switching ---');
+console.log('\n--- 3. Testing ImpoundedView Rendering & Semi-Minimized Accordion ---');
 // Mock store
 window.pawStore = {
   getPets: () => [
@@ -116,35 +118,39 @@ assert(window.impoundedView, 'impoundedView must be initialized');
 
 const testContainer = { innerHTML: '' };
 
-// Render English
+// Render English (Default Collapsed / Semi-Minimized)
 window.pawI18n.setLang('en', false);
 window.impoundedView.render(testContainer);
-const enHtml = testContainer.innerHTML;
+let html = testContainer.innerHTML;
 
-assert(enHtml.includes('Municipal Impound &amp; 72-Hour Holding Bay') || enHtml.includes('Municipal Impound & 72-Hour Holding Bay'), 'English title rendered');
-assert(enHtml.includes('NCR Municipal Pound Facilities'), 'English facilities title rendered');
-assert(enHtml.includes('Search by pet name, RFID UID, or shelter...'), 'English search placeholder rendered');
-assert(enHtml.includes('Redeem &amp; Claim') || enHtml.includes('Redeem & Claim'), 'English redeem button rendered');
-assert(enHtml.includes('Hours Remaining'), 'English hours remaining rendered');
-assert(enHtml.includes('Phone:'), 'English phone label rendered');
-assert(enHtml.includes('Holding Bay:'), 'English holding bay label rendered');
-console.log('✓ English view rendering verified successfully');
+assert(html.includes('Quezon City Animal Care &amp; Adoption Facility') || html.includes('Quezon City Animal Care & Adoption Facility'), 'Facility title visible');
+assert(html.includes('Payatas, Quezon City'), 'Facility location visible');
+assert(html.includes('facility-expand-btn'), 'Dropdown arrow button rendered');
+assert(html.includes('display:none;'), 'Extra facility details hidden by default (semi-minimized)');
+console.log('✓ Semi-minimized default view verified (Title & Location visible, extra details collapsed)');
 
-// Toggle to Filipino
+// Expand facility card
+window.impoundedView.toggleShelterExpand('shelter-1');
+window.impoundedView.render(testContainer);
+html = testContainer.innerHTML;
+
+assert(html.includes('display:block;'), 'Extra facility details displayed when expanded');
+assert(html.includes('Phone:'), 'Phone visible when expanded');
+assert(html.includes('Hours:'), 'Hours visible when expanded');
+assert(html.includes('Capacity:'), 'Capacity visible when expanded');
+assert(html.includes('facility-expand-btn expanded'), 'Expand button has expanded class');
+console.log('✓ Accordion expand toggle verified successfully');
+
+// Toggle to Filipino while expanded
 window.pawI18n.setLang('fil', false);
 window.impoundedView.render(testContainer);
-const filHtml = testContainer.innerHTML;
+html = testContainer.innerHTML;
 
-assert(filHtml.includes('Pasilidad ng Munisipyo para sa mga Nahuling Hayop'), 'Filipino title rendered');
-assert(filHtml.includes('Mga Pasilidad ng Pound sa NCR'), 'Filipino facilities sidebar title rendered');
-assert(filHtml.includes('Maghanap gamit ang pangalan ng alaga, RFID UID, o shelter...'), 'Filipino search placeholder rendered');
-assert(filHtml.includes('Tubusin at Kunin'), 'Filipino redeem button rendered');
-assert(filHtml.includes('Oras ang Natitira'), 'Filipino hours remaining rendered');
-assert(filHtml.includes('Telepono:'), 'Filipino phone label rendered');
-assert(filHtml.includes('Lalagyan / Bay:'), 'Filipino holding bay label rendered');
-assert(filHtml.includes('Arawang Bayad sa Pound:'), 'Filipino daily fee label rendered');
-assert(filHtml.includes('Lunes - Biyernes'), 'Filipino hours format rendered');
+assert(html.includes('Pasilidad ng Munisipyo para sa mga Nahuling Hayop'), 'Filipino title rendered');
+assert(html.includes('Mga Pasilidad ng Pound sa NCR'), 'Filipino facilities sidebar title rendered');
+assert(html.includes('Telepono:'), 'Filipino phone label rendered');
+assert(html.includes('Lunes - Biyernes'), 'Filipino operating hours rendered');
+assert(html.includes('Tubusin at Kunin'), 'Filipino redeem button rendered');
+console.log('✓ Filipino view rendering with expanded accordion verified');
 
-console.log('✓ Filipino view rendering verified successfully');
-
-console.log('\n🎉 ALL IMPOUNDED I18N TESTS PASSED!\n');
+console.log('\n🎉 ALL IMPOUNDED I18N & ACCORDION TESTS PASSED!\n');

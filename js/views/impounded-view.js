@@ -6,6 +6,7 @@ class ImpoundedView {
   constructor() {
     this.searchQuery = '';
     this.filterShelter = 'all';
+    this.expandedShelters = new Set();
   }
 
   setFilterShelter(shelterId) {
@@ -16,6 +17,20 @@ class ImpoundedView {
 
   handleSearch(e) {
     this.searchQuery = (e.target.value || '').toLowerCase().trim();
+    const container = document.getElementById('app-viewport');
+    if (container) this.render(container);
+  }
+
+  toggleShelterExpand(shelterId, e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (this.expandedShelters.has(shelterId)) {
+      this.expandedShelters.delete(shelterId);
+    } else {
+      this.expandedShelters.add(shelterId);
+    }
     const container = document.getElementById('app-viewport');
     if (container) this.render(container);
   }
@@ -122,19 +137,30 @@ class ImpoundedView {
           <div style="display:flex; flex-direction:column; gap:0.85rem;">
             ${shelters.map(s => {
               const isSelected = this.filterShelter === s.id;
+              const isExpanded = this.expandedShelters.has(s.id);
               const count = activeImpoundments.filter(i => i.shelterId === s.id || (i.shelterName && i.shelterName.toLowerCase().includes(s.name.toLowerCase().split(' ')[0]))).length;
               const petSuffix = count === 1 ? t('impounded.petSingular', 'Pet') : t('impounded.petPlural', 'Pets');
               const formattedHours = this.formatHours(s.hours);
               return `
-                <div class="glass-card facility-sidebar-card ${isSelected ? 'active' : ''}" onclick="window.impoundedView.setFilterShelter('${isSelected ? 'all' : s.id}')" style="padding:15px 16px; border-radius:12px; cursor:pointer; border:1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}; background:${isSelected ? 'rgba(194,65,12,0.1)' : 'var(--bg-surface-elevated, rgba(255,255,255,0.03))'};">
+                <div class="glass-card facility-sidebar-card ${isSelected ? 'active' : ''} ${isExpanded ? 'expanded' : ''}" onclick="window.impoundedView.setFilterShelter('${isSelected ? 'all' : s.id}')" style="padding:14px 16px; border-radius:12px; cursor:pointer; border:1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}; background:${isSelected ? 'rgba(194,65,12,0.1)' : 'var(--bg-surface-elevated, rgba(255,255,255,0.03))'};">
+                  <!-- Semi-Minimized Header: Facility Title, Pet Count, and Dropdown Arrow Button -->
                   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">
-                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--text-main); line-height:1.35;">${s.name}</h4>
-                    <span class="badge" style="background:${isSelected ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; color:${isSelected ? '#ffffff' : 'var(--text-muted)'}; font-size:10.5px; padding:2px 7px; flex-shrink:0;">
-                      ${count} ${petSuffix}
-                    </span>
+                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--text-main); line-height:1.35; flex:1;">${s.name}</h4>
+                    <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                      <span class="badge" style="background:${isSelected ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; color:${isSelected ? '#ffffff' : 'var(--text-muted)'}; font-size:10.5px; padding:2px 7px;">
+                        ${count} ${petSuffix}
+                      </span>
+                      <button type="button" class="facility-expand-btn ${isExpanded ? 'expanded' : ''}" onclick="window.impoundedView.toggleShelterExpand('${s.id}', event)" title="${isExpanded ? t('impounded.collapseDetails', 'Show less') : t('impounded.expandDetails', 'Show more information')}" aria-label="Toggle facility details">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="facility-chevron-icon"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </button>
+                    </div>
                   </div>
-                  <p style="font-size:0.78rem; color:var(--text-muted); margin:0 0 10px; line-height:1.35;">${s.address}</p>
-                  <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-subtle); padding-top:8px;">
+
+                  <!-- Location / Address Line -->
+                  <p style="font-size:0.78rem; color:var(--text-muted); margin:0; line-height:1.35;">${s.address}</p>
+
+                  <!-- Expandable Details Section (Dropdown on Arrow Click) -->
+                  <div class="facility-details-dropdown ${isExpanded ? 'open' : ''}" style="${isExpanded ? 'display:block;' : 'display:none;'} font-size:0.75rem; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-subtle); margin-top:10px; padding-top:8px;">
                     <div><strong>${t('impounded.phoneLabel', 'Phone:')}</strong> ${s.phone}</div>
                     <div><strong>${t('impounded.hoursLabel', 'Hours:')}</strong> ${formattedHours}</div>
                     <div><strong>${t('impounded.capacityLabel', 'Capacity:')}</strong> ${s.capacity} ${t('impounded.kennels', 'Kennels')} (${s.holdingPeriodDays}-${t('impounded.holdingWindow', 'Day Holding Window')})</div>

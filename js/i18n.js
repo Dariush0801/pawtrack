@@ -236,6 +236,8 @@
       'impounded.dailyFeeRate': 'PHP 500 / day',
       'impounded.btnRedeemClaim': 'Redeem & Claim',
       'impounded.btnViewMap': 'View Facility on Map',
+      'impounded.expandDetails': 'Show more information',
+      'impounded.collapseDetails': 'Show less',
 
       // Hardware Specs (Universal Smartphone NFC & RFID)
       'hardware.title': 'Universal NFC & RFID Collar Tag Specifications',
@@ -620,6 +622,8 @@
       'impounded.dailyFeeRate': 'PHP 500 / araw',
       'impounded.btnRedeemClaim': 'Tubusin at Kunin',
       'impounded.btnViewMap': 'Tingnan ang Pasilidad sa Mapa',
+      'impounded.expandDetails': 'Ipakita ang higit pang detalye',
+      'impounded.collapseDetails': 'Itago ang detalye',
 
       // Hardware Specs (Universal Smartphone NFC & RFID - Filipino)
       'hardware.title': 'Impormasyon sa Universal NFC at RFID Collar Tag',

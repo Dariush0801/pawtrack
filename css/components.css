@@ -5655,7 +5655,49 @@
   box-shadow: 0 4px 14px rgba(194, 65, 12, 0.2);
 }
 
+.facility-expand-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.05));
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
 
+.facility-expand-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: scale(1.08);
+}
 
+.facility-chevron-icon {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
 
+.facility-expand-btn.expanded .facility-chevron-icon {
+  transform: rotate(180deg);
+}
 
+.facility-details-dropdown {
+  animation: facilitySlideDown 0.22s ease-out;
+}
+
+@keyframes facilitySlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
