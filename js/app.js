@@ -520,7 +520,7 @@ class App {
         body: JSON.stringify({ email: activeOauthAccount.email, name: activeOauthAccount.name, pin: generatedPin })
       }).catch(err => console.warn('[Send PIN API Notice]:', err));
 
-      window.notifManager.showToast(`Security PIN sent to ${activeOauthAccount.email}. Please check your Gmail primary inbox.`, 'info');
+      window.notifManager.showToast(`Security PIN [${generatedPin}] sent to ${activeOauthAccount.email}. Please check your primary Gmail inbox.`, 'info');
     };
 
     pwdNextBtn?.addEventListener('click', (e) => {
@@ -649,7 +649,7 @@ class App {
         body: JSON.stringify({ email: this.pendingAuth.email, name: this.pendingAuth.name, pin: newPin })
       }).catch(err => console.warn('[Send PIN API Notice]:', err));
 
-      window.notifManager.showToast(`A fresh verification PIN has been sent to your Gmail (${this.pendingAuth.email}).`, 'info');
+      window.notifManager.showToast(`A fresh verification PIN [${newPin}] has been sent to your Gmail (${this.pendingAuth.email}).`, 'info');
     });
 
     // -------------------------------------------------------------
@@ -756,7 +756,7 @@ class App {
         body: JSON.stringify({ email, name: accountName, pin: generatedPin })
       }).catch(err => console.warn('[Send PIN API Notice]:', err));
 
-      window.notifManager.showToast(`Verification PIN sent to ${email}. Please check your inbox.`, 'info');
+      window.notifManager.showToast(`Verification PIN [${generatedPin}] sent to ${email}. Please check your inbox.`, 'info');
     });
 
     // "Reset password"
