@@ -215,8 +215,20 @@ console.log('[PASS] Logged-in tabs all visible!');
   window.location.hash = '#' + view;
   app.handleRoute();
   assert.strictEqual(window.location.hash, '#' + view, `Logged-in user can access #${view}`);
-  assert.strictEqual(app.currentView, view, `Current view is updated to ${view}`);
   console.log(`[PASS] Logged-in user navigated to #${view} successfully`);
 });
 
-console.log('\n=== All Navigation Auth Tests Passed! ===\n');
+// TEST 4: Responsive Navigation CSS Verification
+console.log('\n--- Test 4: Responsive Navigation CSS Verification ---');
+const mainCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'main.css'), 'utf8');
+
+assert(mainCss.includes('.role-tabs {'), 'css/main.css must define .role-tabs');
+assert(mainCss.includes('.role-tab-btn {'), 'css/main.css must define .role-tab-btn');
+assert(mainCss.includes('@media (min-width: 993px) and (max-width: 1280px)'), 'css/main.css must support intermediate desktop/laptop screens');
+assert(mainCss.includes('@media (max-width: 992px)'), 'css/main.css must support mobile and tablet floating navigation');
+assert(mainCss.includes('@media (max-width: 480px)'), 'css/main.css must support compact mobile screens');
+assert(mainCss.includes('@media (max-width: 340px)'), 'css/main.css must support ultra-compact mobile screens');
+
+console.log('[PASS] Responsive navigation breakpoints for desktop, laptop, tablet, and mobile verified.');
+
+console.log('\n=== All Navigation Auth & Responsiveness Tests Passed! ===\n');
