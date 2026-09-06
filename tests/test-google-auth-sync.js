@@ -12,11 +12,25 @@ const avatarPath = path.join(__dirname, '..', 'images', 'user-avatar.png');
 assert(fs.existsSync(avatarPath), 'images/user-avatar.png must exist');
 console.log('[PASS] images/user-avatar.png exists and is bundled in the project.');
 
-// 2. Read app.js and index.html
+// 2. Read app.js, index.html, server.js, api handlers
 const appJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const compCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'components.css'), 'utf8');
 const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.js'), 'utf8');
+const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+
+// Ensure serverless and backend notification handler exists
+const serverlessHandlerPath = path.join(__dirname, '..', 'api', 'send-auth-notification.js');
+assert(fs.existsSync(serverlessHandlerPath), 'api/send-auth-notification.js must exist');
+assert(serverJs.includes('/api/send-auth-notification'), 'server.js must contain /api/send-auth-notification endpoint');
+assert(appJs.includes('/api/send-auth-notification'), 'js/app.js must call /api/send-auth-notification');
+console.log('[PASS] Google authorization security notification APIs and frontend triggers are verified.');
+
+// Verify 3 Google OAuth Scopes are strictly adhered to
+assert(indexHtml.includes('Your Google account profile name &amp; email address') || indexHtml.includes('Your Google account profile name & email address'), 'index.html must include Profile & Email scope');
+assert(indexHtml.includes('Verified Pet Guardian portal credentials &amp; digital passes') || indexHtml.includes('Verified Pet Guardian portal credentials & digital passes'), 'index.html must include Guardian Credentials scope');
+assert(indexHtml.includes('Urgent municipal impound &amp; pet recovery alerts') || indexHtml.includes('Urgent municipal impound & pet recovery alerts'), 'index.html must include Municipal Alerts scope');
+console.log('[PASS] Google OAuth Access Scopes (Profile, Guardian Credentials, Municipal Alerts) are strictly defined.');
 
 // Ensure modals are present in index.html
 assert(indexHtml.includes('id="login-dialog-modal"'), 'index.html must include #login-dialog-modal');

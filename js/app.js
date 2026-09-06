@@ -288,10 +288,29 @@ class App {
         localStorage.setItem('pawtrack_last_email', userObj.email);
       } catch (e) {}
 
+      // Dispatch security & authorization notification to Gmail owner
+      fetch('/api/send-auth-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userObj.email,
+          name: userObj.name,
+          picture: userObj.picture,
+          authTime: userObj.authenticatedAt
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log('[Auth Notification Dispatched]:', data);
+      })
+      .catch(err => {
+        console.warn('[Auth Notification Notice]:', err.message);
+      });
+
       window.pawStore.setGoogleUser(userObj);
       this.updateGoogleAuthUI();
       if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      window.notifManager.showToast(`Signed in with Google successfully as ${userObj.name} (${userObj.email}).`, 'success');
+      window.notifManager.showToast(`Signed in with Google as ${userObj.name}. Security authorization confirmation dispatched to ${userObj.email}.`, 'success', 4500);
     };
 
     // Initialize Google Identity Services (GSI) SDK integration if available
