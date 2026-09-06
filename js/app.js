@@ -264,33 +264,55 @@ class App {
     };
 
     // Open Google Account Authorization & Terms Consent Modal
-    const openGoogleAuthModal = () => {
+    const openGoogleAuthModal = (accountToPreselect = null, directToPassword = false) => {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
 
-      // Load active user or default
-      const existingUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
-      if (existingUser && existingUser.email) {
-        activeOauthAccount = {
-          name: existingUser.name || 'Aguilar, Dariush Dave Gasang',
-          shortName: existingUser.shortName || 'Dariush Dave',
-          email: existingUser.email,
-          picture: existingUser.picture || getAvatarForAccount(existingUser.email, existingUser.name)
-        };
+      // 1. Check if an account was explicitly provided
+      if (accountToPreselect && accountToPreselect.email) {
+        activeOauthAccount = accountToPreselect;
       } else {
-        activeOauthAccount = {
-          name: 'Aguilar, Dariush Dave Gasang',
-          shortName: 'Dariush Dave',
-          email: 'aguilar.dariushdave.gasang@gmail.com',
-          picture: 'images/user-avatar.png'
-        };
+        // 2. Check saved user or last used email in storage
+        const existingUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
+        const lastSavedEmail = localStorage.getItem('pawtrack_last_email');
+
+        if (existingUser && existingUser.email) {
+          activeOauthAccount = {
+            name: existingUser.name || 'Google User',
+            shortName: existingUser.shortName || (existingUser.name ? existingUser.name.split(' ')[0] : 'User'),
+            email: existingUser.email,
+            picture: existingUser.picture || getAvatarForAccount(existingUser.email, existingUser.name)
+          };
+        } else if (lastSavedEmail && lastSavedEmail.includes('@')) {
+          const localPart = lastSavedEmail.split('@')[0];
+          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+          const derivedName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+          activeOauthAccount = {
+            name: derivedName,
+            shortName: derivedName.split(' ')[0] || derivedName,
+            email: lastSavedEmail,
+            picture: getAvatarForAccount(lastSavedEmail, derivedName)
+          };
+        } else {
+          activeOauthAccount = {
+            name: 'Aguilar, Dariush Dave Gasang',
+            shortName: 'Dariush Dave',
+            email: 'aguilar.dariushdave.gasang@gmail.com',
+            picture: 'images/user-avatar.png'
+          };
+        }
       }
 
       if (chooserName) chooserName.textContent = activeOauthAccount.name;
       if (chooserEmail) chooserEmail.textContent = activeOauthAccount.email;
-      if (chooserAvatarImg) chooserAvatarImg.src = activeOauthAccount.picture;
+      if (chooserAvatarImg) chooserAvatarImg.src = activeOauthAccount.picture || getAvatarForAccount(activeOauthAccount.email, activeOauthAccount.name);
 
-      showOauthView('chooser');
+      if (directToPassword) {
+        advanceToPasswordChallenge(activeOauthAccount);
+      } else {
+        showOauthView('chooser');
+      }
+
       if (authModal) authModal.classList.add('active');
     };
 
@@ -583,6 +605,10 @@ class App {
           authenticatedAt: new Date().toISOString()
         };
 
+        try {
+          localStorage.setItem('pawtrack_last_email', userObj.email);
+        } catch (e) {}
+
         window.pawStore.setGoogleUser(userObj);
         this.updateGoogleAuthUI();
         if (pinModal) window.notifManager.closeModal('guardian-pin-modal');
@@ -637,11 +663,31 @@ class App {
     const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
     const loginDialogCreate = document.getElementById('login-dialog-create-btn');
 
-    // "Continue with Google" -> opens Google OAuth Account Chooser modal
+    // "Continue with Google" -> opens Google OAuth Account Chooser modal with typed email pre-populated
     loginDialogGoogleBtn?.addEventListener('click', (e) => {
       e.preventDefault();
+      const typedEmail = (loginDialogEmail?.value || '').trim();
       if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      openGoogleAuthModal();
+
+      if (typedEmail && typedEmail.includes('@')) {
+        let accountName = 'Google User';
+        if (typedEmail.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
+          accountName = 'Aguilar, Dariush Dave Gasang';
+        } else {
+          const localPart = typedEmail.split('@')[0];
+          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+          accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+        }
+        const customAcc = {
+          name: accountName,
+          shortName: accountName.split(' ')[0] || accountName,
+          email: typedEmail,
+          picture: getAvatarForAccount(typedEmail, accountName)
+        };
+        openGoogleAuthModal(customAcc, true);
+      } else {
+        openGoogleAuthModal();
+      }
     });
 
     // "Log in" form submission with Email & Password
