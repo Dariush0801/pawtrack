@@ -18,8 +18,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const { email, name, pin } = req.body || {};
-    const targetEmail = (email || 'aguilar.dariushdave.gasang@gmail.com').trim();
-    const recipientName = (name || 'Dariush Dave').trim();
+    const targetEmail = (email || 'user@gmail.com').trim();
+    const recipientName = (name || 'Pet Guardian').trim();
     const securityPin = (pin || '').toString().trim();
 
     if (!securityPin || securityPin.length !== 4) {

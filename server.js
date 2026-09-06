@@ -253,8 +253,8 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
-        const targetEmail = (payload.email || 'aguilar.dariushdave.gasang@gmail.com').trim();
-        const recipientName = (payload.name || 'Dariush Dave').trim();
+        const targetEmail = (payload.email || 'user@gmail.com').trim();
+        const recipientName = (payload.name || 'Pet Guardian').trim();
         const securityPin = (payload.pin || '').toString().trim();
 
         if (!securityPin || securityPin.length !== 4) {

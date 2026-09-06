@@ -59,15 +59,15 @@ const mockDom = {
 };
 
 // Simulate Direct Login & Google User Authorization
-const sampleEmail = 'aguilar.dariushdave.gasang@gmail.com';
-const sampleName = 'Dariush Dave';
+const sampleEmail = 'alex.morgan@gmail.com';
+const sampleName = 'Alex Morgan';
 
 currentUser = {
   name: sampleName,
-  shortName: 'Dariush',
+  shortName: 'Alex',
   email: sampleEmail,
-  picture: 'images/user-avatar.png',
-  avatarInitial: 'D',
+  picture: 'https://ui-avatars.com/api/?name=Alex%20Morgan&background=1a73e8&color=fff&bold=true&size=128',
+  avatarInitial: 'A',
   avatarBg: '#1a73e8',
   verified: true,
   emailVerified: true,
@@ -126,21 +126,21 @@ updateGoogleAuthUI(currentUser);
 // 4. Assertions
 assert.strictEqual(mockDom['header-login-btn'].style.display, 'none');
 assert.strictEqual(mockDom['header-user-btn'].style.display, 'inline-flex');
-assert.strictEqual(mockDom['header-user-name'].textContent, 'Dariush');
-assert(mockDom['header-avatar-circle'].innerHTML.includes('images/user-avatar.png'));
+assert.strictEqual(mockDom['header-user-name'].textContent, 'Alex');
+assert(mockDom['header-avatar-circle'].innerHTML.includes('ui-avatars.com'));
 
-assert.strictEqual(mockDom['dropdown-user-name'].textContent, 'Dariush Dave');
-assert.strictEqual(mockDom['dropdown-user-email'].textContent, 'aguilar.dariushdave.gasang@gmail.com');
-assert(mockDom['dropdown-avatar-circle'].innerHTML.includes('images/user-avatar.png'));
+assert.strictEqual(mockDom['dropdown-user-name'].textContent, 'Alex Morgan');
+assert.strictEqual(mockDom['dropdown-user-email'].textContent, 'alex.morgan@gmail.com');
+assert(mockDom['dropdown-avatar-circle'].innerHTML.includes('ui-avatars.com'));
 
-assert.strictEqual(mockDom['guardian-modal-name'].textContent, 'Dariush Dave');
-assert.strictEqual(mockDom['guardian-modal-email'].textContent, 'aguilar.dariushdave.gasang@gmail.com');
-assert(mockDom['guardian-modal-avatar'].innerHTML.includes('images/user-avatar.png'));
+assert.strictEqual(mockDom['guardian-modal-name'].textContent, 'Alex Morgan');
+assert.strictEqual(mockDom['guardian-modal-email'].textContent, 'alex.morgan@gmail.com');
+assert(mockDom['guardian-modal-avatar'].innerHTML.includes('ui-avatars.com'));
 
-assert.strictEqual(mockDom['reg-owner-name'].value, 'Dariush Dave');
+assert.strictEqual(mockDom['reg-owner-name'].value, 'Alex Morgan');
 
-console.log('[PASS] Header user pill displays "Dariush" with avatar photo.');
-console.log('[PASS] Dropdown displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
-console.log('[PASS] Guardian Profile modal displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
-console.log('[PASS] Pet Registration automatically prefills owner as "Dariush Dave".');
+console.log('[PASS] Header user pill displays "Alex" with dynamic avatar.');
+console.log('[PASS] Dropdown displays "Alex Morgan", "alex.morgan@gmail.com", and avatar.');
+console.log('[PASS] Guardian Profile modal displays "Alex Morgan", "alex.morgan@gmail.com", and avatar.');
+console.log('[PASS] Pet Registration automatically prefills owner as "Alex Morgan".');
 console.log('\n=== All Direct Login & Profile Connection Tests Passed! ===');

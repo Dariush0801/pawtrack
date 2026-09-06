@@ -17,6 +17,15 @@ class App {
   }
 
   init() {
+    // Clear any legacy test account data
+    try {
+      const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      if (user && (user.email === 'aguilar.dariushdave.gasang@gmail.com' || (user.name && user.name.includes('Aguilar')))) {
+        window.pawStore.setGoogleUser(null);
+        localStorage.removeItem('pawtrack_last_email');
+      }
+    } catch (e) {}
+
     this.initTheme();
     this.initLanguage();
     this.initGoogleAuth();
@@ -169,6 +178,9 @@ class App {
       e.stopPropagation();
       if (userDropdown) userDropdown.style.display = 'none';
       window.pawStore.setGoogleUser(null);
+      try {
+        localStorage.removeItem('pawtrack_last_email');
+      } catch (err) {}
       this.updateGoogleAuthUI();
       if (window.location.hash && window.location.hash !== '#owner') {
         window.location.hash = '#owner';
@@ -213,13 +225,10 @@ class App {
     });
 
     // -------------------------------------------------------------
-    // Helper: Generate or select avatar based on email or name
+    // Helper: Generate dynamic avatar based on email or name
     // -------------------------------------------------------------
     const getAvatarForAccount = (email, name) => {
       const cleanEmail = (email || '').trim().toLowerCase();
-      if (cleanEmail === 'aguilar.dariushdave.gasang@gmail.com') {
-        return 'images/user-avatar.png';
-      }
       const displayName = name || cleanEmail.split('@')[0] || 'User';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1a73e8&color=fff&bold=true&size=128`;
     };
@@ -233,32 +242,42 @@ class App {
 
       let email = (targetEmail || '').trim();
       if (!email || !email.includes('@')) {
-        const lastSaved = localStorage.getItem('pawtrack_last_email');
-        email = lastSaved && lastSaved.includes('@') ? lastSaved : 'aguilar.dariushdave.gasang@gmail.com';
+        const inputVal = (loginDialogEmail?.value || '').trim();
+        if (inputVal && inputVal.includes('@')) {
+          email = inputVal;
+        } else {
+          const lastSaved = localStorage.getItem('pawtrack_last_email');
+          if (lastSaved && lastSaved.includes('@') && !lastSaved.includes('aguilar')) {
+            email = lastSaved;
+          }
+        }
+      }
+
+      if (!email || !email.includes('@')) {
+        if (loginDialogModal) {
+          window.notifManager.openModal('login-dialog-modal');
+        }
+        window.notifManager.showToast('Please enter your email to log in.', 'warning');
+        setTimeout(() => loginDialogEmail?.focus(), 150);
+        return;
       }
 
       let accountName = customName || '';
-      let avatarPic = null;
-
-      if (email.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
-        accountName = accountName || 'Aguilar, Dariush Dave Gasang';
-        avatarPic = 'images/user-avatar.png';
-      } else {
-        if (!accountName) {
-          const localPart = email.split('@')[0];
-          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-          accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-        }
-        avatarPic = getAvatarForAccount(email, accountName);
+      if (!accountName) {
+        const localPart = email.split('@')[0];
+        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+        accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
       }
 
       const shortName = accountName.split(' ')[0] || accountName;
+      const avatarPic = getAvatarForAccount(email, accountName);
+
       const userObj = {
         name: accountName,
         shortName: shortName,
         email: email,
         picture: avatarPic,
-        avatarInitial: (accountName[0] || 'D').toUpperCase(),
+        avatarInitial: (accountName[0] || 'G').toUpperCase(),
         avatarBg: '#1a73e8',
         verified: true,
         emailVerified: true,
