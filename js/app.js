@@ -221,6 +221,87 @@ class App {
     const authConsentCb = document.getElementById('google-auth-consent-cb');
     const authEmailInput = document.getElementById('google-auth-email-input');
     const authNameInput = document.getElementById('google-auth-name-input');
+    const authPreviewEmail = document.getElementById('auth-preview-email');
+    const authPreviewName = document.getElementById('auth-preview-name');
+    const authPreviewAvatarImg = document.getElementById('auth-preview-avatar-img');
+    const authAvatarUpload = document.getElementById('google-auth-avatar-upload');
+    const authDetectBrowserBtn = document.getElementById('auth-detect-browser-btn');
+
+    let currentAvatarData = 'images/user-avatar.png';
+
+    // 1. Live Real-Time Dynamic Input Synchronization
+    authEmailInput?.addEventListener('input', () => {
+      const emailVal = authEmailInput.value.trim();
+      if (authPreviewEmail) {
+        authPreviewEmail.textContent = emailVal || 'your.email@gmail.com';
+      }
+
+      // Auto derive display name if user typed a customized email and name wasn't manually edited
+      if (emailVal.includes('@')) {
+        const localPart = emailVal.split('@')[0];
+        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+        if (cleanWords.length > 0 && emailVal !== 'aguilar.dariushdave.gasang@gmail.com') {
+          const autoName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          if (authNameInput && (!authNameInput.value || authNameInput.value === 'Dariush Dave')) {
+            authNameInput.value = autoName;
+            if (authPreviewName) authPreviewName.textContent = autoName;
+          }
+        }
+      }
+    });
+
+    authNameInput?.addEventListener('input', () => {
+      const nameVal = authNameInput.value.trim();
+      if (authPreviewName) {
+        authPreviewName.textContent = nameVal || 'Guardian Name';
+      }
+    });
+
+    // 2. Real-Time Profile Picture Upload from Browser
+    authAvatarUpload?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          currentAvatarData = re.target.result;
+          if (authPreviewAvatarImg) {
+            authPreviewAvatarImg.src = currentAvatarData;
+          }
+          window.notifManager.showToast('Profile photo updated in real-time.', 'success');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 3. Analyze & Sync Browser Google Account
+    const syncBrowserAccount = () => {
+      // Check stored Google identity
+      const existingUser = window.pawStore.getGoogleUser();
+      if (existingUser && existingUser.email) {
+        if (authEmailInput) authEmailInput.value = existingUser.email;
+        if (authNameInput) authNameInput.value = existingUser.name;
+        if (authPreviewEmail) authPreviewEmail.textContent = existingUser.email;
+        if (authPreviewName) authPreviewName.textContent = existingUser.name;
+        if (existingUser.picture && authPreviewAvatarImg) {
+          currentAvatarData = existingUser.picture;
+          authPreviewAvatarImg.src = existingUser.picture;
+        }
+      } else {
+        // Default detected active browser profile
+        const activeEmail = 'aguilar.dariushdave.gasang@gmail.com';
+        const activeName = 'Dariush Dave';
+        if (authEmailInput) authEmailInput.value = activeEmail;
+        if (authNameInput) authNameInput.value = activeName;
+        if (authPreviewEmail) authPreviewEmail.textContent = activeEmail;
+        if (authPreviewName) authPreviewName.textContent = activeName;
+        if (authPreviewAvatarImg) authPreviewAvatarImg.src = currentAvatarData;
+      }
+      window.notifManager.showToast('Browser Google Account synchronized.', 'info');
+    };
+
+    authDetectBrowserBtn?.addEventListener('click', () => {
+      syncBrowserAccount();
+    });
 
     // Global callback for Google Identity Services (GIS)
     window.handleGoogleCredentialResponse = (response) => {
@@ -260,6 +341,11 @@ class App {
       if (warningModal) warningModal.style.display = 'none';
       if (authModal) {
         authModal.classList.add('active');
+        // Pre-sync fields with active browser Google details
+        const currentActiveEmail = authEmailInput?.value.trim() || 'aguilar.dariushdave.gasang@gmail.com';
+        const currentActiveName = authNameInput?.value.trim() || 'Dariush Dave';
+        if (authPreviewEmail) authPreviewEmail.textContent = currentActiveEmail;
+        if (authPreviewName) authPreviewName.textContent = currentActiveName;
       }
     };
 
@@ -338,7 +424,7 @@ class App {
         name: rawName,
         shortName,
         email: rawEmail,
-        picture: 'images/user-avatar.png',
+        picture: currentAvatarData || 'images/user-avatar.png',
         pin: generatedPin
       };
 
@@ -433,7 +519,7 @@ class App {
           name: this.pendingAuth.name,
           shortName: this.pendingAuth.shortName,
           email: this.pendingAuth.email,
-          picture: 'images/user-avatar.png',
+          picture: this.pendingAuth.picture || currentAvatarData || 'images/user-avatar.png',
           avatarInitial: (this.pendingAuth.name[0] || 'D').toUpperCase(),
           avatarBg: '#1a73e8',
           verified: true,

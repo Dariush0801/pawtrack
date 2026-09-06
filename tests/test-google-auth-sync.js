@@ -42,7 +42,9 @@ console.log('[PASS] /api/send-pin backend endpoint and 60-second countdown contr
 // Ensure CSS supports avatar image rendering and PIN boxes
 assert(compCss.includes('.header-avatar-circle img'), 'components.css must define .header-avatar-circle img styling');
 assert(compCss.includes('.pin-digit-box'), 'components.css must define .pin-digit-box styling');
-console.log('[PASS] CSS avatar and PIN verification rules are configured.');
+assert(indexHtml.includes('id="google-auth-avatar-upload"'), 'index.html must include photo upload input');
+assert(indexHtml.includes('id="auth-detect-browser-btn"'), 'index.html must include browser account sync button');
+console.log('[PASS] CSS avatar, photo upload trigger, and browser detection sync button are configured.');
 
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
