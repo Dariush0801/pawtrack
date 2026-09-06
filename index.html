@@ -1533,11 +1533,97 @@
         <button type="submit" id="login-dialog-submit-btn" class="auth-dialog-submit-btn">Log in</button>
       </form>
 
+      <!-- Terms Notice in Collaborate Login Modal -->
+      <div class="auth-terms-note">
+        By continuing, you agree to PawTrack's
+        <a href="#" id="login-open-terms-btn">Terms of Service</a>
+        and acknowledge our
+        <a href="#" id="login-open-privacy-btn">Privacy Policy</a>.
+      </div>
+
       <div class="auth-dialog-links">
         <a href="#" class="auth-link" id="login-dialog-reset-pwd-btn">Reset password</a>
         <div class="auth-signup-row">
           <span>No account?</span> <a href="#" class="auth-link" id="login-dialog-create-btn">Create one</a>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. Google Account Authorization & Terms Acceptance Modal -->
+  <div class="modal-overlay" id="google-consent-modal">
+    <div class="modal-box google-consent-card">
+      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('google-consent-modal')" aria-label="Close">&times;</button>
+      
+      <!-- Brand Connection Bar -->
+      <div class="consent-brand-bar">
+        <div class="consent-brand-icon google-g-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+          </svg>
+        </div>
+        <div class="consent-connect-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </div>
+        <div class="consent-brand-icon pawtrack-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#c2410c"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg>
+        </div>
+      </div>
+
+      <h3 class="consent-title">Sign in with Google</h3>
+      <p class="consent-subtitle">to continue to <strong>PawTrack</strong></p>
+
+      <!-- User Account Box -->
+      <div class="consent-account-box">
+        <label for="consent-google-email" class="consent-label">CONFIRM GOOGLE / GMAIL ACCOUNT</label>
+        <div class="consent-email-input-wrapper">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <input type="email" id="consent-google-email" class="consent-email-input" placeholder="your.name@gmail.com" autocomplete="email" required />
+        </div>
+      </div>
+
+      <!-- Scope / Permissions List -->
+      <div class="consent-scope-card">
+        <div class="consent-scope-heading">PawTrack will access:</div>
+        <ul class="consent-scope-list">
+          <li>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Your Google account profile name &amp; email address</span>
+          </li>
+          <li>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Verified Pet Guardian portal credentials &amp; digital passes</span>
+          </li>
+          <li>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Urgent municipal impound &amp; pet recovery alerts</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Terms & Privacy Acceptance Checkbox -->
+      <div class="consent-terms-acceptance">
+        <input type="checkbox" id="consent-terms-checkbox" class="consent-checkbox" checked />
+        <label for="consent-terms-checkbox" class="consent-terms-text">
+          I agree to PawTrack's <a href="#" id="consent-open-terms-btn">Terms of Service</a> and acknowledge the <a href="#" id="consent-open-privacy-btn">Privacy Policy</a>.
+        </label>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="consent-actions-row">
+        <button type="button" class="btn btn-outline consent-cancel-btn" onclick="window.notifManager.closeModal('google-consent-modal')">Cancel</button>
+        <button type="button" id="consent-agree-continue-btn" class="btn btn-primary consent-continue-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
+            <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+            <path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+          </svg>
+          <span>Agree &amp; Continue</span>
+        </button>
       </div>
     </div>
   </div>

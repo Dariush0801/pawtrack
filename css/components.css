@@ -5308,3 +5308,268 @@
   color: #9ca3af;
 }
 
+.auth-terms-note {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 14px;
+}
+
+[data-theme="dark"] .auth-terms-note {
+  color: #9ca3af;
+}
+
+.auth-terms-note a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .auth-terms-note a {
+  color: #60a5fa;
+}
+
+/* ==========================================================================
+   Google OAuth Consent & Terms Acceptance Modal Styles
+   ========================================================================== */
+
+.google-consent-card {
+  max-width: 460px !important;
+  width: 92% !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 18px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+  padding: 32px 30px 26px !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+[data-theme="dark"] .google-consent-card {
+  background: #18191e !important;
+  color: #f3f4f6 !important;
+  border-color: #2d3139 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85) !important;
+}
+
+.consent-brand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.consent-brand-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="dark"] .consent-brand-icon {
+  background: #23252d;
+  border-color: #343844;
+}
+
+.consent-brand-icon.pawtrack-icon {
+  background: rgba(194, 65, 12, 0.1);
+  border-color: rgba(194, 65, 12, 0.2);
+}
+
+.consent-connect-arrow {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+}
+
+.consent-title {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  margin: 0 0 2px !important;
+  color: #111827 !important;
+}
+
+[data-theme="dark"] .consent-title {
+  color: #ffffff !important;
+}
+
+.consent-subtitle {
+  font-size: 13px !important;
+  text-align: center !important;
+  color: #6b7280 !important;
+  margin: 0 0 20px !important;
+}
+
+[data-theme="dark"] .consent-subtitle {
+  color: #9ca3af !important;
+}
+
+.consent-account-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+[data-theme="dark"] .consent-account-box {
+  background: #20222a;
+  border-color: #2e3340;
+}
+
+.consent-label {
+  display: block;
+  font-size: 10.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+[data-theme="dark"] .consent-label {
+  color: #8ab4f8;
+}
+
+.consent-email-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9ca3af;
+}
+
+.consent-email-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+[data-theme="dark"] .consent-email-input {
+  color: #ffffff;
+}
+
+.consent-scope-card {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+[data-theme="dark"] .consent-scope-card {
+  background: #23252d;
+}
+
+.consent-scope-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+[data-theme="dark"] .consent-scope-heading {
+  color: #cbd5e1;
+}
+
+.consent-scope-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.consent-scope-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.35;
+}
+
+[data-theme="dark"] .consent-scope-list li {
+  color: #94a3b8;
+}
+
+.consent-terms-acceptance {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 22px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #4b5563;
+}
+
+[data-theme="dark"] .consent-terms-acceptance {
+  color: #9ca3af;
+}
+
+.consent-checkbox {
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #1a73e8;
+  width: 16px;
+  height: 16px;
+}
+
+.consent-terms-text a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .consent-terms-text a {
+  color: #8ab4f8;
+}
+
+.consent-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.consent-cancel-btn {
+  border-color: #d1d5db;
+  color: #4b5563;
+  padding: 8px 18px;
+  font-size: 13.5px;
+}
+
+[data-theme="dark"] .consent-cancel-btn {
+  border-color: #3e4451;
+  color: #cbd5e1;
+}
+
+.consent-continue-btn {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.4);
+}
+
+.consent-continue-btn:hover {
+  background: #1557b0 !important;
+}
+
+

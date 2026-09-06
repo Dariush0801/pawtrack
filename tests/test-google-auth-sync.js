@@ -20,21 +20,25 @@ const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.
 
 // Ensure modals are present in index.html
 assert(indexHtml.includes('id="login-dialog-modal"'), 'index.html must include #login-dialog-modal');
+assert(indexHtml.includes('id="google-consent-modal"'), 'index.html must include #google-consent-modal');
 assert(!indexHtml.includes('id="google-auth-modal"'), 'index.html must NOT include legacy #google-auth-modal');
 assert(!indexHtml.includes('id="guardian-pin-modal"'), 'index.html must NOT include #guardian-pin-modal');
 assert(indexHtml.includes('id="privacy-policy-modal"'), 'index.html must include #privacy-policy-modal');
 assert(indexHtml.includes('id="terms-modal"'), 'index.html must include #terms-modal');
-console.log('[PASS] Login Collaborate Dialog and Policy modals are present in index.html.');
+console.log('[PASS] Login Collaborate Dialog, Google Consent Modal, and Policy modals are present in index.html.');
 
-// Ensure CSS supports avatar image rendering and Login Dialog
+// Ensure CSS supports avatar image rendering, Login Dialog, and Google Consent Card
 assert(compCss.includes('.auth-dialog-card'), 'components.css must define .auth-dialog-card styling');
+assert(compCss.includes('.google-consent-card'), 'components.css must define .google-consent-card styling');
 assert(compCss.includes('.auth-google-continue-btn'), 'components.css must define .auth-google-continue-btn styling');
 assert(indexHtml.includes('id="login-dialog-google-btn"'), 'index.html must include #login-dialog-google-btn');
+assert(indexHtml.includes('id="consent-agree-continue-btn"'), 'index.html must include #consent-agree-continue-btn');
+assert(indexHtml.includes('id="consent-terms-checkbox"'), 'index.html must include #consent-terms-checkbox');
 assert(indexHtml.includes('id="login-dialog-form"'), 'index.html must include #login-dialog-form');
 assert(indexHtml.includes('id="login-dialog-email"'), 'index.html must include #login-dialog-email');
 assert(indexHtml.includes('id="login-dialog-pwd"'), 'index.html must include #login-dialog-pwd');
 assert(indexHtml.includes('id="login-dialog-submit-btn"'), 'index.html must include #login-dialog-submit-btn');
-console.log('[PASS] CSS and Collaborate Login Dialog elements are configured.');
+console.log('[PASS] CSS, Collaborate Login Dialog, and Google Consent elements are configured.');
 
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
@@ -55,6 +59,7 @@ const mockDom = {
   'google-onetap-prompt': { style: { display: 'none' } },
   'google-required-modal': { style: { display: 'none' } },
   'login-dialog-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
+  'google-consent-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
   'app-viewport': { innerHTML: '' }
 };
 

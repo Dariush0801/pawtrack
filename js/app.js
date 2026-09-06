@@ -339,11 +339,105 @@ class App {
     const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
     const loginDialogCreate = document.getElementById('login-dialog-create-btn');
 
-    // "Continue with Google" -> triggers direct login to entered email or default
+    const loginOpenTerms = document.getElementById('login-open-terms-btn');
+    const loginOpenPrivacy = document.getElementById('login-open-privacy-btn');
+
+    // -------------------------------------------------------------
+    // Google Consent & Terms Acceptance Modal Controller
+    // -------------------------------------------------------------
+    const googleConsentModal = document.getElementById('google-consent-modal');
+    const consentGoogleEmail = document.getElementById('consent-google-email');
+    const consentTermsCheckbox = document.getElementById('consent-terms-checkbox');
+    const consentAgreeBtn = document.getElementById('consent-agree-continue-btn');
+    const consentOpenTerms = document.getElementById('consent-open-terms-btn');
+    const consentOpenPrivacy = document.getElementById('consent-open-privacy-btn');
+
+    const openGoogleConsentModal = (prefillEmail = '') => {
+      if (onetapPrompt) onetapPrompt.style.display = 'none';
+      if (warningModal) warningModal.style.display = 'none';
+      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
+
+      let email = prefillEmail || (loginDialogEmail?.value || '').trim();
+      if (!email || !email.includes('@')) {
+        const lastSaved = localStorage.getItem('pawtrack_last_email');
+        if (lastSaved && lastSaved.includes('@') && !lastSaved.includes('aguilar')) {
+          email = lastSaved;
+        }
+      }
+
+      if (consentGoogleEmail) {
+        consentGoogleEmail.value = email || '';
+      }
+      if (consentTermsCheckbox) {
+        consentTermsCheckbox.checked = true;
+      }
+
+      if (googleConsentModal) {
+        window.notifManager.openModal('google-consent-modal');
+        setTimeout(() => {
+          if (!consentGoogleEmail?.value) {
+            consentGoogleEmail?.focus();
+          } else {
+            consentAgreeBtn?.focus();
+          }
+        }, 150);
+      }
+    };
+
+    // "Continue with Google" -> opens modern Google OAuth Consent & Terms Acceptance Modal
     loginDialogGoogleBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       const typedEmail = (loginDialogEmail?.value || '').trim();
-      performDirectLogin(typedEmail);
+      openGoogleConsentModal(typedEmail);
+    });
+
+    // Google Consent: "Agree & Continue" Button
+    consentAgreeBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (consentTermsCheckbox && !consentTermsCheckbox.checked) {
+        window.notifManager.showToast('Please check the box to agree to the Terms of Service and Privacy Policy.', 'warning');
+        consentTermsCheckbox.focus();
+        return;
+      }
+
+      const email = (consentGoogleEmail?.value || '').trim();
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        window.notifManager.showToast('Please enter a valid Google/Gmail email address.', 'warning');
+        consentGoogleEmail?.focus();
+        return;
+      }
+
+      if (googleConsentModal) window.notifManager.closeModal('google-consent-modal');
+      performDirectLogin(email);
+    });
+
+    // Google Consent: Press Enter in email box to submit
+    consentGoogleEmail?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        consentAgreeBtn?.click();
+      }
+    });
+
+    // Terms & Privacy Links
+    loginOpenTerms?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.notifManager.openModal('terms-modal');
+    });
+
+    loginOpenPrivacy?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.notifManager.openModal('privacy-policy-modal');
+    });
+
+    consentOpenTerms?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.notifManager.openModal('terms-modal');
+    });
+
+    consentOpenPrivacy?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.notifManager.openModal('privacy-policy-modal');
     });
 
     // "Log in" form submission with Email & Password
@@ -389,7 +483,7 @@ class App {
     // Sign in with Google Button (Trigger Authorization Flow)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      performDirectLogin();
+      openGoogleConsentModal();
     });
 
     // Continue as Guest
@@ -403,11 +497,7 @@ class App {
 
     // Modal prompt Google login
     promptLoginBtn?.addEventListener('click', () => {
-      if (loginDialogModal) {
-        window.notifManager.openModal('login-dialog-modal');
-      } else {
-        performDirectLogin();
-      }
+      openGoogleConsentModal();
     });
 
     // Click outside to dismiss all floating dropdowns
