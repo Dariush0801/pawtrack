@@ -14,9 +14,9 @@ const pets = [
     medicalNotes: 'Friendly, microchipped, floppy ears, distinctive white patch on chest.',
     photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
     owner: {
-      name: 'Lifegiver BSM',
+      name: 'Maria Santos',
       phone: '+63 917 555 3829',
-      email: 'socialmedialifegiverbsm@gmail.com',
+      email: 'maria.santos@gmail.com',
       address: 'Scout Gandia, Brgy. South Triangle, Quezon City'
     },
     lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',

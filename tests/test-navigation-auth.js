@@ -112,11 +112,13 @@ class TestApp {
     if (isLoggedIn) {
       if (loginBtn) loginBtn.style.display = 'none';
       if (userBtn) userBtn.style.display = 'inline-flex';
-      if (nameEl) nameEl.textContent = user.shortName || user.name || 'Lifegiver BSM';
-      if (avatarCircle) avatarCircle.textContent = user.avatarInitial || 'L';
-      if (dropdownName) dropdownName.textContent = user.name || 'Lifegiver BSM Social Media';
-      if (dropdownEmail) dropdownEmail.textContent = user.email || 'socialmedialifegiverbsm@gmail.com';
-      if (dropdownAvatar) dropdownAvatar.textContent = user.avatarInitial || 'L';
+      const short = user.shortName || user.name || 'User';
+      const initial = user.avatarInitial || (user.name ? user.name[0].toUpperCase() : 'G');
+      if (nameEl) nameEl.textContent = short;
+      if (avatarCircle) avatarCircle.textContent = initial;
+      if (dropdownName) dropdownName.textContent = user.name || 'Google User';
+      if (dropdownEmail) dropdownEmail.textContent = user.email || 'user@gmail.com';
+      if (dropdownAvatar) dropdownAvatar.textContent = initial;
     } else {
       if (loginBtn) loginBtn.style.display = 'inline-flex';
       if (userBtn) userBtn.style.display = 'none';
@@ -200,7 +202,7 @@ console.log('\n--- Test 2: Logged-Out Route Protection ---');
 
 // TEST 3: Logged-in state
 console.log('\n--- Test 3: Logged-In Tab Visibility and Navigation ---');
-currentUser = { name: 'Lifegiver BSM', shortName: 'Lifegiver BSM' };
+currentUser = { name: 'Dariush', shortName: 'Dariush', email: 'dariush@gmail.com', avatarInitial: 'D' };
 app.updateGoogleAuthUI();
 
 const visibleTabsLoggedIn = mockRoleTabBtns.filter(b => b.style.display !== 'none').map(b => b.dataset.view);

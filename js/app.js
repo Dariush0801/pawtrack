@@ -127,11 +127,35 @@ class App {
     const notifMarkRead = document.getElementById('notif-mark-read-btn');
     const notifClose = document.getElementById('notif-dropdown-close');
 
+    const nameInput = document.getElementById('onetap-input-name');
+    const emailInput = document.getElementById('onetap-input-email');
+    const avatarEl = document.getElementById('onetap-avatar-circle');
+    const btnLabel = document.getElementById('onetap-btn-text');
+
+    const refreshOnetapFields = () => {
+      const savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      if (savedUser && savedUser.name) {
+        if (nameInput && !nameInput.value) nameInput.value = savedUser.name;
+        if (emailInput && !emailInput.value) emailInput.value = savedUser.email;
+        if (avatarEl) avatarEl.textContent = savedUser.avatarInitial || savedUser.name[0].toUpperCase();
+        if (btnLabel) btnLabel.textContent = `Continue as ${savedUser.shortName || savedUser.name}`;
+      }
+    };
+
+    nameInput?.addEventListener('input', () => {
+      const val = nameInput.value.trim();
+      const initial = (val[0] || 'G').toUpperCase();
+      if (avatarEl) avatarEl.textContent = initial;
+      if (btnLabel) btnLabel.textContent = val ? `Continue as ${val.split(' ')[0]}` : 'Sign in with Google';
+    });
+
     // Click "Log In" Button -> Open Google One Tap Prompt
     loginBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onetapPrompt) {
-        onetapPrompt.style.display = (onetapPrompt.style.display === 'block') ? 'none' : 'block';
+        const isShown = onetapPrompt.style.display === 'block';
+        onetapPrompt.style.display = isShown ? 'none' : 'block';
+        if (!isShown) refreshOnetapFields();
       }
       if (notifDropdown) notifDropdown.style.display = 'none';
       if (userDropdown) userDropdown.style.display = 'none';
@@ -213,15 +237,22 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
     });
 
-    // Continue as Lifegiver BSM
+    // Continue with Google Account
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
+      const enteredName = nameInput?.value.trim();
+      const enteredEmail = emailInput?.value.trim();
+      const name = enteredName || 'Google User';
+      const email = enteredEmail || 'user@gmail.com';
+      const shortName = name.split(' ')[0] || name;
+      const avatarInitial = (name[0] || 'G').toUpperCase();
+
       const googleUser = {
-        name: 'Lifegiver BSM Social Media',
-        shortName: 'Lifegiver BSM',
-        email: 'socialmedialifegiverbsm@gmail.com',
-        avatarInitial: 'L',
-        avatarBg: '#689f38',
+        name,
+        shortName,
+        email,
+        avatarInitial,
+        avatarBg: '#1a73e8',
         verified: true,
         authenticatedAt: new Date().toISOString()
       };
@@ -229,7 +260,7 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
       this.updateGoogleAuthUI();
-      window.notifManager.showToast('Signed in as Lifegiver BSM via Google.', 'success');
+      window.notifManager.showToast(`Signed in as ${shortName} via Google.`, 'success');
     });
 
     // Continue as Guest
@@ -270,16 +301,32 @@ class App {
     const dropdownEmail = document.getElementById('dropdown-user-email');
     const dropdownAvatar = document.getElementById('dropdown-avatar-circle');
 
+    const modalName = document.getElementById('guardian-modal-name');
+    const modalEmail = document.getElementById('guardian-modal-email');
+    const modalAvatar = document.getElementById('guardian-modal-avatar');
+
     const isLoggedIn = !!(user && user.name);
 
     if (isLoggedIn) {
       if (loginBtn) loginBtn.style.display = 'none';
       if (userBtn) userBtn.style.display = 'inline-flex';
-      if (nameEl) nameEl.textContent = user.shortName || user.name || 'Lifegiver BSM';
-      if (avatarCircle) avatarCircle.textContent = user.avatarInitial || 'L';
-      if (dropdownName) dropdownName.textContent = user.name || 'Lifegiver BSM Social Media';
-      if (dropdownEmail) dropdownEmail.textContent = user.email || 'socialmedialifegiverbsm@gmail.com';
-      if (dropdownAvatar) dropdownAvatar.textContent = user.avatarInitial || 'L';
+      const short = user.shortName || user.name || 'User';
+      const initial = user.avatarInitial || (user.name ? user.name[0].toUpperCase() : 'G');
+
+      if (nameEl) nameEl.textContent = short;
+      if (avatarCircle) avatarCircle.textContent = initial;
+      if (dropdownName) dropdownName.textContent = user.name || 'Google User';
+      if (dropdownEmail) dropdownEmail.textContent = user.email || 'user@gmail.com';
+      if (dropdownAvatar) dropdownAvatar.textContent = initial;
+
+      if (modalName) modalName.textContent = user.name || 'Google User';
+      if (modalEmail) modalEmail.textContent = user.email || 'user@gmail.com';
+      if (modalAvatar) modalAvatar.textContent = initial;
+
+      const regOwnerName = document.getElementById('reg-owner-name');
+      if (regOwnerName && !regOwnerName.value) {
+        regOwnerName.value = user.name;
+      }
     } else {
       if (loginBtn) loginBtn.style.display = 'inline-flex';
       if (userBtn) userBtn.style.display = 'none';
@@ -481,9 +528,9 @@ class App {
         const notes = document.getElementById('reg-pet-notes')?.value || '';
 
         const user = window.pawStore.getGoogleUser();
-        const ownerName = document.getElementById('reg-owner-name')?.value || (user ? user.name : 'Lifegiver BSM');
+        const ownerName = document.getElementById('reg-owner-name')?.value || (user ? user.name : 'Pet Guardian');
         const ownerPhone = document.getElementById('reg-owner-phone')?.value || '+63 917 555 3829';
-        const ownerEmail = (user ? user.email : 'socialmedialifegiverbsm@gmail.com');
+        const ownerEmail = (user ? user.email : 'guardian@pawtrack.com');
         const ownerAddress = document.getElementById('reg-owner-address')?.value || 'Metro Manila, Philippines';
 
         const rfidTag = regForm.dataset.prefillRfid || ('RFID-' + Math.floor(100000 + Math.random() * 900000));
