@@ -214,28 +214,135 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
     });
 
+    const GOOGLE_CLIENT_ID = '925763590050-p99a80m68g0j09s6h7knf5ks91i4g5n4.apps.googleusercontent.com';
+
+    // Global callback for Google Identity Services (GIS)
+    window.handleGoogleCredentialResponse = (response) => {
+      if (response && response.credential) {
+        try {
+          const base64Url = response.credential.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          const payload = JSON.parse(jsonPayload);
+          const userObj = {
+            name: payload.name || 'Google User',
+            shortName: payload.given_name || (payload.name ? payload.name.split(' ')[0] : 'User'),
+            email: payload.email || 'user@gmail.com',
+            picture: payload.picture || '',
+            avatarInitial: (payload.name ? payload.name[0] : 'G').toUpperCase(),
+            avatarBg: '#1a73e8',
+            verified: true,
+            authenticatedAt: new Date().toISOString()
+          };
+          window.pawStore.setGoogleUser(userObj);
+          this.updateGoogleAuthUI();
+          if (onetapPrompt) onetapPrompt.style.display = 'none';
+          if (warningModal) warningModal.style.display = 'none';
+          window.notifManager.showToast(`Signed in as ${userObj.name} (${userObj.email}) via Google.`, 'success');
+        } catch (err) {
+          console.error('Failed to parse Google JWT credential:', err);
+        }
+      }
+    };
+
+    // Initialize Google Identity Services (GIS)
+    const initGIS = () => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: window.handleGoogleCredentialResponse,
+            auto_select: true,
+            cancel_on_tap_outside: true
+          });
+
+          // If not currently logged in, prompt Google One-Tap for the browser's active Google account
+          if (!window.pawStore?.getGoogleUser()) {
+            window.google.accounts.id.prompt((notification) => {
+              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                // Fallback handled smoothly
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('Google Identity Services initialization notice:', err);
+        }
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGIS();
+    } else {
+      window.addEventListener('load', () => setTimeout(initGIS, 500));
+    }
+
     // Sign in with Google Account (Action Button)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      let savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
 
-      // Automatically connect to the user's Google account from browser
-      const googleUser = savedUser || {
-        name: 'Dariush Dave',
-        shortName: 'Dariush',
-        email: 'dariushdave01@gmail.com',
-        picture: 'images/user-avatar.png',
-        avatarInitial: 'D',
-        avatarBg: '#1a73e8',
-        verified: true,
-        authenticatedAt: new Date().toISOString()
-      };
+      // If user is already logged in, update UI and close
+      const savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      if (savedUser && savedUser.name) {
+        if (onetapPrompt) onetapPrompt.style.display = 'none';
+        if (warningModal) warningModal.style.display = 'none';
+        this.updateGoogleAuthUI();
+        return;
+      }
 
-      window.pawStore.setGoogleUser(googleUser);
+      // 1. Try Google OAuth 2.0 Token Client (Popup to select active browser Google account)
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+        try {
+          const tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'openid email profile',
+            callback: async (tokenResponse) => {
+              if (tokenResponse && tokenResponse.access_token) {
+                try {
+                  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                  });
+                  const profile = await res.json();
+                  const userObj = {
+                    name: profile.name || 'Google User',
+                    shortName: profile.given_name || (profile.name ? profile.name.split(' ')[0] : 'User'),
+                    email: profile.email || 'user@gmail.com',
+                    picture: profile.picture || '',
+                    avatarInitial: (profile.name ? profile.name[0] : 'G').toUpperCase(),
+                    avatarBg: '#1a73e8',
+                    verified: true,
+                    authenticatedAt: new Date().toISOString()
+                  };
+                  window.pawStore.setGoogleUser(userObj);
+                  this.updateGoogleAuthUI();
+                  if (onetapPrompt) onetapPrompt.style.display = 'none';
+                  if (warningModal) warningModal.style.display = 'none';
+                  window.notifManager.showToast(`Signed in as ${userObj.name} (${userObj.email}) via Google.`, 'success');
+                } catch (err) {
+                  console.error('Failed to fetch Google profile info:', err);
+                }
+              }
+            }
+          });
+          tokenClient.requestAccessToken({ prompt: 'select_account' });
+          return;
+        } catch (oauthErr) {
+          console.warn('OAuth popup fallback:', oauthErr);
+        }
+      }
+
+      // 2. Try Google Identity Services prompt
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.prompt();
+        if (onetapPrompt) onetapPrompt.style.display = 'none';
+        return;
+      }
+
+      // 3. Fallback for environments without Google API connectivity
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
-      this.updateGoogleAuthUI();
-      window.notifManager.showToast(`Signed in as ${googleUser.name} (${googleUser.email}) via Google.`, 'success');
+      window.notifManager.showToast('Connecting to browser Google account...', 'info');
     });
 
     // Continue as Guest
@@ -251,47 +358,6 @@ class App {
     promptLoginBtn?.addEventListener('click', () => {
       onetapContinue?.click();
     });
-
-    // Optional Google Identity Services (GIS) automatic initialization
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: 'pawtrack-app.apps.googleusercontent.com',
-          auto_select: true,
-          callback: (response) => {
-            if (response && response.credential) {
-              try {
-                const base64Url = response.credential.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                const payload = JSON.parse(jsonPayload);
-                const userObj = {
-                  name: payload.name || 'Dariush Dave',
-                  shortName: payload.given_name || (payload.name ? payload.name.split(' ')[0] : 'Dariush'),
-                  email: payload.email || 'dariushdave01@gmail.com',
-                  picture: payload.picture || 'images/user-avatar.png',
-                  avatarInitial: (payload.name ? payload.name[0] : 'D').toUpperCase(),
-                  avatarBg: '#1a73e8',
-                  verified: true,
-                  authenticatedAt: new Date().toISOString()
-                };
-                window.pawStore.setGoogleUser(userObj);
-                this.updateGoogleAuthUI();
-                if (onetapPrompt) onetapPrompt.style.display = 'none';
-                if (warningModal) warningModal.style.display = 'none';
-                window.notifManager.showToast(`Connected Google Account: ${userObj.name}`, 'success');
-              } catch (err) {
-                console.warn('Google credential decode fallback:', err);
-              }
-            }
-          }
-        });
-      } catch (err) {
-        // Silent fallback for custom domains / localhost
-      }
-    }
 
     // Click outside to dismiss all floating dropdowns
     document.addEventListener('click', (e) => {
