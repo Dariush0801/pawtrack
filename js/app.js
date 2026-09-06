@@ -263,7 +263,19 @@ class App {
       }
     };
 
-    // Confirm & Authorize in Google Modal
+    const pinModal = document.getElementById('guardian-pin-modal');
+    const pinTargetEmail = document.getElementById('pin-target-email');
+    const pinInputs = [
+      document.getElementById('pin-input-1'),
+      document.getElementById('pin-input-2'),
+      document.getElementById('pin-input-3'),
+      document.getElementById('pin-input-4')
+    ];
+    const pinVerifyBtn = document.getElementById('pin-verify-submit-btn');
+    const pinAutofillBtn = document.getElementById('pin-autofill-btn');
+    const pinResendBtn = document.getElementById('pin-resend-btn');
+
+    // 1. Step 1: Confirm Authorization -> Generate 4-PIN & Send to Gmail
     authConfirmBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       if (authConsentCb && !authConsentCb.checked) {
@@ -274,24 +286,154 @@ class App {
       const rawName = authNameInput?.value.trim() || 'Dariush Dave';
       const rawEmail = authEmailInput?.value.trim() || 'aguilar.dariushdave.gasang@gmail.com';
       const shortName = rawName.split(' ')[0] || rawName;
+      const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
 
-      const userObj = {
+      this.pendingAuth = {
         name: rawName,
         shortName,
         email: rawEmail,
         picture: 'images/user-avatar.png',
-        avatarInitial: (rawName[0] || 'D').toUpperCase(),
-        avatarBg: '#1a73e8',
-        verified: true,
-        authenticatedAt: new Date().toISOString()
+        pin: generatedPin
       };
 
-      window.pawStore.setGoogleUser(userObj);
-      this.updateGoogleAuthUI();
       if (authModal) window.notifManager.closeModal('google-auth-modal');
-      if (onetapPrompt) onetapPrompt.style.display = 'none';
-      if (warningModal) warningModal.style.display = 'none';
-      window.notifManager.showToast(`Authorized & signed in as ${userObj.name} via Google.`, 'success');
+      if (pinTargetEmail) pinTargetEmail.textContent = rawEmail;
+
+      // Clear previous inputs
+      pinInputs.forEach(input => {
+        if (input) {
+          input.value = '';
+          input.classList.remove('filled', 'error');
+        }
+      });
+
+      if (pinModal) {
+        window.notifManager.openModal('guardian-pin-modal');
+        setTimeout(() => pinInputs[0]?.focus(), 150);
+      }
+
+      // Dispatch simulated Gmail incoming security PIN notification
+      window.notifManager.showGmailPinSimulation(rawEmail, generatedPin);
+      window.notifManager.showToast(`4-digit verification PIN sent to ${rawEmail}`, 'info');
+    });
+
+    // 2. Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
+    pinInputs.forEach((input, index) => {
+      if (!input) return;
+
+      input.addEventListener('input', (e) => {
+        const val = input.value.replace(/\D/g, '');
+        input.value = val ? val[0] : '';
+
+        if (input.value) {
+          input.classList.add('filled');
+          input.classList.remove('error');
+          if (index < pinInputs.length - 1) {
+            pinInputs[index + 1]?.focus();
+          }
+        } else {
+          input.classList.remove('filled');
+        }
+
+        // If all 4 inputs filled, auto trigger verify
+        const enteredPin = pinInputs.map(i => i?.value || '').join('');
+        if (enteredPin.length === 4) {
+          this.verifyGuardianPin();
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !input.value && index > 0) {
+          pinInputs[index - 1]?.focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        if (pasted.length >= 4) {
+          for (let i = 0; i < 4; i++) {
+            if (pinInputs[i]) {
+              pinInputs[i].value = pasted[i];
+              pinInputs[i].classList.add('filled');
+              pinInputs[i].classList.remove('error');
+            }
+          }
+          this.verifyGuardianPin();
+        }
+      });
+    });
+
+    // Verify PIN Function
+    this.verifyGuardianPin = () => {
+      if (!this.pendingAuth) return;
+
+      const enteredPin = pinInputs.map(i => i?.value || '').join('');
+      if (enteredPin.length < 4) {
+        window.notifManager.showToast('Please enter the full 4-digit security PIN.', 'warning');
+        return;
+      }
+
+      if (enteredPin === this.pendingAuth.pin) {
+        const userObj = {
+          name: this.pendingAuth.name,
+          shortName: this.pendingAuth.shortName,
+          email: this.pendingAuth.email,
+          picture: 'images/user-avatar.png',
+          avatarInitial: (this.pendingAuth.name[0] || 'D').toUpperCase(),
+          avatarBg: '#1a73e8',
+          verified: true,
+          emailVerified: true,
+          authenticatedAt: new Date().toISOString()
+        };
+
+        window.pawStore.setGoogleUser(userObj);
+        this.updateGoogleAuthUI();
+        if (pinModal) window.notifManager.closeModal('guardian-pin-modal');
+        if (onetapPrompt) onetapPrompt.style.display = 'none';
+        if (warningModal) warningModal.style.display = 'none';
+        window.notifManager.showToast(`Guardian email verified! Connected as ${userObj.name} (${userObj.email}).`, 'success');
+      } else {
+        pinInputs.forEach(i => i?.classList.add('error'));
+        window.notifManager.showToast('Incorrect 4-digit PIN. Please check your Gmail security alert.', 'danger');
+      }
+    };
+
+    pinVerifyBtn?.addEventListener('click', () => {
+      this.verifyGuardianPin();
+    });
+
+    // Auto-fill PIN helper
+    pinAutofillBtn?.addEventListener('click', () => {
+      if (this.pendingAuth && this.pendingAuth.pin) {
+        const pin = this.pendingAuth.pin;
+        for (let i = 0; i < 4; i++) {
+          if (pinInputs[i]) {
+            pinInputs[i].value = pin[i];
+            pinInputs[i].classList.add('filled');
+            pinInputs[i].classList.remove('error');
+          }
+        }
+        this.verifyGuardianPin();
+      }
+    });
+
+    // Resend PIN
+    pinResendBtn?.addEventListener('click', () => {
+      if (!this.pendingAuth) return;
+      const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+      this.pendingAuth.pin = newPin;
+
+      pinInputs.forEach(input => {
+        if (input) {
+          input.value = '';
+          input.classList.remove('filled', 'error');
+        }
+      });
+      pinInputs[0]?.focus();
+
+      window.notifManager.showGmailPinSimulation(this.pendingAuth.email, newPin);
+      window.notifManager.showToast(`New 4-digit security PIN sent to ${this.pendingAuth.email}`, 'info');
     });
 
     // Sign in with Google Button (Trigger Authorization Modal)

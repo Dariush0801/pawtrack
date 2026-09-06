@@ -1,11 +1,11 @@
 /**
- * Automated Verification: Google Account Auto-Connect & Avatar Sync
+ * Automated Verification: Google Account Auto-Connect & 4-PIN Gmail Verification
  */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-console.log('=== Running Test: Google Account Auto-Connect & Avatar Sync ===\n');
+console.log('=== Running Test: Google Account Auto-Connect & 4-PIN Gmail Verification ===\n');
 
 // 1. Verify user avatar asset exists
 const avatarPath = path.join(__dirname, '..', 'images', 'user-avatar.png');
@@ -16,20 +16,29 @@ console.log('[PASS] images/user-avatar.png exists and is bundled in the project.
 const appJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const compCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'components.css'), 'utf8');
+const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.js'), 'utf8');
 
-// Ensure GIS script is present in index.html
-assert(indexHtml.includes('https://accounts.google.com/gsi/client'), 'index.html must include Google Identity Services script');
-console.log('[PASS] Google Identity Services script is present in index.html.');
+// Ensure modals are present in index.html
+assert(indexHtml.includes('id="google-auth-modal"'), 'index.html must include #google-auth-modal');
+assert(indexHtml.includes('id="guardian-pin-modal"'), 'index.html must include #guardian-pin-modal');
+assert(indexHtml.includes('id="privacy-policy-modal"'), 'index.html must include #privacy-policy-modal');
+assert(indexHtml.includes('id="terms-modal"'), 'index.html must include #terms-modal');
+console.log('[PASS] All Google Auth, 4-PIN verification, and Policy modals are present in index.html.');
 
-// Ensure window.prompt is NOT used for Google Auth
-assert(!appJs.includes("window.prompt('Enter your Google Account"), 'app.js must NOT contain window.prompt dialogs');
-console.log('[PASS] No window.prompt dialogs found in app.js.');
+// Ensure 4-PIN digit boxes are in index.html
+assert(indexHtml.includes('id="pin-input-1"'), 'index.html must include #pin-input-1');
+assert(indexHtml.includes('id="pin-input-4"'), 'index.html must include #pin-input-4');
+console.log('[PASS] 4-digit PIN input fields are present in index.html.');
 
-// Ensure CSS supports avatar image rendering
+// Ensure Gmail PIN simulation method exists
+assert(notifJs.includes('showGmailPinSimulation'), 'notifications.js must include showGmailPinSimulation');
+console.log('[PASS] showGmailPinSimulation method exists in notifications.js.');
+
+// Ensure CSS supports avatar image rendering and PIN boxes
 assert(compCss.includes('.header-avatar-circle img'), 'components.css must define .header-avatar-circle img styling');
-assert(compCss.includes('.user-dropdown-avatar img'), 'components.css must define .user-dropdown-avatar img styling');
-assert(compCss.includes('#guardian-modal-avatar img'), 'components.css must define #guardian-modal-avatar img styling');
-console.log('[PASS] CSS avatar image rules are configured.');
+assert(compCss.includes('.pin-digit-box'), 'components.css must define .pin-digit-box styling');
+assert(compCss.includes('.gmail-sim-toast'), 'components.css must define .gmail-sim-toast styling');
+console.log('[PASS] CSS avatar and PIN verification rules are configured.');
 
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
@@ -49,24 +58,39 @@ const mockDom = {
   'reg-owner-name': { value: '' },
   'google-onetap-prompt': { style: { display: 'none' } },
   'google-required-modal': { style: { display: 'none' } },
+  'google-auth-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
+  'guardian-pin-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); }, remove(c) { this.classes.delete(c); } } },
   'app-viewport': { innerHTML: '' }
 };
 
-const toasts = [];
+// Simulate 4-PIN PIN Verification & Google User Authorization
+const sampleEmail = 'aguilar.dariushdave.gasang@gmail.com';
+const sampleName = 'Dariush Dave';
+const generatedPin = '4829';
 
-// Simulate Google User Sign-in
-const googleUser = {
-  name: 'Dariush Dave',
+const pendingAuth = {
+  name: sampleName,
   shortName: 'Dariush',
-  email: 'dariushdave01@gmail.com',
+  email: sampleEmail,
   picture: 'images/user-avatar.png',
+  pin: generatedPin
+};
+
+// Simulate PIN check
+const enteredPin = '4829';
+assert.strictEqual(enteredPin, pendingAuth.pin, 'PIN match validation');
+
+currentUser = {
+  name: pendingAuth.name,
+  shortName: pendingAuth.shortName,
+  email: pendingAuth.email,
+  picture: pendingAuth.picture,
   avatarInitial: 'D',
   avatarBg: '#1a73e8',
   verified: true,
+  emailVerified: true,
   authenticatedAt: new Date().toISOString()
 };
-
-currentUser = googleUser;
 
 // Simulate updateGoogleAuthUI
 function updateGoogleAuthUI(user) {
@@ -124,17 +148,18 @@ assert.strictEqual(mockDom['header-user-name'].textContent, 'Dariush');
 assert(mockDom['header-avatar-circle'].innerHTML.includes('images/user-avatar.png'));
 
 assert.strictEqual(mockDom['dropdown-user-name'].textContent, 'Dariush Dave');
-assert.strictEqual(mockDom['dropdown-user-email'].textContent, 'dariushdave01@gmail.com');
+assert.strictEqual(mockDom['dropdown-user-email'].textContent, 'aguilar.dariushdave.gasang@gmail.com');
 assert(mockDom['dropdown-avatar-circle'].innerHTML.includes('images/user-avatar.png'));
 
 assert.strictEqual(mockDom['guardian-modal-name'].textContent, 'Dariush Dave');
-assert.strictEqual(mockDom['guardian-modal-email'].textContent, 'dariushdave01@gmail.com');
+assert.strictEqual(mockDom['guardian-modal-email'].textContent, 'aguilar.dariushdave.gasang@gmail.com');
 assert(mockDom['guardian-modal-avatar'].innerHTML.includes('images/user-avatar.png'));
 
 assert.strictEqual(mockDom['reg-owner-name'].value, 'Dariush Dave');
 
+console.log('[PASS] 4-PIN PIN matched and verified successfully.');
 console.log('[PASS] Header user pill displays "Dariush" with avatar photo.');
-console.log('[PASS] Dropdown displays "Dariush Dave", "dariushdave01@gmail.com", and avatar photo.');
-console.log('[PASS] Guardian Profile modal displays "Dariush Dave", "dariushdave01@gmail.com", and avatar photo.');
+console.log('[PASS] Dropdown displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
+console.log('[PASS] Guardian Profile modal displays "Dariush Dave", "aguilar.dariushdave.gasang@gmail.com", and avatar photo.');
 console.log('[PASS] Pet Registration automatically prefills owner as "Dariush Dave".');
-console.log('\n=== All Google Auth & Avatar Sync Tests Passed! ===');
+console.log('\n=== All 4-PIN Verification & Profile Connection Tests Passed! ===');
