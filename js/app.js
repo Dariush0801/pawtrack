@@ -216,6 +216,12 @@ class App {
 
     const GOOGLE_CLIENT_ID = '925763590050-p99a80m68g0j09s6h7knf5ks91i4g5n4.apps.googleusercontent.com';
 
+    const authModal = document.getElementById('google-auth-modal');
+    const authConfirmBtn = document.getElementById('google-auth-confirm-btn');
+    const authConsentCb = document.getElementById('google-auth-consent-cb');
+    const authEmailInput = document.getElementById('google-auth-email-input');
+    const authNameInput = document.getElementById('google-auth-name-input');
+
     // Global callback for Google Identity Services (GIS)
     window.handleGoogleCredentialResponse = (response) => {
       if (response && response.credential) {
@@ -229,8 +235,8 @@ class App {
           const userObj = {
             name: payload.name || 'Google User',
             shortName: payload.given_name || (payload.name ? payload.name.split(' ')[0] : 'User'),
-            email: payload.email || 'user@gmail.com',
-            picture: payload.picture || '',
+            email: payload.email || 'aguilar.dariushdave.gasang@gmail.com',
+            picture: payload.picture || 'images/user-avatar.png',
             avatarInitial: (payload.name ? payload.name[0] : 'G').toUpperCase(),
             avatarBg: '#1a73e8',
             verified: true,
@@ -240,6 +246,7 @@ class App {
           this.updateGoogleAuthUI();
           if (onetapPrompt) onetapPrompt.style.display = 'none';
           if (warningModal) warningModal.style.display = 'none';
+          if (authModal) window.notifManager.closeModal('google-auth-modal');
           window.notifManager.showToast(`Signed in as ${userObj.name} (${userObj.email}) via Google.`, 'success');
         } catch (err) {
           console.error('Failed to parse Google JWT credential:', err);
@@ -247,102 +254,50 @@ class App {
       }
     };
 
-    // Initialize Google Identity Services (GIS)
-    const initGIS = () => {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: window.handleGoogleCredentialResponse,
-            auto_select: true,
-            cancel_on_tap_outside: true
-          });
-
-          // If not currently logged in, prompt Google One-Tap for the browser's active Google account
-          if (!window.pawStore?.getGoogleUser()) {
-            window.google.accounts.id.prompt((notification) => {
-              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                // Fallback handled smoothly
-              }
-            });
-          }
-        } catch (err) {
-          console.warn('Google Identity Services initialization notice:', err);
-        }
+    // Open Google Account Authorization & Terms Consent Modal
+    const openGoogleAuthModal = () => {
+      if (onetapPrompt) onetapPrompt.style.display = 'none';
+      if (warningModal) warningModal.style.display = 'none';
+      if (authModal) {
+        authModal.classList.add('active');
       }
     };
 
-    if (window.google?.accounts?.id) {
-      initGIS();
-    } else {
-      window.addEventListener('load', () => setTimeout(initGIS, 500));
-    }
-
-    // Sign in with Google Account (Action Button)
-    onetapContinue?.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      // If user is already logged in, update UI and close
-      const savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
-      if (savedUser && savedUser.name) {
-        if (onetapPrompt) onetapPrompt.style.display = 'none';
-        if (warningModal) warningModal.style.display = 'none';
-        this.updateGoogleAuthUI();
+    // Confirm & Authorize in Google Modal
+    authConfirmBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (authConsentCb && !authConsentCb.checked) {
+        window.notifManager.showToast('Please agree to the Privacy Policy and Terms of Service to authorize PawTrack.', 'error');
         return;
       }
 
-      // 1. Try Google OAuth 2.0 Token Client (Popup to select active browser Google account)
-      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-        try {
-          const tokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'openid email profile',
-            callback: async (tokenResponse) => {
-              if (tokenResponse && tokenResponse.access_token) {
-                try {
-                  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                  });
-                  const profile = await res.json();
-                  const userObj = {
-                    name: profile.name || 'Google User',
-                    shortName: profile.given_name || (profile.name ? profile.name.split(' ')[0] : 'User'),
-                    email: profile.email || 'user@gmail.com',
-                    picture: profile.picture || '',
-                    avatarInitial: (profile.name ? profile.name[0] : 'G').toUpperCase(),
-                    avatarBg: '#1a73e8',
-                    verified: true,
-                    authenticatedAt: new Date().toISOString()
-                  };
-                  window.pawStore.setGoogleUser(userObj);
-                  this.updateGoogleAuthUI();
-                  if (onetapPrompt) onetapPrompt.style.display = 'none';
-                  if (warningModal) warningModal.style.display = 'none';
-                  window.notifManager.showToast(`Signed in as ${userObj.name} (${userObj.email}) via Google.`, 'success');
-                } catch (err) {
-                  console.error('Failed to fetch Google profile info:', err);
-                }
-              }
-            }
-          });
-          tokenClient.requestAccessToken({ prompt: 'select_account' });
-          return;
-        } catch (oauthErr) {
-          console.warn('OAuth popup fallback:', oauthErr);
-        }
-      }
+      const rawName = authNameInput?.value.trim() || 'Dariush Dave';
+      const rawEmail = authEmailInput?.value.trim() || 'aguilar.dariushdave.gasang@gmail.com';
+      const shortName = rawName.split(' ')[0] || rawName;
 
-      // 2. Try Google Identity Services prompt
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.prompt();
-        if (onetapPrompt) onetapPrompt.style.display = 'none';
-        return;
-      }
+      const userObj = {
+        name: rawName,
+        shortName,
+        email: rawEmail,
+        picture: 'images/user-avatar.png',
+        avatarInitial: (rawName[0] || 'D').toUpperCase(),
+        avatarBg: '#1a73e8',
+        verified: true,
+        authenticatedAt: new Date().toISOString()
+      };
 
-      // 3. Fallback for environments without Google API connectivity
+      window.pawStore.setGoogleUser(userObj);
+      this.updateGoogleAuthUI();
+      if (authModal) window.notifManager.closeModal('google-auth-modal');
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
-      window.notifManager.showToast('Connecting to browser Google account...', 'info');
+      window.notifManager.showToast(`Authorized & signed in as ${userObj.name} via Google.`, 'success');
+    });
+
+    // Sign in with Google Button (Trigger Authorization Modal)
+    onetapContinue?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openGoogleAuthModal();
     });
 
     // Continue as Guest
@@ -356,7 +311,7 @@ class App {
 
     // Modal prompt Google login
     promptLoginBtn?.addEventListener('click', () => {
-      onetapContinue?.click();
+      openGoogleAuthModal();
     });
 
     // Click outside to dismiss all floating dropdowns

@@ -411,13 +411,20 @@ class NotificationManager {
     if (window.lucide) window.lucide.createIcons({ root: modal });
   }
 
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      if (window.lucide) window.lucide.createIcons({ root: modal });
+    }
+  }
+
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('active');
-      if (modal.style.display === 'flex' || modal.style.display === 'block') {
-        modal.style.display = 'none';
-      }
+      modal.style.display = 'none';
     }
   }
 }

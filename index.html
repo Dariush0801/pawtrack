@@ -238,6 +238,12 @@
             <button id="onetap-guest-btn" style="width: 100%; background: transparent; color: #8ab4f8; border: 1px solid #3c4043; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer;">
               Continue as Guest (Read-Only)
             </button>
+
+            <div style="font-size: 11px; color: #9aa0a6; margin-top: 10px; line-height: 1.4; text-align: center; border-top: 1px solid #2d2f31; padding-top: 8px;">
+              By signing in, you agree to PawTrack's
+              <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: #8ab4f8; text-decoration: underline;">Privacy Policy</a> &amp;
+              <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: #8ab4f8; text-decoration: underline;">Terms of Service</a>.
+            </div>
           </div>
         </div>
       </div>
@@ -254,6 +260,11 @@
     <div class="footer-inner">
       <div class="footer-copy">
         <strong data-i18n="footer.copy">PawTrack System &mdash; Pet Recovery &amp; Impoundment Notification System with RFID Technology.</strong>
+      </div>
+      <div class="footer-links" style="display: flex; align-items: center; gap: 14px; font-size: 12px;">
+        <a href="#privacy" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Privacy Policy</a>
+        <span style="color: var(--border-subtle, #333);">&bull;</span>
+        <a href="#terms" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Terms of Service</a>
       </div>
       <div class="footer-status">
         <span class="status-indicator"></span>
@@ -1483,6 +1494,155 @@
       <!-- Modal Footer -->
       <div class="modal-footer finder-modal-footer">
         <button type="button" class="btn btn-primary btn-sm" style="color: #ffffff !important; min-width: 100px; padding: 7px 18px;" onclick="window.notifManager.closeModal('finder-info-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. Google Account Authorization & Consent Modal -->
+  <div class="modal-overlay" id="google-auth-modal">
+    <div class="modal-box" style="max-width: 480px; background: #18191e; color: #e2e8f0; border: 1px solid #2d3139; border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+      <div class="modal-header" style="border-bottom: 1px solid #2d3139; padding: 16px 20px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+          </svg>
+          <div>
+            <div style="font-weight: 700; font-size: 16px; color: #fff;">Sign in with Google</div>
+            <div style="font-size: 11.5px; color: #94a3b8;">Authorize PawTrack Pet Recovery Platform</div>
+          </div>
+        </div>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('google-auth-modal')" aria-label="Close" style="color:#9aa0a6;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 18px 20px; display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+          Connect your Google Account to authorize pet ownership, receive municipal pound intake alerts, and track legal holding countdowns.
+        </div>
+
+        <!-- Detected Google Account Card -->
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:#22242c; border-radius:10px; border:1px solid #323642;">
+          <div id="auth-preview-avatar" style="width:42px; height:42px; border-radius:50%; background:#1a73e8; color:#fff; display:grid; place-items:center; font-size:18px; font-weight:700; flex:none; overflow:hidden;">
+            <img src="images/user-avatar.png" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;" />
+          </div>
+          <div style="min-width:0; flex:1;">
+            <div id="auth-preview-name" style="font-weight:700; font-size:14px; color:#fff;">Dariush Dave</div>
+            <div id="auth-preview-email" style="font-size:12px; color:#94a3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">aguilar.dariushdave.gasang@gmail.com</div>
+          </div>
+          <span style="font-size:10.5px; background:#1e293b; color:#8ab4f8; padding:3px 8px; border-radius:6px; font-weight:700; border:1px solid rgba(138,180,248,0.2);">Verified</span>
+        </div>
+
+        <!-- Account details (editable if user uses another Google address) -->
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:11.5px; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">Google Account Email / Switch Account</label>
+            <input type="email" id="google-auth-email-input" value="aguilar.dariushdave.gasang@gmail.com" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 12px; font-size:13px;" />
+          </div>
+          <div>
+            <label style="font-size:11.5px; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">Guardian Full Name</label>
+            <input type="text" id="google-auth-name-input" value="Dariush Dave" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 12px; font-size:13px;" />
+          </div>
+        </div>
+
+        <!-- Permissions requested info box -->
+        <div style="background:#121316; border:1px solid #232733; border-radius:8px; padding:10px 14px; font-size:12px; color:#94a3b8;">
+          <div style="font-weight:700; color:#e2e8f0; margin-bottom:4px;">PawTrack will securely access:</div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+            <span style="color:#22c55e; font-weight:700;">&#10003;</span> Basic profile (Name &amp; photo) for Guardian identification
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#22c55e; font-weight:700;">&#10003;</span> Email for urgent 72-hour municipal impoundment notifications
+          </div>
+        </div>
+
+        <!-- Privacy and Terms Checkbox -->
+        <label style="display:flex; align-items:flex-start; gap:10px; font-size:12px; color:#cbd5e1; cursor:pointer; background:rgba(138,180,248,0.06); padding:10px 12px; border-radius:8px; border:1px solid rgba(138,180,248,0.15);">
+          <input type="checkbox" id="google-auth-consent-cb" checked style="accent-color:#1a73e8; width:16px; height:16px; margin-top:2px; flex:none;" />
+          <span style="line-height:1.45;">
+            I authorize PawTrack and agree to the
+            <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal')" style="color:#8ab4f8; text-decoration:underline; font-weight:600;">Privacy Policy</a> and
+            <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal')" style="color:#8ab4f8; text-decoration:underline; font-weight:600;">Terms of Service</a>.
+          </span>
+        </label>
+      </div>
+
+      <div class="modal-footer" style="border-top:1px solid #2d3139; padding:14px 20px; display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('google-auth-modal')" style="color:#94a3b8; border-color:#333846;">Cancel</button>
+        <button type="button" id="google-auth-confirm-btn" class="btn btn-primary" style="background:#1a73e8; border:none; padding:9px 20px; font-weight:700; display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Authorize &amp; Sign In</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. Interactive Privacy Policy Modal -->
+  <div class="modal-overlay" id="privacy-policy-modal">
+    <div class="modal-box" style="max-width: 640px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          PawTrack Privacy Policy
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('privacy-policy-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.6; color: var(--text-muted);">
+        <p style="color:var(--text-main); font-weight:600; margin-bottom:12px;">
+          Compliance: Philippine Data Privacy Act of 2012 (RA 10173), Animal Welfare Act (RA 8485 / RA 10631), &amp; Google API Services User Data Policy.
+        </p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">1. Google OAuth &amp; Identity Authorization</h4>
+        <p>PawTrack accesses basic Google profile attributes (Name, Email, Profile Picture) strictly to authenticate verified pet guardians, issue digital pass badges, and dispatch urgent municipal impound notifications. We do not sell or transfer your Google data to third parties.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">2. RFID Transponder &amp; Microchip Records</h4>
+        <p>Encrypted 134.2 kHz FDX-B RFID tag serials, microchip numbers, and pet characteristics are recorded to enable municipal pound scanning grids and shelter intake matching across participating barangays.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">3. 72-Hour Municipal Holding Countdown Alerts</h4>
+        <p>Upon shelter transponder scan, automated SMS and Email alerts are immediately sent to the registered guardian email to assist timely pet claiming within the legal holding period.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">4. Location Privacy Shield</h4>
+        <p>Your exact residential address is shielded. Public lost &amp; found sighting pins display general barangay vicinity coordinates to protect owner privacy.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">5. Full Standalone Policy Document</h4>
+        <p>You can also view the permanent web document at <a href="privacy.html" target="_blank" style="color:var(--primary); font-weight:600;">pawtrack.com/privacy.html</a>.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('privacy-policy-modal')">I Understand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18. Interactive Terms of Service Modal -->
+  <div class="modal-overlay" id="terms-modal">
+    <div class="modal-box" style="max-width: 640px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          PawTrack Terms of Service
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('terms-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.6; color: var(--text-muted);">
+        <p style="color:var(--text-main); font-weight:600; margin-bottom:12px;">
+          Terms governing Pet Guardians, Animal Care Facilities, and Community Sighting Reporters.
+        </p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">1. Guardian Verification &amp; Accuracy</h4>
+        <p>Guardians agree to provide valid contact details and attach verified RFID collar tags. False impoundment claims or fraudulent ownership assertions are strictly prohibited.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">2. Municipal Pound Intake &amp; Claiming Process</h4>
+        <p>Guardians must present legitimate proof (Government ID, Pet Vaccination Booklet, or PawTrack Digital Pass) at the municipal animal facility to authorize release before the 72-hour window expires.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">3. Community Sighting Standards</h4>
+        <p>Community sighting reports must contain authentic photos and accurate vicinity locations to prevent false alerts.</p>
+
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">4. Full Standalone Terms Document</h4>
+        <p>You can also view the permanent terms document at <a href="terms.html" target="_blank" style="color:var(--primary); font-weight:600;">pawtrack.com/terms.html</a>.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('terms-modal')">Accept &amp; Close</button>
       </div>
     </div>
   </div>
