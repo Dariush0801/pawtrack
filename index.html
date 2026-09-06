@@ -584,48 +584,121 @@
     </div>
   </div>
 
-  <!-- 8. Guardian Profile Modal -->
+  <!-- 8. Guardian Profile Modal (View & Edit Mode) -->
   <div class="modal-overlay" id="guardian-profile-modal">
-    <div class="modal-box" style="max-width: 460px;">
-      <div class="modal-header">
-        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+    <div class="modal-box guardian-profile-card" style="max-width: 490px;">
+      <!-- Modal Header -->
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="display:flex; align-items:center; gap:0.5rem; margin: 0;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Pet Guardian Profile
+          <span id="guardian-modal-header-title">Pet Guardian Profile</span>
         </h3>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('guardian-profile-modal')" aria-label="Close">&times;</button>
+        <button type="button" class="btn-outline btn-sm" onclick="window.notifManager.closeModal('guardian-profile-modal')" aria-label="Close">&times;</button>
       </div>
-      <div class="modal-body" style="padding: 16px 0;">
-        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding: 14px; background: var(--bg-surface, #f8fafc); border-radius: 12px; border: 1px solid var(--border-subtle, #e2e8f0);">
-          <div id="guardian-modal-avatar" style="width: 48px; height: 48px; border-radius: 50%; background: #1a73e8; color: #ffffff; font-size: 20px; font-weight: 700; display: grid; place-items: center;">G</div>
-          <div>
-            <div id="guardian-modal-name" style="font-weight: 700; font-size: 15px; color: var(--text-main, #1e293b);">Google User</div>
-            <div id="guardian-modal-email" style="font-size: 12px; color: var(--text-muted, #64748b);">user@gmail.com</div>
-            <div style="display: inline-block; font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 1px 7px; border-radius: 99px; margin-top: 4px;">Verified Pet Guardian</div>
+
+      <!-- VIEW MODE -->
+      <div id="guardian-profile-view-mode" class="modal-body" style="padding: 16px 0;">
+        <!-- Guardian Identity Card -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; padding: 14px; background: var(--bg-surface, #f8fafc); border-radius: 12px; border: 1px solid var(--border-subtle, #e2e8f0);">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <div id="guardian-modal-avatar" class="guardian-modal-avatar-box">G</div>
+            <div style="min-width: 0;">
+              <div id="guardian-modal-name" style="font-weight: 700; font-size: 15px; color: var(--text-main, #1e293b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Google User</div>
+              <div id="guardian-modal-email" style="font-size: 12px; color: var(--text-muted, #64748b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">user@gmail.com</div>
+              <div style="display: inline-block; font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 1px 7px; border-radius: 99px; margin-top: 4px;">Verified Pet Guardian</div>
+            </div>
           </div>
+          <button type="button" id="guardian-edit-btn" class="btn btn-outline btn-sm" style="flex-shrink: 0; padding: 5px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;" title="Edit Guardian Profile">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            <span>Edit</span>
+          </button>
         </div>
 
+        <!-- Readonly Info Grid -->
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
             <span style="color: var(--text-muted, #64748b);">Rescue Contact Phone</span>
-            <strong style="color: var(--primary, #c2410c);">+63 917 555 3829</strong>
+            <strong id="guardian-modal-phone" style="color: var(--primary, #c2410c);">+63 917 555 3829</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
-            <span style="color: var(--text-muted, #64748b);">Registered Area</span>
-            <strong>National Capital Region (NCR)</strong>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Registered Area &amp; City</span>
+            <strong id="guardian-modal-area">National Capital Region (NCR)</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Emergency Secondary Phone</span>
+            <strong id="guardian-modal-backup-phone" style="color: var(--text-main);">None set</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
             <span style="color: var(--text-muted, #64748b);">Active Protected Pets</span>
             <strong id="profile-pet-count">0 Registered Pets</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
             <span style="color: var(--text-muted, #64748b);">Microchip Standard</span>
             <strong style="font-family: monospace;">134.2 kHz FDX-B</strong>
           </div>
         </div>
+
+        <div class="modal-footer" style="padding-top: 18px; margin-top: 6px; display: flex; justify-content: space-between; gap: 8px;">
+          <button type="button" id="guardian-open-edit-footer-btn" class="btn btn-outline btn-sm" style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>Edit Information</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.notifManager.closeModal('guardian-profile-modal')">Close Profile</button>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('guardian-profile-modal')">Close Profile</button>
-      </div>
+
+      <!-- EDIT MODE FORM -->
+      <form id="guardian-profile-edit-form" class="modal-body" style="display: none; padding: 16px 0;" onsubmit="return false;">
+        <!-- Avatar Photo Customizer -->
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 12px 14px; background: var(--bg-surface, #f8fafc); border-radius: 12px; border: 1px solid var(--border-subtle, #e2e8f0);">
+          <div id="edit-guardian-avatar-preview" class="guardian-modal-avatar-box">G</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Profile Avatar</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <label class="btn btn-outline btn-sm" style="cursor: pointer; font-size: 11.5px; padding: 4px 10px; margin: 0; display: inline-flex; align-items: center; gap: 5px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Upload Photo</span>
+                <input type="file" id="edit-guardian-avatar-file" accept="image/*" style="display: none;" />
+              </label>
+              <button type="button" id="edit-guardian-avatar-reset" class="btn btn-outline btn-sm" style="font-size: 11.5px; padding: 4px 10px;">
+                Reset Avatar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editable Inputs -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label for="edit-guardian-name-input" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; display: block;">Full Guardian Name</label>
+            <input type="text" id="edit-guardian-name-input" class="form-input" placeholder="e.g. Alex Morgan" required style="width: 100%; height: 38px; font-size: 13px; border-radius: 8px;" />
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label for="edit-guardian-phone-input" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; display: block;">Rescue Contact Phone</label>
+            <input type="tel" id="edit-guardian-phone-input" class="form-input" placeholder="+63 9XX XXX XXXX" required style="width: 100%; height: 38px; font-size: 13px; border-radius: 8px;" />
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Used by animal shelters &amp; good Samaritans to contact you if your pet is sighted.</div>
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label for="edit-guardian-area-input" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; display: block;">Registered Area / City</label>
+            <input type="text" id="edit-guardian-area-input" class="form-input" placeholder="e.g. Quezon City, NCR" required style="width: 100%; height: 38px; font-size: 13px; border-radius: 8px;" />
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label for="edit-guardian-backup-input" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; display: block;">Emergency Secondary Contact (Optional)</label>
+            <input type="tel" id="edit-guardian-backup-input" class="form-input" placeholder="+63 9XX XXX XXXX" style="width: 100%; height: 38px; font-size: 13px; border-radius: 8px;" />
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding-top: 18px; margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" id="edit-guardian-cancel-btn" class="btn btn-outline btn-sm">Cancel</button>
+          <button type="submit" id="edit-guardian-save-btn" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -54,6 +54,21 @@ assert(indexHtml.includes('id="login-dialog-pwd"'), 'index.html must include #lo
 assert(indexHtml.includes('id="login-dialog-submit-btn"'), 'index.html must include #login-dialog-submit-btn');
 console.log('[PASS] CSS, Collaborate Login Dialog, and Google Consent elements are configured.');
 
+// Verify Guardian Profile View and Edit Mode elements
+assert(indexHtml.includes('id="guardian-profile-view-mode"'), 'index.html must include #guardian-profile-view-mode');
+assert(indexHtml.includes('id="guardian-profile-edit-form"'), 'index.html must include #guardian-profile-edit-form');
+assert(indexHtml.includes('id="guardian-edit-btn"'), 'index.html must include #guardian-edit-btn');
+assert(indexHtml.includes('id="edit-guardian-name-input"'), 'index.html must include #edit-guardian-name-input');
+assert(indexHtml.includes('id="edit-guardian-phone-input"'), 'index.html must include #edit-guardian-phone-input');
+assert(indexHtml.includes('id="edit-guardian-area-input"'), 'index.html must include #edit-guardian-area-input');
+assert(indexHtml.includes('id="edit-guardian-backup-input"'), 'index.html must include #edit-guardian-backup-input');
+assert(indexHtml.includes('id="edit-guardian-avatar-file"'), 'index.html must include #edit-guardian-avatar-file');
+assert(indexHtml.includes('id="edit-guardian-avatar-reset"'), 'index.html must include #edit-guardian-avatar-reset');
+assert(indexHtml.includes('id="edit-guardian-cancel-btn"'), 'index.html must include #edit-guardian-cancel-btn');
+assert(indexHtml.includes('id="edit-guardian-save-btn"'), 'index.html must include #edit-guardian-save-btn');
+assert(compCss.includes('.guardian-modal-avatar-box'), 'components.css must include .guardian-modal-avatar-box');
+console.log('[PASS] Guardian Profile View and Edit mode form elements and styles are verified.');
+
 // 3. Mock DOM and state for full flow test
 let currentUser = null;
 const mockDom = {
@@ -68,6 +83,9 @@ const mockDom = {
   'guardian-profile-modal': { classList: { classes: new Set(), add(c) { this.classes.add(c); } } },
   'guardian-modal-name': { textContent: '' },
   'guardian-modal-email': { textContent: '' },
+  'guardian-modal-phone': { textContent: '' },
+  'guardian-modal-area': { textContent: '' },
+  'guardian-modal-backup-phone': { textContent: '' },
   'guardian-modal-avatar': { innerHTML: '', textContent: '' },
   'reg-owner-name': { value: '' },
   'google-onetap-prompt': { style: { display: 'none' } },
@@ -88,6 +106,9 @@ currentUser = {
   picture: 'https://ui-avatars.com/api/?name=Alex%20Morgan&background=1a73e8&color=fff&bold=true&size=128',
   avatarInitial: 'A',
   avatarBg: '#1a73e8',
+  phone: '+63 917 555 3829',
+  area: 'Quezon City, NCR',
+  backupPhone: '+63 918 123 4567',
   verified: true,
   emailVerified: true,
   authenticatedAt: new Date().toISOString()
@@ -104,6 +125,9 @@ function updateGoogleAuthUI(user) {
   const dropdownAvatar = mockDom['dropdown-avatar-circle'];
   const modalName = mockDom['guardian-modal-name'];
   const modalEmail = mockDom['guardian-modal-email'];
+  const modalPhone = mockDom['guardian-modal-phone'];
+  const modalArea = mockDom['guardian-modal-area'];
+  const modalBackupPhone = mockDom['guardian-modal-backup-phone'];
   const modalAvatar = mockDom['guardian-modal-avatar'];
 
   const isLoggedIn = !!(user && user.name);
@@ -119,6 +143,9 @@ function updateGoogleAuthUI(user) {
     dropdownEmail.textContent = user.email;
     modalName.textContent = user.name;
     modalEmail.textContent = user.email;
+    if (modalPhone) modalPhone.textContent = user.phone || '+63 917 555 3829';
+    if (modalArea) modalArea.textContent = user.area || 'National Capital Region (NCR)';
+    if (modalBackupPhone) modalBackupPhone.textContent = user.backupPhone || 'None set';
 
     const renderAvatar = (el) => {
       if (!el) return;
@@ -154,12 +181,34 @@ assert(mockDom['dropdown-avatar-circle'].innerHTML.includes('ui-avatars.com'));
 
 assert.strictEqual(mockDom['guardian-modal-name'].textContent, 'Alex Morgan');
 assert.strictEqual(mockDom['guardian-modal-email'].textContent, 'alex.morgan@gmail.com');
+assert.strictEqual(mockDom['guardian-modal-phone'].textContent, '+63 917 555 3829');
+assert.strictEqual(mockDom['guardian-modal-area'].textContent, 'Quezon City, NCR');
+assert.strictEqual(mockDom['guardian-modal-backup-phone'].textContent, '+63 918 123 4567');
 assert(mockDom['guardian-modal-avatar'].innerHTML.includes('ui-avatars.com'));
 
 assert.strictEqual(mockDom['reg-owner-name'].value, 'Alex Morgan');
+
+// Simulate Guardian Profile Modification
+currentUser.name = 'Alexander Vance';
+currentUser.shortName = 'Alexander';
+currentUser.phone = '+63 999 888 7766';
+currentUser.area = 'Makati City, Metro Manila';
+currentUser.backupPhone = '+63 912 345 6789';
+currentUser.picture = 'data:image/png;base64,customAvatarData';
+updateGoogleAuthUI(currentUser);
+
+assert.strictEqual(mockDom['header-user-name'].textContent, 'Alexander');
+assert.strictEqual(mockDom['dropdown-user-name'].textContent, 'Alexander Vance');
+assert.strictEqual(mockDom['guardian-modal-name'].textContent, 'Alexander Vance');
+assert.strictEqual(mockDom['guardian-modal-phone'].textContent, '+63 999 888 7766');
+assert.strictEqual(mockDom['guardian-modal-area'].textContent, 'Makati City, Metro Manila');
+assert.strictEqual(mockDom['guardian-modal-backup-phone'].textContent, '+63 912 345 6789');
+assert(mockDom['header-avatar-circle'].innerHTML.includes('customAvatarData'));
+assert(mockDom['guardian-modal-avatar'].innerHTML.includes('customAvatarData'));
 
 console.log('[PASS] Header user pill displays "Alex" with dynamic avatar.');
 console.log('[PASS] Dropdown displays "Alex Morgan", "alex.morgan@gmail.com", and avatar.');
 console.log('[PASS] Guardian Profile modal displays "Alex Morgan", "alex.morgan@gmail.com", and avatar.');
 console.log('[PASS] Pet Registration automatically prefills owner as "Alex Morgan".');
+console.log('[PASS] Profile edit updates name, rescue phone, registered area, secondary backup, and custom avatar.');
 console.log('\n=== All Direct Login & Profile Connection Tests Passed! ===');

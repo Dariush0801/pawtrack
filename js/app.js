@@ -161,10 +161,114 @@ class App {
     document.getElementById('dropdown-profile-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (userDropdown) userDropdown.style.display = 'none';
-      const pets = window.pawStore.getPets();
-      const countEl = document.getElementById('profile-pet-count');
-      if (countEl) countEl.textContent = `${pets.length} Registered Pet${pets.length === 1 ? '' : 's'}`;
+      this.populateGuardianProfile(false);
       if (profileModal) profileModal.classList.add('active');
+    });
+
+    // Guardian Profile: Switch to Edit Mode
+    const openGuardianEditMode = (e) => {
+      if (e) e.stopPropagation();
+      this.populateGuardianProfile(true);
+    };
+    document.getElementById('guardian-edit-btn')?.addEventListener('click', openGuardianEditMode);
+    document.getElementById('guardian-open-edit-footer-btn')?.addEventListener('click', openGuardianEditMode);
+
+    // Guardian Profile: Cancel Edit Mode (Back to View Mode)
+    document.getElementById('edit-guardian-cancel-btn')?.addEventListener('click', (e) => {
+      if (e) e.stopPropagation();
+      this.populateGuardianProfile(false);
+    });
+
+    // Guardian Profile: Custom Avatar File Upload Preview
+    const avatarFileInput = document.getElementById('edit-guardian-avatar-file');
+    avatarFileInput?.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          if (window.notifManager) window.notifManager.showToast('Please select an image under 5MB.', 'error');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          this.pendingGuardianAvatar = event.target.result;
+          const previewEl = document.getElementById('edit-guardian-avatar-preview');
+          if (previewEl) {
+            previewEl.innerHTML = `<img src="${this.pendingGuardianAvatar}" alt="Preview" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" />`;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Guardian Profile: Reset Avatar
+    document.getElementById('edit-guardian-avatar-reset')?.addEventListener('click', (e) => {
+      if (e) e.stopPropagation();
+      this.pendingGuardianAvatar = null;
+      const previewEl = document.getElementById('edit-guardian-avatar-preview');
+      const editName = document.getElementById('edit-guardian-name-input');
+      const nameVal = editName ? editName.value.trim() : 'G';
+      if (previewEl) {
+        previewEl.innerHTML = '';
+        previewEl.textContent = (nameVal[0] || 'G').toUpperCase();
+      }
+      if (avatarFileInput) avatarFileInput.value = '';
+      if (window.notifManager) window.notifManager.showToast('Avatar reset to initial letter.', 'info');
+    });
+
+    // Guardian Profile: Save Edit Form
+    document.getElementById('guardian-profile-edit-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById('edit-guardian-name-input');
+      const phoneInput = document.getElementById('edit-guardian-phone-input');
+      const areaInput = document.getElementById('edit-guardian-area-input');
+      const backupInput = document.getElementById('edit-guardian-backup-input');
+
+      const nameVal = nameInput ? nameInput.value.trim() : '';
+      const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+      const areaVal = areaInput ? areaInput.value.trim() : '';
+      const backupVal = backupInput ? backupInput.value.trim() : '';
+
+      if (!nameVal) {
+        if (window.notifManager) window.notifManager.showToast('Guardian name cannot be blank.', 'error');
+        return;
+      }
+      if (!phoneVal) {
+        if (window.notifManager) window.notifManager.showToast('Rescue contact phone number is required.', 'error');
+        return;
+      }
+
+      let user = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      if (!user) {
+        user = {
+          email: 'guardian@pawtrack.local',
+          verified: true,
+          emailVerified: true
+        };
+      }
+
+      user.name = nameVal;
+      user.shortName = nameVal.split(' ')[0] || nameVal;
+      user.phone = phoneVal;
+      user.area = areaVal || 'National Capital Region (NCR)';
+      user.backupPhone = backupVal;
+      user.avatarInitial = (nameVal[0] || 'G').toUpperCase();
+
+      if (this.pendingGuardianAvatar !== undefined) {
+        user.picture = this.pendingGuardianAvatar;
+      }
+
+      if (window.pawStore) {
+        window.pawStore.setGoogleUser(user);
+      }
+      this.updateGoogleAuthUI();
+      this.populateGuardianProfile(false);
+
+      const regOwnerName = document.getElementById('reg-owner-name');
+      if (regOwnerName) regOwnerName.value = user.name;
+
+      if (window.notifManager) {
+        window.notifManager.showToast('Guardian profile updated successfully.', 'success');
+      }
     });
 
     // User Dropdown: Hardware Specs Button (under Guardian Profile)
@@ -287,6 +391,9 @@ class App {
         picture: avatarPic,
         avatarInitial: (accountName[0] || 'G').toUpperCase(),
         avatarBg: '#1a73e8',
+        phone: '+63 917 555 3829',
+        area: 'National Capital Region (NCR)',
+        backupPhone: '',
         verified: true,
         emailVerified: true,
         authenticatedAt: new Date().toISOString()
@@ -584,6 +691,14 @@ class App {
       renderAvatar(dropdownAvatar);
       renderAvatar(modalAvatar);
 
+      const modalPhone = document.getElementById('guardian-modal-phone');
+      const modalArea = document.getElementById('guardian-modal-area');
+      const modalBackupPhone = document.getElementById('guardian-modal-backup-phone');
+
+      if (modalPhone) modalPhone.textContent = user.phone || '+63 917 555 3829';
+      if (modalArea) modalArea.textContent = user.area || 'National Capital Region (NCR)';
+      if (modalBackupPhone) modalBackupPhone.textContent = user.backupPhone || 'None set';
+
       const regOwnerName = document.getElementById('reg-owner-name');
       if (regOwnerName && !regOwnerName.value) {
         regOwnerName.value = user.name;
@@ -602,6 +717,78 @@ class App {
         btn.style.display = isLoggedIn ? '' : 'none';
       }
     });
+  }
+
+  populateGuardianProfile(editMode = false) {
+    const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
+    const viewSection = document.getElementById('guardian-profile-view-mode');
+    const editSection = document.getElementById('guardian-profile-edit-form');
+    const modalTitle = document.getElementById('guardian-modal-header-title');
+
+    const name = (user && user.name) ? user.name : 'Dariushdave01';
+    const email = (user && user.email) ? user.email : 'dariushdave01@gmail.com';
+    const phone = (user && user.phone) ? user.phone : '+63 917 555 3829';
+    const area = (user && user.area) ? user.area : 'National Capital Region (NCR)';
+    const backupPhone = (user && user.backupPhone) ? user.backupPhone : '';
+    const initial = (user && user.avatarInitial) || (name ? name[0].toUpperCase() : 'D');
+    const picture = user && user.picture ? user.picture : null;
+
+    // View Mode elements
+    const viewName = document.getElementById('guardian-modal-name');
+    const viewEmail = document.getElementById('guardian-modal-email');
+    const viewPhone = document.getElementById('guardian-modal-phone');
+    const viewArea = document.getElementById('guardian-modal-area');
+    const viewBackup = document.getElementById('guardian-modal-backup-phone');
+    const viewAvatar = document.getElementById('guardian-modal-avatar');
+    const petCount = document.getElementById('profile-pet-count');
+
+    if (viewName) viewName.textContent = name;
+    if (viewEmail) viewEmail.textContent = email;
+    if (viewPhone) viewPhone.textContent = phone;
+    if (viewArea) viewArea.textContent = area;
+    if (viewBackup) viewBackup.textContent = backupPhone || 'None set';
+    if (petCount && window.pawStore) {
+      const pets = window.pawStore.getPets();
+      petCount.textContent = `${pets.length} Registered Pet${pets.length === 1 ? '' : 's'}`;
+    }
+
+    const renderAvatarBox = (boxEl, pic, init) => {
+      if (!boxEl) return;
+      if (pic) {
+        boxEl.innerHTML = `<img src="${pic}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" onerror="this.style.display='none'; this.parentElement.textContent='${init}';" />`;
+      } else {
+        boxEl.textContent = init;
+      }
+    };
+
+    renderAvatarBox(viewAvatar, picture, initial);
+
+    // Edit Mode Inputs
+    const editName = document.getElementById('edit-guardian-name-input');
+    const editPhone = document.getElementById('edit-guardian-phone-input');
+    const editArea = document.getElementById('edit-guardian-area-input');
+    const editBackup = document.getElementById('edit-guardian-backup-input');
+    const editAvatarPreview = document.getElementById('edit-guardian-avatar-preview');
+
+    if (editName) editName.value = name;
+    if (editPhone) editPhone.value = phone;
+    if (editArea) editArea.value = area;
+    if (editBackup) editBackup.value = backupPhone;
+    renderAvatarBox(editAvatarPreview, picture, initial);
+
+    this.pendingGuardianAvatar = undefined;
+
+    // Toggle view vs edit
+    if (editMode) {
+      if (viewSection) viewSection.style.display = 'none';
+      if (editSection) editSection.style.display = 'block';
+      if (modalTitle) modalTitle.textContent = 'Edit Guardian Profile';
+      setTimeout(() => editName?.focus(), 100);
+    } else {
+      if (viewSection) viewSection.style.display = 'block';
+      if (editSection) editSection.style.display = 'none';
+      if (modalTitle) modalTitle.textContent = 'Pet Guardian Profile';
+    }
   }
 
   initEventListeners() {
