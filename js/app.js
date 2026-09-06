@@ -234,9 +234,9 @@ class App {
     };
 
     // -------------------------------------------------------------
-    // Direct User Authentication Handler
+    // Direct Google & User Authentication Handler
     // -------------------------------------------------------------
-    const performDirectLogin = (targetEmail = '', customName = '') => {
+    const performDirectLogin = (targetEmail = '', customName = '', customPicture = '') => {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
 
@@ -254,12 +254,19 @@ class App {
       }
 
       if (!email || !email.includes('@')) {
-        if (loginDialogModal) {
-          window.notifManager.openModal('login-dialog-modal');
+        const userPromptEmail = (typeof window !== 'undefined' && window.prompt)
+          ? window.prompt('Enter your Google/Gmail account email to sign in:')
+          : '';
+        if (userPromptEmail && userPromptEmail.includes('@')) {
+          email = userPromptEmail.trim();
+        } else {
+          if (loginDialogModal) {
+            window.notifManager.openModal('login-dialog-modal');
+          }
+          window.notifManager.showToast('Please enter your Google/Gmail address above to sign in.', 'warning');
+          setTimeout(() => loginDialogEmail?.focus(), 150);
+          return;
         }
-        window.notifManager.showToast('Please enter your email to log in.', 'warning');
-        setTimeout(() => loginDialogEmail?.focus(), 150);
-        return;
       }
 
       let accountName = customName || '';
@@ -270,7 +277,7 @@ class App {
       }
 
       const shortName = accountName.split(' ')[0] || accountName;
-      const avatarPic = getAvatarForAccount(email, accountName);
+      const avatarPic = customPicture || getAvatarForAccount(email, accountName);
 
       const userObj = {
         name: accountName,
@@ -291,8 +298,42 @@ class App {
       window.pawStore.setGoogleUser(userObj);
       this.updateGoogleAuthUI();
       if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      window.notifManager.showToast(`Logged in successfully as ${userObj.name} (${userObj.email}).`, 'success');
+      window.notifManager.showToast(`Signed in with Google successfully as ${userObj.name} (${userObj.email}).`, 'success');
     };
+
+    // Initialize Google Identity Services (GSI) SDK integration if available
+    const initGsiClient = () => {
+      if (typeof window !== 'undefined' && window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: 'pawtrack-app.apps.googleusercontent.com',
+            auto_select: false,
+            callback: (response) => {
+              if (response && response.credential) {
+                try {
+                  const base64Url = response.credential.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                  const profile = JSON.parse(jsonPayload);
+                  if (profile && profile.email) {
+                    performDirectLogin(profile.email, profile.name, profile.picture);
+                  }
+                } catch (err) {
+                  console.warn('[Google GSI Decode Notice]:', err);
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.warn('[Google GSI Init Notice]:', err);
+        }
+      }
+    };
+
+    initGsiClient();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('load', initGsiClient);
+    }
 
     // -------------------------------------------------------------
     // Login / Collaborate Dialog Modal Controller
