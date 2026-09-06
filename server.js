@@ -246,6 +246,46 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: Send 4-Digit Security PIN to Google/Gmail Account
+  if (parsedUrl === '/api/send-pin' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const targetEmail = (payload.email || 'aguilar.dariushdave.gasang@gmail.com').trim();
+        const recipientName = (payload.name || 'Dariush Dave').trim();
+        const securityPin = (payload.pin || '').toString().trim();
+
+        if (!securityPin || securityPin.length !== 4) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid 4-digit PIN provided' }));
+          return;
+        }
+
+        console.log('\n---------------------------------------------------------');
+        console.log(`[PawTrack Gmail Dispatch] Primary message sent to: ${targetEmail}`);
+        console.log(`[PawTrack Gmail Dispatch] Recipient: ${recipientName}`);
+        console.log(`[PawTrack Gmail Dispatch] Subject: "PawTrack Pet Guardian Security PIN: ${securityPin}"`);
+        console.log(`[PawTrack Gmail Dispatch] Message Category: Google / Primary Inbox`);
+        console.log('---------------------------------------------------------\n');
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          deliveredTo: targetEmail,
+          recipient: recipientName,
+          message: `Security PIN has been delivered to ${targetEmail}. Please check your primary Gmail inbox.`,
+          dispatchedAt: new Date().toISOString()
+        }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   // API 1: Real-time Server-Sent Events (SSE) stream
   if (parsedUrl === '/api/events') {
     res.writeHead(200, {

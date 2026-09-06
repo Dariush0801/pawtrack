@@ -23,21 +23,25 @@ assert(indexHtml.includes('id="google-auth-modal"'), 'index.html must include #g
 assert(indexHtml.includes('id="guardian-pin-modal"'), 'index.html must include #guardian-pin-modal');
 assert(indexHtml.includes('id="privacy-policy-modal"'), 'index.html must include #privacy-policy-modal');
 assert(indexHtml.includes('id="terms-modal"'), 'index.html must include #terms-modal');
+assert(indexHtml.includes('id="pin-timer-badge"'), 'index.html must include #pin-timer-badge');
 console.log('[PASS] All Google Auth, 4-PIN verification, and Policy modals are present in index.html.');
 
-// Ensure 4-PIN digit boxes are in index.html
+// Ensure 4-PIN digit boxes are in index.html and auto-fill helper is removed
 assert(indexHtml.includes('id="pin-input-1"'), 'index.html must include #pin-input-1');
 assert(indexHtml.includes('id="pin-input-4"'), 'index.html must include #pin-input-4');
-console.log('[PASS] 4-digit PIN input fields are present in index.html.');
+assert(!indexHtml.includes('id="pin-autofill-btn"'), 'index.html must NOT expose auto-fill PIN button on screen');
+console.log('[PASS] 4-digit PIN input fields are present and on-screen PIN display is removed.');
 
-// Ensure Gmail PIN simulation method exists
-assert(notifJs.includes('showGmailPinSimulation'), 'notifications.js must include showGmailPinSimulation');
-console.log('[PASS] showGmailPinSimulation method exists in notifications.js.');
+// Ensure backend send-pin endpoint files exist
+const sendPinApi = path.join(__dirname, '..', 'api', 'send-pin.js');
+assert(fs.existsSync(sendPinApi), 'api/send-pin.js must exist for Vercel deployment');
+assert(appJs.includes('/api/send-pin'), 'app.js must call /api/send-pin to dispatch verification PIN');
+assert(appJs.includes('startResendCountdown'), 'app.js must include startResendCountdown controller');
+console.log('[PASS] /api/send-pin backend endpoint and 60-second countdown controller are configured.');
 
 // Ensure CSS supports avatar image rendering and PIN boxes
 assert(compCss.includes('.header-avatar-circle img'), 'components.css must define .header-avatar-circle img styling');
 assert(compCss.includes('.pin-digit-box'), 'components.css must define .pin-digit-box styling');
-assert(compCss.includes('.gmail-sim-toast'), 'components.css must define .gmail-sim-toast styling');
 console.log('[PASS] CSS avatar and PIN verification rules are configured.');
 
 // 3. Mock DOM and state for full flow test

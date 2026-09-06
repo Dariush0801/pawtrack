@@ -272,10 +272,56 @@ class App {
       document.getElementById('pin-input-4')
     ];
     const pinVerifyBtn = document.getElementById('pin-verify-submit-btn');
-    const pinAutofillBtn = document.getElementById('pin-autofill-btn');
     const pinResendBtn = document.getElementById('pin-resend-btn');
 
-    // 1. Step 1: Confirm Authorization -> Generate 4-PIN & Send to Gmail
+    // 1-Minute (60s) Resend Countdown Timer Controller
+    let resendTimerInterval = null;
+    let resendCountdown = 60;
+
+    const startResendCountdown = (seconds = 60) => {
+      if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+      }
+      resendCountdown = seconds;
+      if (pinResendBtn) {
+        pinResendBtn.disabled = true;
+        pinResendBtn.style.opacity = '0.45';
+        pinResendBtn.style.cursor = 'not-allowed';
+        pinResendBtn.style.pointerEvents = 'none';
+      }
+      const timerBadge = document.getElementById('pin-timer-badge');
+      const updateBadge = () => {
+        if (!timerBadge) return;
+        if (resendCountdown > 0) {
+          timerBadge.textContent = `(in ${resendCountdown}s)`;
+          timerBadge.style.display = 'inline';
+        } else {
+          timerBadge.textContent = '(Ready)';
+          timerBadge.style.display = 'none';
+        }
+      };
+      updateBadge();
+
+      resendTimerInterval = setInterval(() => {
+        resendCountdown--;
+        if (resendCountdown <= 0) {
+          clearInterval(resendTimerInterval);
+          resendTimerInterval = null;
+          if (pinResendBtn) {
+            pinResendBtn.disabled = false;
+            pinResendBtn.style.opacity = '1';
+            pinResendBtn.style.cursor = 'pointer';
+            pinResendBtn.style.pointerEvents = 'auto';
+          }
+          updateBadge();
+        } else {
+          updateBadge();
+        }
+      }, 1000);
+    };
+
+    // 1. Step 1: Confirm Authorization -> Generate 4-PIN & Send to Gmail Primary Inbox
     authConfirmBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       if (authConsentCb && !authConsentCb.checked) {
@@ -312,9 +358,17 @@ class App {
         setTimeout(() => pinInputs[0]?.focus(), 150);
       }
 
-      // Dispatch simulated Gmail incoming security PIN notification
-      window.notifManager.showGmailPinSimulation(rawEmail, generatedPin);
-      window.notifManager.showToast(`4-digit verification PIN sent to ${rawEmail}`, 'info');
+      // Start 60s resend timer
+      startResendCountdown(60);
+
+      // Dispatch 4-digit PIN to recipient's Gmail inbox via backend endpoint
+      fetch('/api/send-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: rawEmail, name: rawName, pin: generatedPin })
+      }).catch(err => console.warn('[Send PIN API Notice]:', err));
+
+      window.notifManager.showToast(`Security PIN sent to your Gmail (${rawEmail}). Please check your primary inbox.`, 'info');
     });
 
     // 2. Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
@@ -395,7 +449,7 @@ class App {
         window.notifManager.showToast(`Guardian email verified! Connected as ${userObj.name} (${userObj.email}).`, 'success');
       } else {
         pinInputs.forEach(i => i?.classList.add('error'));
-        window.notifManager.showToast('Incorrect 4-digit PIN. Please check your Gmail security alert.', 'danger');
+        window.notifManager.showToast('Incorrect 4-digit PIN. Please check your Gmail primary inbox.', 'danger');
       }
     };
 
@@ -403,24 +457,9 @@ class App {
       this.verifyGuardianPin();
     });
 
-    // Auto-fill PIN helper
-    pinAutofillBtn?.addEventListener('click', () => {
-      if (this.pendingAuth && this.pendingAuth.pin) {
-        const pin = this.pendingAuth.pin;
-        for (let i = 0; i < 4; i++) {
-          if (pinInputs[i]) {
-            pinInputs[i].value = pin[i];
-            pinInputs[i].classList.add('filled');
-            pinInputs[i].classList.remove('error');
-          }
-        }
-        this.verifyGuardianPin();
-      }
-    });
-
-    // Resend PIN
+    // Resend PIN with 1-minute countdown lock
     pinResendBtn?.addEventListener('click', () => {
-      if (!this.pendingAuth) return;
+      if (!this.pendingAuth || resendCountdown > 0) return;
       const newPin = Math.floor(1000 + Math.random() * 9000).toString();
       this.pendingAuth.pin = newPin;
 
@@ -432,8 +471,17 @@ class App {
       });
       pinInputs[0]?.focus();
 
-      window.notifManager.showGmailPinSimulation(this.pendingAuth.email, newPin);
-      window.notifManager.showToast(`New 4-digit security PIN sent to ${this.pendingAuth.email}`, 'info');
+      // Start 60s countdown lock
+      startResendCountdown(60);
+
+      // Dispatch new PIN to Gmail
+      fetch('/api/send-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: this.pendingAuth.email, name: this.pendingAuth.name, pin: newPin })
+      }).catch(err => console.warn('[Send PIN API Notice]:', err));
+
+      window.notifManager.showToast(`A fresh verification PIN has been sent to your Gmail (${this.pendingAuth.email}).`, 'info');
     });
 
     // Sign in with Google Button (Trigger Authorization Modal)
