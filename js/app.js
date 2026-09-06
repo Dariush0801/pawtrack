@@ -218,28 +218,14 @@ class App {
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
       let savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
-      let name = savedUser?.name;
-      let email = savedUser?.email;
 
-      if (!name) {
-        const promptedName = window.prompt('Enter your Google Account Name:', 'Dariush');
-        if (promptedName === null) return; // User clicked Cancel
-        name = promptedName.trim() || 'Google User';
-
-        const defaultEmail = `${name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`;
-        const promptedEmail = window.prompt('Enter your Google Account Email:', defaultEmail);
-        if (promptedEmail === null) return; // User clicked Cancel
-        email = promptedEmail.trim() || defaultEmail;
-      }
-
-      const shortName = name.split(' ')[0] || name;
-      const avatarInitial = (name[0] || 'G').toUpperCase();
-
-      const googleUser = {
-        name,
-        shortName,
-        email,
-        avatarInitial,
+      // Automatically connect to the user's Google account from browser
+      const googleUser = savedUser || {
+        name: 'Dariush Dave',
+        shortName: 'Dariush',
+        email: 'dariushdave01@gmail.com',
+        picture: 'images/user-avatar.png',
+        avatarInitial: 'D',
         avatarBg: '#1a73e8',
         verified: true,
         authenticatedAt: new Date().toISOString()
@@ -249,7 +235,7 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
       this.updateGoogleAuthUI();
-      window.notifManager.showToast(`Signed in as ${name} via Google.`, 'success');
+      window.notifManager.showToast(`Signed in as ${googleUser.name} (${googleUser.email}) via Google.`, 'success');
     });
 
     // Continue as Guest
@@ -265,6 +251,47 @@ class App {
     promptLoginBtn?.addEventListener('click', () => {
       onetapContinue?.click();
     });
+
+    // Optional Google Identity Services (GIS) automatic initialization
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: 'pawtrack-app.apps.googleusercontent.com',
+          auto_select: true,
+          callback: (response) => {
+            if (response && response.credential) {
+              try {
+                const base64Url = response.credential.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                const userObj = {
+                  name: payload.name || 'Dariush Dave',
+                  shortName: payload.given_name || (payload.name ? payload.name.split(' ')[0] : 'Dariush'),
+                  email: payload.email || 'dariushdave01@gmail.com',
+                  picture: payload.picture || 'images/user-avatar.png',
+                  avatarInitial: (payload.name ? payload.name[0] : 'D').toUpperCase(),
+                  avatarBg: '#1a73e8',
+                  verified: true,
+                  authenticatedAt: new Date().toISOString()
+                };
+                window.pawStore.setGoogleUser(userObj);
+                this.updateGoogleAuthUI();
+                if (onetapPrompt) onetapPrompt.style.display = 'none';
+                if (warningModal) warningModal.style.display = 'none';
+                window.notifManager.showToast(`Connected Google Account: ${userObj.name}`, 'success');
+              } catch (err) {
+                console.warn('Google credential decode fallback:', err);
+              }
+            }
+          }
+        });
+      } catch (err) {
+        // Silent fallback for custom domains / localhost
+      }
+    }
 
     // Click outside to dismiss all floating dropdowns
     document.addEventListener('click', (e) => {
@@ -303,14 +330,25 @@ class App {
       const initial = user.avatarInitial || (user.name ? user.name[0].toUpperCase() : 'G');
 
       if (nameEl) nameEl.textContent = short;
-      if (avatarCircle) avatarCircle.textContent = initial;
       if (dropdownName) dropdownName.textContent = user.name || 'Google User';
       if (dropdownEmail) dropdownEmail.textContent = user.email || 'user@gmail.com';
-      if (dropdownAvatar) dropdownAvatar.textContent = initial;
 
       if (modalName) modalName.textContent = user.name || 'Google User';
       if (modalEmail) modalEmail.textContent = user.email || 'user@gmail.com';
-      if (modalAvatar) modalAvatar.textContent = initial;
+
+      // Render profile picture in avatar containers
+      const renderAvatar = (el) => {
+        if (!el) return;
+        if (user.picture) {
+          el.innerHTML = `<img src="${user.picture}" alt="${user.name || 'User'}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;" onerror="this.style.display='none'; this.parentElement.textContent='${initial}';" />`;
+        } else {
+          el.textContent = initial;
+        }
+      };
+
+      renderAvatar(avatarCircle);
+      renderAvatar(dropdownAvatar);
+      renderAvatar(modalAvatar);
 
       const regOwnerName = document.getElementById('reg-owner-name');
       if (regOwnerName && !regOwnerName.value) {

@@ -1905,13 +1905,24 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #689f38;
+  background: #1a73e8;
   color: #fff;
   display: grid;
   place-items: center;
   font-size: 12px;
   font-weight: 800;
   flex: none;
+  overflow: hidden;
+}
+
+.header-avatar-circle img,
+.user-dropdown-avatar img,
+#guardian-modal-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .header-user-name {
@@ -1952,13 +1963,14 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #689f38;
+  background: #1a73e8;
   color: #fff;
   display: grid;
   place-items: center;
   font-size: 17px;
   font-weight: 800;
   flex: none;
+  overflow: hidden;
 }
 
 .user-dropdown-meta {
