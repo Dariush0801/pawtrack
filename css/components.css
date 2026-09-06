@@ -1877,8 +1877,11 @@
   transform: translateY(-1px);
 }
 
-/* Logged In User Pill Button (Exact 38px height matching icons) */
+/* Logged In User Avatar Button (Exact 38px circle matching icon buttons) */
 .header-user-pill-btn {
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
   height: 38px;
   min-height: 38px;
   max-height: 38px;
@@ -1886,30 +1889,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   background: var(--bg-surface-elevated, #ffffff);
   border: 1px solid var(--border-subtle, #cbd5e1);
-  border-radius: 99px;
-  padding: 0 12px 0 6px;
+  border-radius: 50%;
+  padding: 0;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   transition: all 0.15s ease;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .header-user-pill-btn:hover {
   border-color: var(--primary, #c2410c);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 
 .header-avatar-circle {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #1a73e8;
   color: #fff;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   flex: none;
   overflow: hidden;
@@ -1926,13 +1931,7 @@
 }
 
 .header-user-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-main, #1e293b);
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none !important;
 }
 
 /* User Account Dropdown Menu */

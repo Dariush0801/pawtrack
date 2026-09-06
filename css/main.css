@@ -868,8 +868,11 @@ input:focus, select:focus, textarea:focus {
   }
 
   .header-user-pill-btn {
-    padding: 0 4px;
+    width: 32px;
     height: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    padding: 0;
   }
 
   .role-tabs {
