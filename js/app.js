@@ -213,33 +213,8 @@ class App {
     });
 
     // -------------------------------------------------------------
-    // Google OAuth Account Chooser & Password Challenge Modal Logic
+    // Helper: Generate or select avatar based on email or name
     // -------------------------------------------------------------
-    const authModal = document.getElementById('google-auth-modal');
-    const viewChooser = document.getElementById('google-oauth-view-chooser');
-    const viewPwd = document.getElementById('google-oauth-view-pwd');
-    const viewCustom = document.getElementById('google-oauth-view-custom');
-
-    const accountSelectBtn = document.getElementById('google-account-select-btn');
-    const chooserAvatarImg = document.getElementById('google-chooser-avatar-img');
-    const chooserName = document.getElementById('google-chooser-name');
-    const chooserEmail = document.getElementById('google-chooser-email');
-
-    const useAnotherBtn = document.getElementById('google-use-another-btn');
-    const customEmailInput = document.getElementById('google-custom-email-input');
-    const customNameInput = document.getElementById('google-custom-name-input');
-    const customBackLink = document.getElementById('google-custom-back-link');
-    const customNextBtn = document.getElementById('google-custom-next-btn');
-
-    const pwdHiTitle = document.getElementById('google-pwd-hi-title');
-    const pwdUserPill = document.getElementById('google-pwd-user-pill');
-    const pwdAvatarImg = document.getElementById('google-pwd-avatar-img');
-    const pwdEmailText = document.getElementById('google-pwd-email-text');
-    const pwdInput = document.getElementById('google-oauth-pwd-input');
-    const showPwdCb = document.getElementById('google-oauth-show-pwd-cb');
-    const pwdNextBtn = document.getElementById('google-pwd-next-btn');
-
-    // Helper: Generate or select avatar based on email, name, or custom photo
     const getAvatarForAccount = (email, name) => {
       const cleanEmail = (email || '').trim().toLowerCase();
       if (cleanEmail === 'aguilar.dariushdave.gasang@gmail.com') {
@@ -248,173 +223,6 @@ class App {
       const displayName = name || cleanEmail.split('@')[0] || 'User';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1a73e8&color=fff&bold=true&size=128`;
     };
-
-    // State for currently selected Google account in OAuth flow
-    let activeOauthAccount = {
-      name: 'Aguilar, Dariush Dave Gasang',
-      shortName: 'Dariush Dave',
-      email: 'aguilar.dariushdave.gasang@gmail.com',
-      picture: 'images/user-avatar.png'
-    };
-
-    const showOauthView = (viewName) => {
-      if (viewChooser) viewChooser.style.display = viewName === 'chooser' ? 'grid' : 'none';
-      if (viewPwd) viewPwd.style.display = viewName === 'pwd' ? 'grid' : 'none';
-      if (viewCustom) viewCustom.style.display = viewName === 'custom' ? 'grid' : 'none';
-    };
-
-    // Open Google Account Authorization & Terms Consent Modal
-    const openGoogleAuthModal = (accountToPreselect = null, directToPassword = false) => {
-      if (onetapPrompt) onetapPrompt.style.display = 'none';
-      if (warningModal) warningModal.style.display = 'none';
-
-      // 1. Check if an account was explicitly provided
-      if (accountToPreselect && accountToPreselect.email) {
-        activeOauthAccount = accountToPreselect;
-      } else {
-        // 2. Check saved user or last used email in storage
-        const existingUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
-        const lastSavedEmail = localStorage.getItem('pawtrack_last_email');
-
-        if (existingUser && existingUser.email) {
-          activeOauthAccount = {
-            name: existingUser.name || 'Google User',
-            shortName: existingUser.shortName || (existingUser.name ? existingUser.name.split(' ')[0] : 'User'),
-            email: existingUser.email,
-            picture: existingUser.picture || getAvatarForAccount(existingUser.email, existingUser.name)
-          };
-        } else if (lastSavedEmail && lastSavedEmail.includes('@')) {
-          const localPart = lastSavedEmail.split('@')[0];
-          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-          const derivedName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-          activeOauthAccount = {
-            name: derivedName,
-            shortName: derivedName.split(' ')[0] || derivedName,
-            email: lastSavedEmail,
-            picture: getAvatarForAccount(lastSavedEmail, derivedName)
-          };
-        } else {
-          activeOauthAccount = {
-            name: 'Aguilar, Dariush Dave Gasang',
-            shortName: 'Dariush Dave',
-            email: 'aguilar.dariushdave.gasang@gmail.com',
-            picture: 'images/user-avatar.png'
-          };
-        }
-      }
-
-      if (chooserName) chooserName.textContent = activeOauthAccount.name;
-      if (chooserEmail) chooserEmail.textContent = activeOauthAccount.email;
-      if (chooserAvatarImg) chooserAvatarImg.src = activeOauthAccount.picture || getAvatarForAccount(activeOauthAccount.email, activeOauthAccount.name);
-
-      if (directToPassword) {
-        advanceToPasswordChallenge(activeOauthAccount);
-      } else {
-        showOauthView('chooser');
-      }
-
-      if (authModal) authModal.classList.add('active');
-    };
-
-    const advanceToPasswordChallenge = (account) => {
-      activeOauthAccount = account;
-      // Derive greeting name:
-      // If name contains comma e.g. "Aguilar, Dariush Dave Gasang", take "Aguilar" or first part
-      let greeting = 'User';
-      if (account.name) {
-        const parts = account.name.split(/[\s,]+/);
-        greeting = parts[0] || 'User';
-      }
-      if (pwdHiTitle) pwdHiTitle.textContent = `Hi ${greeting},`;
-      if (pwdEmailText) pwdEmailText.textContent = account.email;
-      if (pwdAvatarImg) pwdAvatarImg.src = account.picture || getAvatarForAccount(account.email, account.name);
-
-      if (pwdInput) {
-        pwdInput.value = '';
-        pwdInput.type = 'password';
-      }
-      if (showPwdCb) {
-        showPwdCb.checked = false;
-      }
-
-      showOauthView('pwd');
-      setTimeout(() => pwdInput?.focus(), 150);
-    };
-
-    // Account Chooser: Select Active Account
-    accountSelectBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      advanceToPasswordChallenge(activeOauthAccount);
-    });
-
-    // Account Chooser: Click "Use another account"
-    useAnotherBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (customEmailInput) customEmailInput.value = '';
-      if (customNameInput) customNameInput.value = '';
-      showOauthView('custom');
-      setTimeout(() => customEmailInput?.focus(), 150);
-    });
-
-    // Custom Account View: Back to Chooser
-    customBackLink?.addEventListener('click', (e) => {
-      e.preventDefault();
-      showOauthView('chooser');
-    });
-
-    // Custom Account View: Next Button
-    const handleCustomAccountNext = () => {
-      const email = (customEmailInput?.value || '').trim();
-      if (!email || !email.includes('@') || !email.includes('.')) {
-        window.notifManager.showToast('Please enter a valid Google/Gmail account email.', 'warning');
-        customEmailInput?.focus();
-        return;
-      }
-
-      let name = (customNameInput?.value || '').trim();
-      if (!name) {
-        const localPart = email.split('@')[0];
-        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-        name = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-      }
-
-      const shortName = name.split(' ')[0] || name;
-      const avatar = getAvatarForAccount(email, name);
-
-      const customAcc = {
-        name,
-        shortName,
-        email,
-        picture: avatar
-      };
-
-      advanceToPasswordChallenge(customAcc);
-    };
-
-    customNextBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      handleCustomAccountNext();
-    });
-
-    customEmailInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleCustomAccountNext();
-      }
-    });
-
-    // Password Challenge: Click User Pill to switch account (goes back to Chooser)
-    pwdUserPill?.addEventListener('click', (e) => {
-      e.preventDefault();
-      showOauthView('chooser');
-    });
-
-    // Password Challenge: Show Password Checkbox
-    showPwdCb?.addEventListener('change', () => {
-      if (pwdInput) {
-        pwdInput.type = showPwdCb.checked ? 'text' : 'password';
-      }
-    });
 
     // -------------------------------------------------------------
     // 4-Digit Gmail PIN Verification Modal Controller
@@ -476,27 +284,44 @@ class App {
       }, 1000);
     };
 
-    // Password Challenge: Submit Password & Trigger Real-Time PIN Dispatch
-    const handlePasswordSubmit = () => {
-      const pwdVal = (pwdInput?.value || '').trim();
-      if (!pwdVal) {
-        window.notifManager.showToast('Please enter your Google account password to continue.', 'warning');
-        pwdInput?.focus();
-        return;
+    // Helper: Dispatch 4-digit PIN to user's Gmail and open verification modal
+    const dispatchPinAndOpenVerification = (targetEmail = '', customName = '') => {
+      if (onetapPrompt) onetapPrompt.style.display = 'none';
+      if (warningModal) warningModal.style.display = 'none';
+
+      let email = (targetEmail || '').trim();
+      if (!email || !email.includes('@')) {
+        const lastSaved = localStorage.getItem('pawtrack_last_email');
+        email = lastSaved && lastSaved.includes('@') ? lastSaved : 'aguilar.dariushdave.gasang@gmail.com';
+      }
+
+      let accountName = customName || '';
+      let avatarPic = null;
+
+      if (email.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
+        accountName = accountName || 'Aguilar, Dariush Dave Gasang';
+        avatarPic = 'images/user-avatar.png';
+      } else {
+        if (!accountName) {
+          const localPart = email.split('@')[0];
+          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+          accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+        }
+        avatarPic = getAvatarForAccount(email, accountName);
       }
 
       const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
 
       this.pendingAuth = {
-        name: activeOauthAccount.name,
-        shortName: activeOauthAccount.shortName || activeOauthAccount.name.split(' ')[0] || 'User',
-        email: activeOauthAccount.email,
-        picture: activeOauthAccount.picture || getAvatarForAccount(activeOauthAccount.email, activeOauthAccount.name),
+        name: accountName,
+        shortName: accountName.split(' ')[0] || accountName,
+        email,
+        picture: avatarPic,
         pin: generatedPin
       };
 
-      if (authModal) window.notifManager.closeModal('google-auth-modal');
-      if (pinTargetEmail) pinTargetEmail.textContent = activeOauthAccount.email;
+      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
+      if (pinTargetEmail) pinTargetEmail.textContent = email;
 
       // Clear previous PIN inputs
       pinInputs.forEach(input => {
@@ -517,23 +342,11 @@ class App {
       fetch('/api/send-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: activeOauthAccount.email, name: activeOauthAccount.name, pin: generatedPin })
+        body: JSON.stringify({ email, name: accountName, pin: generatedPin })
       }).catch(err => console.warn('[Send PIN API Notice]:', err));
 
-      window.notifManager.showToast(`Security PIN [${generatedPin}] sent to ${activeOauthAccount.email}. Please check your primary Gmail inbox.`, 'info');
+      window.notifManager.showToast(`Security PIN [${generatedPin}] sent to ${email}. Please check your primary Gmail inbox.`, 'info');
     };
-
-    pwdNextBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      handlePasswordSubmit();
-    });
-
-    pwdInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handlePasswordSubmit();
-      }
-    });
 
     // Step 2: PIN Input Box interactions (Auto-advance, Backspace, Paste)
     pinInputs.forEach((input, index) => {
@@ -663,31 +476,11 @@ class App {
     const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
     const loginDialogCreate = document.getElementById('login-dialog-create-btn');
 
-    // "Continue with Google" -> opens Google OAuth Account Chooser modal with typed email pre-populated
+    // "Continue with Google" -> triggers direct PIN verification to entered email or default
     loginDialogGoogleBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       const typedEmail = (loginDialogEmail?.value || '').trim();
-      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-
-      if (typedEmail && typedEmail.includes('@')) {
-        let accountName = 'Google User';
-        if (typedEmail.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
-          accountName = 'Aguilar, Dariush Dave Gasang';
-        } else {
-          const localPart = typedEmail.split('@')[0];
-          const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-          accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-        }
-        const customAcc = {
-          name: accountName,
-          shortName: accountName.split(' ')[0] || accountName,
-          email: typedEmail,
-          picture: getAvatarForAccount(typedEmail, accountName)
-        };
-        openGoogleAuthModal(customAcc, true);
-      } else {
-        openGoogleAuthModal();
-      }
+      dispatchPinAndOpenVerification(typedEmail);
     });
 
     // "Log in" form submission with Email & Password
@@ -708,55 +501,7 @@ class App {
         return;
       }
 
-      // Check account credentials / sync
-      let accountName = 'Google User';
-      let avatarPic = null;
-
-      if (email.toLowerCase() === 'aguilar.dariushdave.gasang@gmail.com') {
-        accountName = 'Aguilar, Dariush Dave Gasang';
-        avatarPic = 'images/user-avatar.png';
-      } else {
-        const localPart = email.split('@')[0];
-        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-        accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-        avatarPic = getAvatarForAccount(email, accountName);
-      }
-
-      const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-
-      this.pendingAuth = {
-        name: accountName,
-        shortName: accountName.split(' ')[0] || accountName,
-        email,
-        picture: avatarPic,
-        pin: generatedPin
-      };
-
-      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      if (pinTargetEmail) pinTargetEmail.textContent = email;
-
-      pinInputs.forEach(input => {
-        if (input) {
-          input.value = '';
-          input.classList.remove('filled', 'error');
-        }
-      });
-
-      if (pinModal) {
-        window.notifManager.openModal('guardian-pin-modal');
-        setTimeout(() => pinInputs[0]?.focus(), 150);
-      }
-
-      startResendCountdown(60);
-
-      // Real-time transactional email dispatch
-      fetch('/api/send-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name: accountName, pin: generatedPin })
-      }).catch(err => console.warn('[Send PIN API Notice]:', err));
-
-      window.notifManager.showToast(`Verification PIN [${generatedPin}] sent to ${email}. Please check your inbox.`, 'info');
+      dispatchPinAndOpenVerification(email);
     });
 
     // "Reset password"
@@ -774,14 +519,14 @@ class App {
     // "No account? Create one"
     loginDialogCreate?.addEventListener('click', (e) => {
       e.preventDefault();
-      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      openGoogleAuthModal();
+      loginDialogEmail?.focus();
+      window.notifManager.showToast('Enter your Gmail address above and click Continue with Google or Log in to get started.', 'info');
     });
 
-    // Sign in with Google Button (Trigger Authorization Modal)
+    // Sign in with Google Button (Trigger Authorization Flow)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      openGoogleAuthModal();
+      dispatchPinAndOpenVerification();
     });
 
     // Continue as Guest
@@ -798,7 +543,7 @@ class App {
       if (loginDialogModal) {
         window.notifManager.openModal('login-dialog-modal');
       } else {
-        openGoogleAuthModal();
+        dispatchPinAndOpenVerification();
       }
     });
 
