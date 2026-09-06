@@ -1498,9 +1498,9 @@
     </div>
   </div>
 
-  <!-- 16. Google Account Authorization & Consent Modal -->
+  <!-- 16. Google Account Authorization & Gmail Login Modal -->
   <div class="modal-overlay" id="google-auth-modal">
-    <div class="modal-box" style="max-width: 480px; background: #18191e; color: #e2e8f0; border: 1px solid #2d3139; border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+    <div class="modal-box" style="max-width: 490px; background: #18191e; color: #e2e8f0; border: 1px solid #2d3139; border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
       <div class="modal-header" style="border-bottom: 1px solid #2d3139; padding: 16px 20px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <svg width="22" height="22" viewBox="0 0 24 24">
@@ -1510,22 +1510,49 @@
             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
           </svg>
           <div>
-            <div style="font-weight: 700; font-size: 16px; color: #fff;">Sign in with Google</div>
-            <div style="font-size: 11.5px; color: #94a3b8;">Authorize PawTrack Pet Recovery Platform</div>
+            <div style="font-weight: 700; font-size: 16px; color: #fff;">Sign in with Google / Gmail</div>
+            <div style="font-size: 11.5px; color: #94a3b8;">Connect Your Active Google Account &amp; Verify Owner</div>
           </div>
         </div>
         <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('google-auth-modal')" aria-label="Close" style="color:#9aa0a6;">&times;</button>
       </div>
 
-      <div class="modal-body" style="padding: 18px 20px; display:flex; flex-direction:column; gap:16px;">
-        <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-          Connect your Google Account to authorize pet ownership, receive municipal pound intake alerts, and track legal holding countdowns.
+      <div class="modal-body" style="padding: 18px 20px; display:flex; flex-direction:column; gap:14px;">
+        <!-- Official Google GIS One-Click Account Picker Button -->
+        <div style="background: rgba(26,115,232,0.08); border: 1px solid rgba(138,180,248,0.25); border-radius: 10px; padding: 12px 14px; text-align: center;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px; font-weight: 600;">
+            Option 1: Choose from Google Accounts in your browser
+          </div>
+          <div id="google-gsi-btn-box" style="display:flex; justify-content:center; min-height:40px;">
+            <!-- Rendered Google GIS Button -->
+            <div id="g_id_onload"
+                 data-client_id="925763590050-p99a80m68g0j09s6h7knf5ks91i4g5n4.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+          </div>
         </div>
 
-        <!-- Detected Google Account Card with Live Sync -->
-        <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:#22242c; border-radius:10px; border:1px solid #323642; position:relative;">
-          <label for="google-auth-avatar-upload" style="cursor:pointer; position:relative; flex:none;" title="Click to change or upload profile picture">
-            <div id="auth-preview-avatar" style="width:46px; height:46px; border-radius:50%; background:#1a73e8; color:#fff; display:grid; place-items:center; font-size:18px; font-weight:700; overflow:hidden; border:2px solid #8ab4f8; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+        <div style="display:flex; align-items:center; gap:8px; margin: 2px 0;">
+          <div style="flex:1; height:1px; background:#2d3139;"></div>
+          <span style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">or sign in directly with email &amp; password</span>
+          <div style="flex:1; height:1px; background:#2d3139;"></div>
+        </div>
+
+        <!-- Live Detected Profile Preview Card -->
+        <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#22242c; border-radius:10px; border:1px solid #323642; position:relative;">
+          <label for="google-auth-avatar-upload" style="cursor:pointer; position:relative; flex:none;" title="Click to upload custom profile photo">
+            <div id="auth-preview-avatar" style="width:44px; height:44px; border-radius:50%; background:#1a73e8; color:#fff; display:grid; place-items:center; font-size:18px; font-weight:700; overflow:hidden; border:2px solid #8ab4f8; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
               <img id="auth-preview-avatar-img" src="images/user-avatar.png" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;" />
             </div>
             <div style="position:absolute; bottom:-2px; right:-2px; background:#1a73e8; color:#fff; border-radius:50%; width:16px; height:16px; display:grid; place-items:center; font-size:10px; border:1px solid #fff;">📷</div>
@@ -1534,45 +1561,46 @@
           <div style="min-width:0; flex:1;">
             <div style="display:flex; align-items:center; gap:6px;">
               <div id="auth-preview-name" style="font-weight:700; font-size:14px; color:#fff;">Dariush Dave</div>
-              <span style="font-size:10px; background:#1e293b; color:#8ab4f8; padding:2px 6px; border-radius:6px; font-weight:700; border:1px solid rgba(138,180,248,0.2);">Verified</span>
+              <span id="auth-verified-badge" style="font-size:10px; background:#1e293b; color:#8ab4f8; padding:2px 6px; border-radius:6px; font-weight:700; border:1px solid rgba(138,180,248,0.2);">Active Google Account</span>
             </div>
             <div id="auth-preview-email" style="font-size:12px; color:#94a3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">aguilar.dariushdave.gasang@gmail.com</div>
           </div>
-          <button type="button" id="auth-detect-browser-btn" title="Re-analyze browser Google account" style="background:rgba(26,115,232,0.15); border:1px solid rgba(138,180,248,0.3); color:#8ab4f8; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:600; cursor:pointer;">
-            🔄 Sync
+          <button type="button" id="auth-detect-browser-btn" title="Reset / detect active account" style="background:rgba(26,115,232,0.15); border:1px solid rgba(138,180,248,0.3); color:#8ab4f8; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:600; cursor:pointer;">
+            🔄 Reset
           </button>
         </div>
 
-        <!-- Account details (Real-Time Live Binding) -->
+        <!-- Account Credentials Input Fields -->
         <div style="display:flex; flex-direction:column; gap:10px;">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <label style="font-size:11.5px; color:#94a3b8; font-weight:600;">Google Account Email / Switch Account</label>
-              <span style="font-size:10.5px; color:#38bdf8;">⚡ Live Update</span>
+              <label style="font-size:11.5px; color:#94a3b8; font-weight:600;">Gmail / Google Account Address</label>
+              <span style="font-size:10.5px; color:#38bdf8;">⚡ Live Sync on Type</span>
             </div>
-            <input type="email" id="google-auth-email-input" value="aguilar.dariushdave.gasang@gmail.com" placeholder="name@gmail.com" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 12px; font-size:13px;" autocomplete="email" />
+            <input type="email" id="google-auth-email-input" value="aguilar.dariushdave.gasang@gmail.com" placeholder="e.g. yourname@gmail.com" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 12px; font-size:13px;" autocomplete="email" />
           </div>
+
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="font-size:11.5px; color:#94a3b8; font-weight:600;">Gmail Password / App Passcode</label>
+              <span style="font-size:10.5px; color:#94a3b8;">(Required for direct sign-in)</span>
+            </div>
+            <div style="position:relative;">
+              <input type="password" id="google-auth-password-input" value="••••••••••••" placeholder="Enter Gmail password or app passcode" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 40px 8px 12px; font-size:13px;" autocomplete="current-password" />
+              <button type="button" id="google-auth-pwd-toggle" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:14px;" title="Toggle Password Visibility">👁️</button>
+            </div>
+          </div>
+
           <div>
             <label style="font-size:11.5px; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">Guardian Full Name</label>
             <input type="text" id="google-auth-name-input" value="Dariush Dave" placeholder="Full Name" style="width:100%; background:#121316; color:#fff; border:1px solid #333846; border-radius:8px; padding:8px 12px; font-size:13px;" autocomplete="name" />
           </div>
         </div>
 
-        <!-- Permissions requested info box -->
-        <div style="background:#121316; border:1px solid #232733; border-radius:8px; padding:10px 14px; font-size:12px; color:#94a3b8;">
-          <div style="font-weight:700; color:#e2e8f0; margin-bottom:4px;">PawTrack will securely access:</div>
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
-            <span style="color:#22c55e; font-weight:700;">&#10003;</span> Basic profile (Name &amp; photo) for Guardian identification
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="color:#22c55e; font-weight:700;">&#10003;</span> Email for urgent 72-hour municipal impoundment notifications
-          </div>
-        </div>
-
         <!-- Privacy and Terms Checkbox -->
-        <label style="display:flex; align-items:flex-start; gap:10px; font-size:12px; color:#cbd5e1; cursor:pointer; background:rgba(138,180,248,0.06); padding:10px 12px; border-radius:8px; border:1px solid rgba(138,180,248,0.15);">
+        <label style="display:flex; align-items:flex-start; gap:10px; font-size:12px; color:#cbd5e1; cursor:pointer; background:rgba(138,180,248,0.06); padding:8px 12px; border-radius:8px; border:1px solid rgba(138,180,248,0.15); margin-top:2px;">
           <input type="checkbox" id="google-auth-consent-cb" checked style="accent-color:#1a73e8; width:16px; height:16px; margin-top:2px; flex:none;" />
-          <span style="line-height:1.45;">
+          <span style="line-height:1.4;">
             I authorize PawTrack and agree to the
             <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal')" style="color:#8ab4f8; text-decoration:underline; font-weight:600;">Privacy Policy</a> and
             <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal')" style="color:#8ab4f8; text-decoration:underline; font-weight:600;">Terms of Service</a>.
@@ -1580,11 +1608,11 @@
         </label>
       </div>
 
-      <div class="modal-footer" style="border-top:1px solid #2d3139; padding:14px 20px; display:flex; justify-content:flex-end; gap:8px;">
+      <div class="modal-footer" style="border-top:1px solid #2d3139; padding:12px 20px; display:flex; justify-content:flex-end; gap:8px;">
         <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('google-auth-modal')" style="color:#94a3b8; border-color:#333846;">Cancel</button>
         <button type="button" id="google-auth-confirm-btn" class="btn btn-primary" style="background:#1a73e8; border:none; padding:9px 20px; font-weight:700; display:flex; align-items:center; gap:8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-          <span>Authorize &amp; Sign In</span>
+          <span>Send PIN &amp; Sign In</span>
         </button>
       </div>
     </div>
