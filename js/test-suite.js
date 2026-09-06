@@ -83,6 +83,7 @@ const requiredIds = [
   'header-user-btn',
   'user-account-dropdown',
   'dropdown-profile-btn',
+  'dropdown-hardware-btn',
   'dropdown-settings-btn',
   'dropdown-logout-btn',
   'google-onetap-prompt',

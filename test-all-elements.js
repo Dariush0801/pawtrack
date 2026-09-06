@@ -80,7 +80,7 @@ console.log(`  ✓ ${passedFunctions} handler methods verified in JS code.`);
 
 // Check 3: Role Tabs & Router Views
 console.log('\n[Check 3] Verifying Router Views & Role Tabs:');
-const expectedViews = ['owner', 'shelter', 'map', 'cases', 'hardware'];
+const expectedViews = ['owner', 'shelter', 'map', 'cases', 'impounded'];
 expectedViews.forEach(v => {
   const inNav = indexHtml.includes(`data-view="${v}"`);
   const inRouter = appJs.includes(`${v}: window.`);

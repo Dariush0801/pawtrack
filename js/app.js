@@ -10,6 +10,7 @@ class App {
       shelter: window.shelterView,
       map: window.publicView,
       cases: window.casesView,
+      impounded: window.impoundedView,
       hardware: window.hardwareView
     };
 
@@ -164,6 +165,13 @@ class App {
       const countEl = document.getElementById('profile-pet-count');
       if (countEl) countEl.textContent = `${pets.length} Registered Pet${pets.length === 1 ? '' : 's'}`;
       if (profileModal) profileModal.classList.add('active');
+    });
+
+    // User Dropdown: Hardware Specs Button (under Guardian Profile)
+    document.getElementById('dropdown-hardware-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (userDropdown) userDropdown.style.display = 'none';
+      window.location.hash = 'hardware';
     });
 
     // User Dropdown: Portal Settings Button
