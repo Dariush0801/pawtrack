@@ -5602,5 +5602,23 @@
   border-color: rgba(29, 78, 216, 0.15);
 }
 
+.guardian-profile-card .modal-body {
+  padding: 1.25rem 1.4rem;
+}
+
+.guardian-profile-card .modal-header {
+  padding: 1.15rem 1.4rem;
+}
+
+@media (max-width: 480px) {
+  .guardian-profile-card .modal-body {
+    padding: 1rem 1.15rem;
+  }
+  .guardian-profile-card .modal-header {
+    padding: 1rem 1.15rem;
+  }
+}
+
+
 
 
