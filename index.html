@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PawTrack | Pet Recovery & Impoundment Notification System</title>
+  <meta name="description"
+    content="Unified RFID pet tracking, automated municipal pound alerts, and 72-hour legal holding countdown monitor." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- PawTrack Stylesheets -->
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <!-- Brand Logo -->
+      <a href="#owner" class="brand-logo" title="PawTrack Home">
+        <div class="logo-icon-box">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z" />
+          </svg>
+        </div>
+        <div class="brand-name">
+          <span>PawTrack</span>
+          <span class="brand-tagline">RFID RECOVERY</span>
+        </div>
+      </a>
+
+      <!-- Primary Navigation Role Tabs (Always English) -->
+      <nav class="role-tabs" aria-label="Role Navigation">
+        <a href="#owner" class="role-tab-btn active" data-view="owner" title="Home" aria-label="Home">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span>Home</span>
+        </a>
+        <a href="http://localhost:8080" target="_blank" class="badge" style="display: none; background:rgba(194,65,12,0.15); color:#ea580c; text-decoration:none; padding:4px 8px; border-radius:6px; font-weight:600; font-size:11px; margin-left:8px; border:1px solid rgba(194,65,12,0.3);" hidden>Admin Console ↗</a>
+        <a href="#shelter" class="role-tab-btn" data-view="shelter" title="Shelter Terminal" aria-label="Shelter Terminal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"/>
+            <path d="M5 21V7l8-4 8 4v14"/>
+            <path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9z"/>
+          </svg>
+          <span>Shelter Terminal</span>
+        </a>
+        <a href="#map" class="role-tab-btn" data-view="map" title="Incident Map" aria-label="Incident Map">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+            <line x1="9" y1="3" x2="9" y2="18"/>
+            <line x1="15" y1="6" x2="15" y2="21"/>
+          </svg>
+          <span>Incident Map</span>
+        </a>
+        <a href="#cases" class="role-tab-btn" data-view="cases" title="Cases & Analytics" aria-label="Cases & Analytics">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <span>Cases & Analytics</span>
+        </a>
+        <a href="#hardware" class="role-tab-btn" data-view="hardware" title="Hardware Specs" aria-label="Hardware Specs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="16" x="4" y="4" rx="2"/>
+            <rect width="6" height="6" x="9" y="9" rx="1"/>
+            <path d="M15 2v2"/>
+            <path d="M15 20v2"/>
+            <path d="M2 15h2"/>
+            <path d="M2 9h2"/>
+            <path d="M20 15h2"/>
+            <path d="M20 9h2"/>
+            <path d="M9 2v2"/>
+            <path d="M9 20v2"/>
+          </svg>
+          <span>Hardware Specs</span>
+        </a>
+        <a href="javascript:void(0)" class="role-tab-btn nav-report-btn" data-view="report" title="Report Missing or Found Pet" aria-label="Report Missing or Found Pet" onclick="window.reportManager ? window.reportManager.openReportModal('found') : null" data-i18n-title="nav.reportTitle" data-i18n-aria="nav.reportTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          </svg>
+          <span data-i18n="nav.report">Report Pet</span>
+        </a>
+      </nav>
+
+      <!-- Quick Action Controls -->
+      <div class="header-actions" style="position: relative; display: flex; align-items: center; gap: 8px;">
+        <!-- Language Switcher Toggle Button (One Icon Only) -->
+        <button class="lang-toggle-btn" id="lang-toggle-btn" title="Palitan ang Wika / Switch Language (English / Filipino)"
+          aria-label="Toggle Language" onclick="window.pawI18n.toggleLanguage()" data-i18n-title="nav.langTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" id="lang-btn-svg">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span class="lang-indicator-badge" id="lang-current-code">EN</span>
+        </button>
+
+        <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Dark/Light Theme"
+          aria-label="Toggle Theme" data-i18n-title="nav.themeTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" id="theme-btn-svg">
+            <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z" />
+          </svg>
+        </button>
+
+        <!-- Notification Bell with Facebook-style Floating Dropdown -->
+        <div style="position: relative;">
+          <button class="notif-bell-btn" id="notif-bell-btn" title="Notifications Center" aria-label="Notifications" data-i18n-title="nav.notifTitle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-badge-pill" id="notif-count-badge" style="display:none;">1</span>
+          </button>
+
+          <!-- Facebook-style Notification Popup Menu -->
+          <div id="notif-dropdown-panel" class="fb-dropdown-panel" style="display: none;">
+            <div class="fb-dropdown-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 700; font-size: 15px; color: var(--text-main);" data-i18n="notif.title">Notifications</span>
+                <span class="fb-unread-pill" id="notif-dropdown-count">0</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="fb-text-action-btn" id="notif-mark-read-btn" data-i18n="notif.markAllRead">Mark all read</button>
+                <button type="button" class="fb-close-icon-btn" id="notif-dropdown-close">&times;</button>
+              </div>
+            </div>
+            <!-- Category Tabs: Others & Priority -->
+            <div class="fb-notif-category-bar" id="notif-category-bar">
+              <button type="button" class="fb-notif-tab-btn active" id="notif-tab-others" onclick="window.notifManager.setCategory('others')">
+                <span class="fb-notif-tab-title" data-i18n="notif.others">Others</span>
+                <span class="fb-notif-tab-badge badge-others" id="notif-badge-others" style="display:none;">0</span>
+              </button>
+              <button type="button" class="fb-notif-tab-btn" id="notif-tab-priority" onclick="window.notifManager.setCategory('priority')">
+                <span class="fb-notif-tab-title" data-i18n="notif.priority">Priority</span>
+                <span class="fb-notif-tab-badge badge-priority" id="notif-badge-priority" style="display:none;">0</span>
+              </button>
+            </div>
+            <div class="fb-dropdown-body" id="notif-dropdown-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Auth / User Account Container -->
+        <div id="auth-right-container" style="position: relative;">
+          <!-- Logged Out Button: "Log In" Only -->
+          <button id="header-login-btn" class="header-login-clean-btn" type="button">
+            <span>Log In</span>
+          </button>
+
+          <!-- Logged In Button: Profile Pill with Caret -->
+          <button id="header-user-btn" class="header-user-pill-btn" type="button" style="display: none;">
+            <div id="header-avatar-circle" class="header-avatar-circle">L</div>
+            <span id="header-user-name" class="header-user-name">Lifegiver BSM</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted);"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <!-- Logged In User Dropdown Menu -->
+          <div id="user-account-dropdown" class="user-account-dropdown-panel" style="display: none;">
+            <div class="user-dropdown-header">
+              <div class="user-dropdown-avatar" id="dropdown-avatar-circle">L</div>
+              <div class="user-dropdown-meta">
+                <div class="user-dropdown-name" id="dropdown-user-name">Lifegiver BSM Social Media</div>
+                <div class="user-dropdown-email" id="dropdown-user-email">socialmedialifegiverbsm@gmail.com</div>
+                <div class="user-dropdown-role">Verified Pet Guardian</div>
+              </div>
+            </div>
+
+            <div class="user-dropdown-divider"></div>
+
+            <div class="user-dropdown-menu">
+              <button type="button" class="user-dropdown-item" id="dropdown-profile-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Guardian Profile</span>
+              </button>
+
+              <button type="button" class="user-dropdown-item" id="dropdown-settings-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Portal Settings</span>
+              </button>
+            </div>
+
+            <div class="user-dropdown-divider"></div>
+
+            <button type="button" class="user-dropdown-item user-dropdown-logout" id="dropdown-logout-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Log Out</span>
+            </button>
+          </div>
+
+          <!-- Google One Tap Prompt Box -->
+          <div id="google-onetap-prompt" style="display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 340px; background: #131314; color: #e3e3e3; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid #2d2f31; z-index: 2500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #2d2f31;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+                </svg>
+                <span style="font-size: 13px; font-weight: 500; color: #e3e3e3;">Sign in to pawtrack.com with google.com</span>
+              </div>
+              <button id="onetap-close-btn" style="background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 16px; padding: 2px 4px; display: grid; place-items: center;">&times;</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: #689f38; color: #ffffff; display: grid; place-items: center; font-size: 16px; font-weight: 700; flex: none;">
+                L
+              </div>
+              <div style="display: flex; flex-direction: column; min-width: 0;">
+                <span style="font-size: 13px; font-weight: 600; color: #ffffff;">Lifegiver BSM Social Media</span>
+                <span style="font-size: 11px; color: #9aa0a6;">socialmedialifegiverbsm@gmail.com</span>
+              </div>
+            </div>
+
+            <button id="onetap-continue-btn" style="width: 100%; background: #8ab4f8; color: #1f1f1f; border: none; border-radius: 20px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: background 0.15s ease;">
+              Continue as Lifegiver BSM
+            </button>
+
+            <button id="onetap-guest-btn" style="width: 100%; background: transparent; color: #8ab4f8; border: 1px solid #3c4043; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer;">
+              Continue as Guest (Read-Only)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="app-main" id="app-viewport">
+    <!-- View content is injected here dynamically -->
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <strong data-i18n="footer.copy">PawTrack System &mdash; Pet Recovery &amp; Impoundment Notification System with RFID Technology.</strong>
+      </div>
+      <div class="footer-status">
+        <span class="status-indicator"></span>
+        <span class="status-text" data-i18n="footer.status">NCR Municipal Transponder Grid Active</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Register Pet Modal -->
+  <div class="modal-overlay" id="register-pet-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="plus-circle" style="color:var(--primary); width:20px; height:20px;"></i> <span data-i18n="modal.regTitle">Register Pet with RFID</span>
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('register-pet-modal')"
+          aria-label="Close">&times;</button>
+      </div>
+      <form id="register-pet-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.regPetName">Pet Name *</label>
+              <input type="text" id="reg-pet-name" placeholder="e.g. Buddy" data-i18n-placeholder="modal.regPetNamePh" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.regSpecies">Species *</label>
+              <select id="reg-pet-species" required>
+                <option value="Dog" data-i18n="modal.speciesDog">Dog</option>
+                <option value="Cat" data-i18n="modal.speciesCat">Cat</option>
+                <option value="Other" data-i18n="modal.speciesOther">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.regBreed">Breed *</label>
+              <input type="text" id="reg-pet-breed" placeholder="e.g. Labrador / Shorthair" data-i18n-placeholder="modal.regBreedPh" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.regGender">Gender</label>
+              <select id="reg-pet-gender">
+                <option value="Male" data-i18n="modal.genderMale">Male</option>
+                <option value="Female" data-i18n="modal.genderFemale">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.regColor">Color & Markings</label>
+            <input type="text" id="reg-pet-color" placeholder="e.g. Golden brown with white chest patch" data-i18n-placeholder="modal.regColorPh" />
+          </div>
+
+          <!-- Photo Upload Zone -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.regPhoto">Upload Photo</label>
+            <div class="photo-upload-zone" id="reg-photo-upload-zone"
+              onclick="document.getElementById('reg-pet-photo-file').click()">
+              <input type="file" id="reg-pet-photo-file" accept="image/*" style="display: none;" />
+              <input type="hidden" id="reg-pet-photo" value="" />
+
+              <div class="photo-upload-prompt" id="reg-photo-prompt">
+                <div class="photo-upload-icon-box">
+                  <i data-lucide="upload-cloud" style="width: 22px; height: 22px; color: var(--primary);"></i>
+                </div>
+                <div class="photo-upload-text">
+                  <span class="upload-title" data-i18n="modal.regPhotoPrompt">Click to upload pet photo or drag & drop</span>
+                  <span class="upload-subtitle" data-i18n="modal.regPhotoSub">PNG, JPG, WEBP up to 8MB</span>
+                </div>
+              </div>
+
+              <div class="photo-upload-preview" id="reg-photo-preview" style="display: none;">
+                <img id="reg-photo-preview-img" src="" alt="Pet Preview" />
+                <div class="photo-upload-overlay">
+                  <button type="button" class="btn-change-photo"
+                    onclick="event.stopPropagation(); document.getElementById('reg-pet-photo-file').click()">
+                    <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i> Change
+                  </button>
+                  <button type="button" class="btn-remove-photo" id="reg-photo-remove-btn"
+                    onclick="event.stopPropagation(); window.pawApp.clearPhotoUpload()" title="Remove photo">
+                    <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Guardian Emergency Contact (Confidential - Visible only to Admin/Shelter Officers) -->
+          <div style="background: var(--bg-surface-elevated, #f8fafc); border: 1px solid var(--border-subtle, #e2e8f0); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-main, #1e293b); display: flex; align-items: center; gap: 5px;">
+                <span data-i18n="modal.regGuardianTitle">Guardian Emergency Rescue Contact</span>
+              </span>
+              <span style="font-size: 9.5px; font-weight: 700; color: #15803d; background: #dcfce7; padding: 2px 7px; border-radius: 99px;" data-i18n="modal.regAdminBadge">
+                Admin & Pound Officers Only
+              </span>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerName">Guardian Full Name *</label>
+                <input type="text" id="reg-owner-name" placeholder="e.g. Lifegiver BSM" value="Lifegiver BSM Social Media" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerPhone">Guardian Contact Number *</label>
+                <input type="tel" id="reg-owner-phone" placeholder="e.g. +63 917 555 3829" value="+63 917 555 3829" required />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerAddress">Emergency Rescue City / Address</label>
+              <input type="text" id="reg-owner-address" placeholder="e.g. Metro Manila, Philippines" value="Metro Manila, Philippines" />
+            </div>
+
+            <span style="font-size: 10px; color: var(--text-muted, #64748b); margin-top: 6px; display: block; line-height: 1.35;" data-i18n="modal.regPrivacyNote">
+              <i>Your contact number is kept confidential from other public users and is only used by municipal shelter officers to contact you when your pet is scanned.</i>
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.regMedical">Medical / Vaccination / Microchip Details</label>
+            <textarea id="reg-pet-notes" rows="2"
+              placeholder="Vaccine records, allergies, microchip number..." data-i18n-placeholder="modal.regMedicalPh"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline"
+            onclick="window.notifManager.closeModal('register-pet-modal')" data-i18n="modal.cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="modal.saveReg">Save & Issue Digital Tag</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Report Lost Pet Modal -->
+  <div class="modal-overlay" id="report-lost-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem; color:var(--danger);">
+          <i data-lucide="alert-triangle" style="width:20px; height:20px;"></i> <span data-i18n="modal.lostTitle">Report Pet as Missing</span>
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('report-lost-modal')"
+          aria-label="Close">&times;</button>
+      </div>
+      <form id="report-lost-form">
+        <input type="hidden" id="report-lost-pet-id" />
+        <div class="modal-body">
+          <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1.25rem;">
+            Reporting <strong id="report-lost-pet-name" style="color:var(--text-main);">Pet</strong> as missing
+            activates real-time alert broadcasts on the public recovery board and alerts animal facilities.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.lostLocation">Recorded Last Seen Location / Barangay *</label>
+            <input type="text" id="report-lost-location" placeholder="e.g. Near Scout Gandia & Tomas Morato, QC"
+              data-i18n-placeholder="modal.lostLocationPh" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.lostDate">Date & Time Last Seen</label>
+            <input type="datetime-local" id="report-lost-date" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.lostNotes">Additional Distinct Features & Behavior</label>
+            <textarea id="report-lost-notes" rows="3"
+              placeholder="Wearing RFID collar tag, responds to name..." data-i18n-placeholder="modal.lostNotesPh"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline"
+            onclick="window.notifManager.closeModal('report-lost-modal')" data-i18n="modal.cancel">Cancel</button>
+          <button type="submit" class="btn btn-danger" data-i18n="modal.broadcastBtn">Broadcast Missing Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Report Found Stray Pet Modal -->
+  <div class="modal-overlay" id="found-pet-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="help-circle" style="color:var(--primary); width:20px; height:20px;"></i> <span data-i18n="modal.foundTitle">Report Found Stray Pet</span>
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('found-pet-modal')"
+          aria-label="Close">&times;</button>
+      </div>
+      <form id="found-pet-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.foundSpecies">Species *</label>
+              <select id="found-species" required>
+                <option value="Dog" data-i18n="modal.speciesDog">Dog</option>
+                <option value="Cat" data-i18n="modal.speciesCat">Cat</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="modal.foundBreed">Estimated Breed</label>
+              <input type="text" id="found-breed" placeholder="e.g. Aspin / Domestic Shorthair" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.foundLocation">Recorded Location Where Found / Spotted *</label>
+            <input type="text" id="found-location" placeholder="Street, Barangay, Subdivision, or City landmark" data-i18n-placeholder="modal.foundLocationPh" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.foundRfid">RFID Tag Detected (if collar has tag)</label>
+            <input type="text" id="found-rfid" placeholder="e.g. RFID-882194" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="modal.foundPhone">Finder Contact Phone</label>
+            <input type="tel" id="found-phone" placeholder="+63 9XX XXX XXXX" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline"
+            onclick="window.notifManager.closeModal('found-pet-modal')" data-i18n="modal.cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="modal.submitReport">Submit Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. SMS Alert Simulator Modal -->
+  <div class="modal-overlay" id="sms-simulator-modal">
+    <div class="modal-box" style="max-width: 380px; background:transparent; border:none; box-shadow:none;">
+      <div class="sms-phone-frame">
+        <div class="sms-phone-speaker"></div>
+        <div class="sms-header">
+          <div style="font-size:0.75rem; font-weight:700; color:var(--primary);">OFFICIAL LGU GATEWAY</div>
+          <div style="font-size:0.8rem; font-weight:700; color:var(--text-main);">QC Animal Care Center</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="sim-sms-phone">+63 917 555 3829</div>
+        </div>
+        <div class="sms-body">
+          <div class="sms-bubble">
+            <div id="sim-sms-body">
+              <!-- Content Injected -->
+            </div>
+            <div class="sms-timestamp" id="sim-sms-time">Just now</div>
+          </div>
+        </div>
+        <div style="padding:1rem; text-align:center;">
+          <button class="btn btn-outline btn-sm" style="width:100%;"
+            onclick="window.notifManager.closeModal('sms-simulator-modal')">Close Simulator</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Digital RFID Tag Pass Modal -->
+  <div class="modal-overlay" id="digital-pass-modal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="qr-code" style="color:var(--primary); width:20px; height:20px;"></i> Digital RFID Pass
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('digital-pass-modal')"
+          aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="digital-pass-content">
+        <!-- Dynamically injected -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline"
+          onclick="window.notifManager.closeModal('digital-pass-modal')">Close</button>
+        <button type="button" class="btn btn-primary"
+          onclick="window.print()">Download / Print Pass</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Full-Screen Photo Lightbox Modal -->
+  <div class="modal-overlay image-lightbox-overlay" id="image-lightbox-modal"
+    onclick="if(event.target === this) window.pawApp.closeLightbox()">
+    <div class="lightbox-dialog">
+      <button type="button" class="lightbox-close-btn" onclick="window.pawApp.closeLightbox()"
+        aria-label="Close photo preview">
+        <i data-lucide="x" style="width:20px; height:20px;"></i>
+      </button>
+      <div class="lightbox-image-wrapper">
+        <img id="lightbox-img" src="" alt="Pet Photo" class="lightbox-img" />
+      </div>
+      <div class="lightbox-details">
+        <div class="lightbox-title" id="lightbox-title">Pet Photo</div>
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Google Login Required Warning Modal -->
+  <div class="modal-overlay" id="google-required-modal" style="display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); z-index: 2000;">
+    <div class="modal-card" style="background: var(--bg-surface-elevated, #fff); color: var(--text-main, #1e293b); border: 1px solid var(--border-subtle, #cbd5e1); border-radius: 16px; max-width: 440px; width: 92%; padding: 26px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
+      <div style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: grid; place-items: center; margin: 0 auto 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-main, #1e293b);">Google Sign-In Required</h3>
+      <p style="font-size: 13.5px; color: var(--text-muted, #64748b); line-height: 1.5; margin-bottom: 22px;">
+        To register a new pet, issue municipal RFID collar transponders, and manage emergency recovery alerts, you must first sign in with your Google account.
+      </p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" onclick="document.getElementById('google-required-modal').style.display='none'" style="padding: 9px 18px; border-radius: 20px; border: 1px solid var(--border-subtle, #cbd5e1); background: transparent; color: var(--text-main, #1e293b); font-size: 13px; font-weight: 600; cursor: pointer;">
+          Browse as Guest
+        </button>
+        <button type="button" id="prompt-google-login-btn" style="padding: 9px 20px; border-radius: 20px; border: none; background: #c2410c; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>Sign In with Google</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Guardian Profile Modal -->
+  <div class="modal-overlay" id="guardian-profile-modal">
+    <div class="modal-box" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Pet Guardian Profile
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('guardian-profile-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 0;">
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding: 14px; background: var(--bg-surface, #f8fafc); border-radius: 12px; border: 1px solid var(--border-subtle, #e2e8f0);">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: #689f38; color: #ffffff; font-size: 20px; font-weight: 700; display: grid; place-items: center;">L</div>
+          <div>
+            <div style="font-weight: 700; font-size: 15px; color: var(--text-main, #1e293b);">Lifegiver BSM Social Media</div>
+            <div style="font-size: 12px; color: var(--text-muted, #64748b);">socialmedialifegiverbsm@gmail.com</div>
+            <div style="display: inline-block; font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 1px 7px; border-radius: 99px; margin-top: 4px;">Verified Pet Guardian</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Rescue Contact Phone</span>
+            <strong style="color: var(--primary, #c2410c);">+63 917 555 3829</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Registered Area</span>
+            <strong>National Capital Region (NCR)</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Active Protected Pets</span>
+            <strong id="profile-pet-count">0 Registered Pets</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated, #fff); border-radius: 8px; border: 1px solid var(--border-subtle, #e2e8f0); font-size: 12.5px;">
+            <span style="color: var(--text-muted, #64748b);">Microchip Standard</span>
+            <strong style="font-family: monospace;">134.2 kHz FDX-B</strong>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('guardian-profile-modal')">Close Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Portal Settings Modal -->
+  <div class="modal-overlay" id="portal-settings-modal">
+    <div class="modal-box" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          Portal & Notification Settings
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('portal-settings-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 0; display:flex; flex-direction:column; gap:14px;">
+        <label style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-surface,#f8fafc); border-radius:10px; cursor:pointer;">
+          <div>
+            <div style="font-weight:600; font-size:13px; color:var(--text-main);">Immediate Shelter Intake Alerts</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">Receive push & SMS notifications when your pet is scanned.</div>
+          </div>
+          <input type="checkbox" checked style="accent-color:var(--primary); width:16px; height:16px;" />
+        </label>
+
+        <label style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-surface,#f8fafc); border-radius:10px; cursor:pointer;">
+          <div>
+            <div style="font-weight:600; font-size:13px; color:var(--text-main);">72-Hour Legal Window Reminders</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">Daily SMS reminders until pet is claimed from pound.</div>
+          </div>
+          <input type="checkbox" checked style="accent-color:var(--primary); width:16px; height:16px;" />
+        </label>
+
+        <label style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-surface,#f8fafc); border-radius:10px; cursor:pointer;">
+          <div>
+            <div style="font-weight:600; font-size:13px; color:var(--text-main);">Stray & Emergency Broadcasts</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">Alerts when missing pets are sighted in your barangay.</div>
+          </div>
+          <input type="checkbox" checked style="accent-color:var(--primary); width:16px; height:16px;" />
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('portal-settings-modal'); window.notifManager.showToast('Settings saved successfully.', 'success');">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map API Key & Provider Access Modal -->
+  <div class="modal-overlay" id="map-api-key-modal">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #ea9d1e)" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+          Incident Map API Key & Provider
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('map-api-key-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 0; display:flex; flex-direction:column; gap:14px;">
+        <div style="background:var(--bg-surface, #23130a); border:1px solid var(--border-subtle, rgba(234, 157, 30, 0.2)); border-radius:10px; padding:12px 14px;">
+          <div style="font-weight:700; font-size:13px; color:var(--text-main); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e;"></span>
+            API Key Status: <span id="map-key-status-text" style="color:#22c55e;">Active & Connected</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+            Map tiles, geospatial landmark recovery markers, and community sightings are authenticated via Map API.
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-weight:600; font-size:12px; color:var(--text-main); margin-bottom:6px; display:block;">Map Access Token / API Key</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="map-api-key-input" placeholder="pk.eyJ1IjoicGF3dHJhY2stYWRtaW4iLCJhIjoiY2x6..." style="flex:1; font-family:monospace; font-size:12px;" />
+            <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.resetDefaultApiKey()" title="Reset to default key">Reset</button>
+          </div>
+          <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Supports Mapbox Access Tokens (pk.*), MapTiler Keys, Geoapify, and CARTO Basemap API keys.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('map-api-key-modal')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="window.publicView.saveMapApiKey()">Apply API Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. AI Multi-Trait Matching Modal -->
+  <div class="modal-overlay" id="ai-match-modal">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+          SkinWise-Style AI Multi-Trait Pet Matcher
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('ai-match-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="ai-match-modal-content" style="padding: 16px 0;">
+        <!-- Filled dynamically by casesView.openAiMatchingTester() or publicView -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Pet Recovery Case Dossier Modal -->
+  <div class="modal-overlay" id="case-dossier-modal">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          Recovery Case Dossier & Audit Log
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('case-dossier-modal')" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="case-dossier-content" style="padding: 16px 0;">
+        <!-- Filled dynamically by casesView.openCaseDossier() -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('case-dossier-modal')">Close Case Dossier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Impoundment Claiming Document Verification Modal -->
+  <div class="modal-overlay" id="claiming-verification-modal">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+          Mandatory Claiming Document Verification
+        </h3>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('claiming-verification-modal')" aria-label="Close">&times;</button>
+      </div>
+      <form id="claiming-verification-form">
+        <div class="modal-body" style="padding: 16px 0;">
+          <div style="background:var(--bg-surface, #f8fafc); padding:12px; border-radius:10px; border:1px solid var(--border-subtle); margin-bottom:14px;">
+            <div style="font-size:12px; color:var(--text-muted);">Redeeming Pet:</div>
+            <strong id="claim-doc-pet-name" style="font-size:16px; color:var(--primary);">Max</strong>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Check all official credentials presented at the facility intake window.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+            <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-surface-elevated, #fff); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer;">
+              <input type="checkbox" id="claim-doc-govid" checked style="accent-color:var(--primary); width:18px; height:18px;" />
+              <span style="font-size:13px; font-weight:600;">1. Valid Government-Issued ID (UMID / Driver's / Passport)</span>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-surface-elevated, #fff); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer;">
+              <input type="checkbox" id="claim-doc-vaccine" checked style="accent-color:var(--primary); width:18px; height:18px;" />
+              <span style="font-size:13px; font-weight:600;">2. Pet Registration / Anti-Rabies Vaccination Book</span>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-surface-elevated, #fff); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer;">
+              <input type="checkbox" id="claim-doc-rfid" checked style="accent-color:var(--primary); width:18px; height:18px;" />
+              <span style="font-size:13px; font-weight:600;">3. RFID Transponder Verification / Microchip Certificate</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="claim-doc-receipt">Official Fee Receipt / OR Number</label>
+            <input type="text" id="claim-doc-receipt" value="OR-882910" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('claiming-verification-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Authorize Release & Mark Reunited</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 15. Pet Owner System Workflow Guide Modal (Before, During, and After) -->
+  <div class="modal-overlay" id="owner-guide-modal">
+    <div class="modal-box owner-guide-modal-box">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <div class="guide-header-icon">
+            <i data-lucide="help-circle" style="color:var(--primary); width:24px; height:24px;"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700;" data-i18n="guide.modalTitle">PawTrack Owner System Guide</h3>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;" data-i18n="guide.modalSubtitle">Complete step-by-step instructions: What to do Before, During, and After.</div>
+          </div>
+        </div>
+        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('owner-guide-modal')" aria-label="Close Guide">&times;</button>
+      </div>
+
+      <!-- Interactive Tab Selector -->
+      <div class="owner-guide-nav">
+        <button class="guide-nav-btn active" data-phase="all" onclick="window.ownerView.filterGuidePhase('all')">
+          <i data-lucide="layers" style="width:15px; height:15px;"></i> <span data-i18n="guide.tabAll">All Phases</span>
+        </button>
+        <button class="guide-nav-btn" data-phase="before" onclick="window.ownerView.filterGuidePhase('before')">
+          <i data-lucide="shield-check" style="width:15px; height:15px; color:#38bdf8;"></i> <span data-i18n="guide.tabBefore">1. BEFORE (Protection)</span>
+        </button>
+        <button class="guide-nav-btn" data-phase="during" onclick="window.ownerView.filterGuidePhase('during')">
+          <i data-lucide="alert-triangle" style="width:15px; height:15px; color:#f43f5e;"></i> <span data-i18n="guide.tabDuring">2. DURING (Impounded)</span>
+        </button>
+        <button class="guide-nav-btn" data-phase="after" onclick="window.ownerView.filterGuidePhase('after')">
+          <i data-lucide="check-circle-2" style="width:15px; height:15px; color:#10b981;"></i> <span data-i18n="guide.tabAfter">3. AFTER (Reunion)</span>
+        </button>
+      </div>
+
+      <div class="modal-body owner-guide-body">
+        
+        <!-- PHASE 1: BEFORE -->
+        <section class="guide-phase-section" id="guide-phase-before">
+          <div class="guide-phase-banner before">
+            <div class="guide-phase-badge before" data-i18n="guide.phase1Badge">PHASE 1</div>
+            <div class="guide-phase-title-wrap">
+              <h4 class="guide-phase-heading" data-i18n="guide.phase1Head">BEFORE: Preventive Protection & Registration</h4>
+              <p class="guide-phase-desc" data-i18n="guide.phase1Desc">Steps every pet owner must complete to secure their pet on the municipal RFID grid before emergencies happen.</p>
+            </div>
+          </div>
+
+          <div class="guide-steps-list">
+            <div class="guide-step-card">
+              <div class="guide-step-num before">1</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase1Step1Title">Register Pet & Attach RFID Tag / Link Microchip</div>
+                <div class="guide-step-text" data-i18n="guide.phase1Step1Text">
+                  Add your dog or cat into the PawTrack registry with full details: breed, age, distinct color markings, medical notes, and a clear front-facing photo. Link an implanted 134.2 kHz ISO microchip or attach a PawTrack RFID collar transponder.
+                </div>
+                <div class="guide-step-tip">
+                  <i data-lucide="info" style="width:14px; height:14px; color:#38bdf8; flex-shrink:0;"></i>
+                  <span data-i18n="guide.phase1Step1Tip">Why it matters: Unregistered pets without RFID transponders cannot be automatically identified by municipal scanning grids.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num before">2</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase1Step2Title">Set Emergency Guardian Contact (Confidential)</div>
+                <div class="guide-step-text" data-i18n="guide.phase1Step2Text">
+                  Provide your active Philippine mobile number (+63 9XX XXX XXXX) and primary address in your Guardian Profile.
+                </div>
+                <div class="guide-step-tip">
+                  <i data-lucide="lock" style="width:14px; height:14px; color:#ea9d1e; flex-shrink:0;"></i>
+                  <span data-i18n="guide.phase1Step2Tip">Privacy Guard: Your phone number is strictly encrypted and hidden from public visitors. It is solely accessed by authorized shelter officers when scanning your pet's tag.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num before">3</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase1Step3Title">Save / Print Your Pet's Digital RFID Pass</div>
+                <div class="guide-step-text" data-i18n="guide.phase1Step3Text">
+                  Tap "Digital Pass" on your registered pet card. Save the digital pass badge with QR code and microchip UID to your smartphone or keep a printed physical copy with your pet's vaccination booklet.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num before">4</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase1Step4Title">Keep Portal Notifications & SMS Active</div>
+                <div class="guide-step-text" data-i18n="guide.phase1Step4Text">
+                  Ensure notifications are turned ON in Portal Settings. This enables PawTrack to dispatch instant automated SMS alerts the moment a field officer scans your pet.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PHASE 2: DURING -->
+        <section class="guide-phase-section" id="guide-phase-during">
+          <div class="guide-phase-banner during">
+            <div class="guide-phase-badge during" data-i18n="guide.phase2Badge">PHASE 2</div>
+            <div class="guide-phase-title-wrap">
+              <h4 class="guide-phase-heading" data-i18n="guide.phase2Head">DURING: When Pet is Missing or Impounded</h4>
+              <p class="guide-phase-desc" data-i18n="guide.phase2Desc">Crucial real-time actions when your pet is lost or scanned into a municipal animal care facility.</p>
+            </div>
+          </div>
+
+          <div class="guide-steps-list">
+            <div class="guide-step-card">
+              <div class="guide-step-num during">1</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase2Step1Title">Trigger "Report Lost" Amber Alert Immediately</div>
+                <div class="guide-step-text" data-i18n="guide.phase2Step1Text">
+                  If your pet escapes or is lost, immediately tap "Report Lost" on your pet's card. Fill in the last seen barangay/location and date. This immediately broadcasts an amber alert on the Public Incident Map and alerts local animal welfare groups.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num during">2</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase2Step2Title">Shelter Scan & Instant Automated SMS Notification</div>
+                <div class="guide-step-text">
+                  <span data-i18n="guide.phase2Step2Text">When animal control or pound officers rescue and scan your pet's RFID tag, PawTrack instantly triggers an SMS and portal alert with:</span>
+                  <ul class="guide-checklist">
+                    <li data-i18n="guide.phase2Step2Item1">Facility Name (e.g. Quezon City Animal Care Facility) & GPS Address</li>
+                    <li data-i18n="guide.phase2Step2Item2">Official Intake Timestamp and Holding Cell ID</li>
+                    <li data-i18n="guide.phase2Step2Item3">Shelter Hotline & Officer in Charge contact</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card highlight-urgent">
+              <div class="guide-step-num during">3</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" style="color:#ef4444;" data-i18n="guide.phase2Step3Title">Monitor the 72-Hour Legal Window Countdown</div>
+                <div class="guide-step-text" data-i18n="guide.phase2Step3Text">
+                  Philippine municipal rabies and animal welfare ordinances enforce a strict 72-hour mandatory redemption period. PawTrack displays an active countdown timer on your dashboard so you never miss the legal claiming window.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num during">4</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase2Step4Title">Gather the 4 Mandatory Claiming Documents</div>
+                <div class="guide-step-text">
+                  <div class="guide-doc-grid">
+                    <div class="guide-doc-item">
+                      <i data-lucide="badge-check" style="width:16px; height:16px; color:#ea9d1e;"></i>
+                      <div><strong data-i18n="guide.doc1Title">1. Government ID</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc1Sub">UMID / Driver's / Passport / PhilSys</span></div>
+                    </div>
+                    <div class="guide-doc-item">
+                      <i data-lucide="book" style="width:16px; height:16px; color:#ea9d1e;"></i>
+                      <div><strong data-i18n="guide.doc2Title">2. Vaccination Book</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc2Sub">Updated Anti-Rabies Card</span></div>
+                    </div>
+                    <div class="guide-doc-item">
+                      <i data-lucide="qr-code" style="width:16px; height:16px; color:#ea9d1e;"></i>
+                      <div><strong data-i18n="guide.doc3Title">3. PawTrack Digital Pass</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc3Sub">QR Code or RFID Tag UID</span></div>
+                    </div>
+                    <div class="guide-doc-item">
+                      <i data-lucide="receipt" style="width:16px; height:16px; color:#ea9d1e;"></i>
+                      <div><strong data-i18n="guide.doc4Title">4. Redemption Fee</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc4Sub">Official Receipt (OR) from Pound</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PHASE 3: AFTER -->
+        <section class="guide-phase-section" id="guide-phase-after">
+          <div class="guide-phase-banner after">
+            <div class="guide-phase-badge after" data-i18n="guide.phase3Badge">PHASE 3</div>
+            <div class="guide-phase-title-wrap">
+              <h4 class="guide-phase-heading" data-i18n="guide.phase3Head">AFTER: Safe Claiming, Reunion & Follow-up</h4>
+              <p class="guide-phase-desc" data-i18n="guide.phase3Desc">Steps to redeem your pet safely, finalize official records, and prevent future incidents.</p>
+            </div>
+          </div>
+
+          <div class="guide-steps-list">
+            <div class="guide-step-card">
+              <div class="guide-step-num after">1</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase3Step1Title">Present Credentials at Shelter Intake Window</div>
+                <div class="guide-step-text" data-i18n="guide.phase3Step1Text">
+                  Visit the designated pound during operating hours. Present your Government ID, Pet Vaccination Book, and show your PawTrack Digital Pass QR on your phone to the intake officer.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num after">2</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase3Step2Title">Shelter Verification & Release Authorization</div>
+                <div class="guide-step-text" data-i18n="guide.phase3Step2Text">
+                  The shelter officer scans and verifies your credentials against the system intake log, records your Official Receipt (OR) payment, and issues release clearance.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num after">3</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase3Step3Title">Real-Time Status Reversion to "Reunited / Safe"</div>
+                <div class="guide-step-text" data-i18n="guide.phase3Step3Text">
+                  The moment release is authorized, PawTrack automatically resolves the impoundment case, lifts public alerts on the map, and reverts your pet's badge to Safe / Reunited with an official timestamped audit record.
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="guide-step-num after">4</div>
+              <div class="guide-step-main">
+                <div class="guide-step-title" data-i18n="guide.phase3Step4Title">Post-Reunion Health Check & Collar Inspection</div>
+                <div class="guide-step-text" data-i18n="guide.phase3Step4Text">
+                  Inspect your pet's RFID collar tag for secure fit and wear. Update any recent veterinary treatments, vaccinations, or address changes in the portal to keep your pet continuously protected.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; align-items:center;">
+        <div style="font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+          <i data-lucide="shield" style="width:15px; height:15px; color:#ea9d1e;"></i>
+          <span data-i18n="guide.networkText">PawTrack NCR Municipal Network</span>
+        </div>
+        <div style="display:flex; gap:0.65rem;">
+          <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('owner-guide-modal')" data-i18n="guide.closeBtn">Close Guide</button>
+          <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('owner-guide-modal'); window.ownerView.openRegisterModal();">
+            <i data-lucide="plus-circle"></i> <span data-i18n="guide.regBtn">Register Pet Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12b. Interactive Report Missing / Found Pet Modal with Pin-Drop Map -->
+  <div class="modal-overlay" id="report-pet-modal">
+    <div class="modal-box report-modal-box">
+      <!-- Modal Header -->
+      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.2));">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="report-modal-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 id="report-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;" data-i18n="report.modalTitleFound">Found this pet?</h3>
+              <button type="button" class="report-help-btn" id="report-help-btn" onclick="window.reportManager ? window.reportManager.toggleInstructionGuide() : null" title="How to report instructions & guide" aria-label="Reporting instructions" data-i18n-title="report.helpBtnTitle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </button>
+            </div>
+            <p id="report-modal-sub" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.35;" data-i18n="report.modalSubFound">
+              Drop a pin at the spot where you found the pet, add a quick note if you'd like, and notify the owner.
+            </p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-squircle-btn" onclick="window.reportManager.closeModal()" aria-label="Close Report Dialog" title="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Collapsible Step-by-Step Reporting Instructions Panel -->
+      <div id="report-instructions-panel" class="report-instructions-panel" style="display: none;">
+        <div class="report-instructions-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="report-instructions-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-main);" id="report-instructions-title" data-i18n="report.guideFoundTitle">How to Report a Found Pet (Step-by-Step)</span>
+          </div>
+          <button type="button" class="report-instructions-close" onclick="window.reportManager ? window.reportManager.toggleInstructionGuide(false) : null" aria-label="Close instructions">&times;</button>
+        </div>
+        <div class="report-instructions-grid" id="report-instructions-content">
+          <!-- Dynamically populated via reportManager.updateInstructionsContent() -->
+        </div>
+      </div>
+
+      <!-- Report Type Selector Toggle Tabs -->
+      <div class="report-type-toggle-bar">
+        <button type="button" class="report-type-tab-btn active" id="report-tab-found" onclick="window.reportManager.setType('found')">
+          <span data-i18n="report.tabFound">Found / Sighted Stray Pet</span>
+        </button>
+        <button type="button" class="report-type-tab-btn" id="report-tab-missing" onclick="window.reportManager.setType('missing')">
+          <span data-i18n="report.tabMissing">Report Missing Pet Alert</span>
+        </button>
+      </div>
+
+      <!-- Main Form with Two-Column Map & Form Layout -->
+      <form id="report-pet-form" onsubmit="window.reportManager.handleSubmit(event)">
+        <input type="hidden" id="report-pinned-lat" value="14.6500" />
+        <input type="hidden" id="report-pinned-lng" value="121.0400" />
+
+        <div class="report-modal-layout">
+          <!-- Left Column: Interactive Pin-Drop Leaflet Map / Photo Upload -->
+          <div class="report-map-column">
+            <div class="report-pin-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="report-live-pulse-dot" id="report-header-dot"></span>
+                <span id="report-header-title" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);" data-i18n="report.pinnedLoc">Pinned Location:</span>
+              </div>
+              
+              <!-- Maps and Upload mode toggle buttons (Found / Sighted Stray Pet tab only) -->
+              <div class="report-view-mode-toggle" id="report-view-mode-toggle">
+                <button type="button" class="report-mode-btn active" id="report-mode-map-btn" onclick="window.reportManager.setViewMode('map')" data-i18n="report.modeMaps">Maps</button>
+                <button type="button" class="report-mode-btn" id="report-mode-upload-btn" onclick="window.reportManager.setViewMode('upload')" data-i18n="report.modeUpload">Upload</button>
+              </div>
+            </div>
+
+            <!-- CONTAINER 1: Maps View Panel -->
+            <div id="report-map-view-container" class="report-panel-container">
+              <div class="report-map-wrapper">
+                <div id="report-pin-map"></div>
+
+                <!-- Google Maps Layer Switcher Floating Dock (No Emojis) -->
+                <div class="gmap-layer-dock report-gmap-layer-dock" id="report-map-layer-dock">
+                  <button type="button" class="gmap-layer-btn active" onclick="window.reportManager.setMapLayer('roadmap')" title="Map (Street Network)">
+                    <span>Map</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('satellite')" title="Satellite Photographic View">
+                    <span>Satellite</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('hybrid')" title="Hybrid View">
+                    <span>Hybrid</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('dark')" title="Dark Theme">
+                    <span>Dark</span>
+                  </button>
+                </div>
+
+                <!-- Quick Recenter GPS Tool -->
+                <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
+                  <button type="button" class="gmap-tool-btn" style="width: 28px; height: 28px;" onclick="window.reportManager.locateMe()" title="Recenter to My Location">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">
+                  <span data-i18n="report.mapHelper">Tap or drag pin to mark exact location</span>
+                </div>
+              </div>
+
+              <!-- Location Quick Search & Autocomplete Bar -->
+              <div class="report-location-search-wrap" id="report-location-search-wrap">
+                <div class="report-location-search-box">
+                  <svg class="report-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    id="report-location-search-input" 
+                    class="report-location-search-input" 
+                    placeholder="Search city, barangay, or landmark to jump..." 
+                    data-i18n-placeholder="report.searchLocPh"
+                    autocomplete="off"
+                    oninput="window.reportManager.handleLocationSearch(this.value)"
+                    onkeydown="window.reportManager.handleSearchKeydown(event)"
+                    onfocus="if(this.value.trim().length > 0) window.reportManager.handleLocationSearch(this.value);"
+                  />
+                  <button 
+                    type="button" 
+                    id="report-search-clear-btn" 
+                    class="report-search-clear-btn" 
+                    onclick="window.reportManager.clearLocationSearch()" 
+                    style="display: none;" 
+                    title="Clear search"
+                    aria-label="Clear location search"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <!-- Autocomplete suggestions dropdown -->
+                <div id="report-location-suggestions" class="report-location-suggestions" style="display: none;"></div>
+              </div>
+
+              <!-- Quick Jump Chips for Major NCR Locations -->
+              <div class="report-quick-jump-row">
+                <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; white-space: nowrap;" data-i18n="report.quickJump">Quick Jump:</span>
+                <div class="report-quick-zones">
+                  <button type="button" class="report-zone-chip active" onclick="window.reportManager.jumpToLocation(14.6500, 121.0400, 'Quezon City')">Quezon City</button>
+                  <button type="button" class="report-zone-chip" onclick="window.reportManager.jumpToLocation(14.5995, 120.9842, 'Manila City')">Manila</button>
+                  <button type="button" class="report-zone-chip" onclick="window.reportManager.jumpToLocation(14.5547, 121.0244, 'Makati CBD')">Makati</button>
+                  <button type="button" class="report-zone-chip" onclick="window.reportManager.jumpToLocation(14.5500, 121.0500, 'Taguig BGC')">Taguig</button>
+                  <button type="button" class="report-zone-chip" onclick="window.reportManager.jumpToLocation(14.5800, 121.0600, 'Pasig City')">Pasig</button>
+                  <button type="button" class="report-zone-chip" onclick="window.reportManager.jumpToLocation(14.5794, 121.0359, 'Mandaluyong')">Mandaluyong</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONTAINER 2: Upload Photo Panel (Found / Sighted Stray Pet tab) -->
+            <div id="report-upload-view-container" class="report-panel-container" style="display: none;">
+              <!-- Two Action Buttons: Take photo & Upload photo -->
+              <div class="report-photo-actions-bar">
+                <button type="button" class="btn btn-primary report-photo-action-btn" onclick="window.reportManager.triggerTakePhoto()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  <span data-i18n="report.takePhoto">Take photo</span>
+                </button>
+                <button type="button" class="btn btn-outline report-photo-action-btn" onclick="window.reportManager.triggerUploadPhoto()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span data-i18n="report.uploadPhoto">Upload photo</span>
+                </button>
+              </div>
+
+              <!-- Hidden File Inputs -->
+              <input type="file" id="report-photo-camera-input" accept="image/*" capture="environment" style="display:none;" onchange="window.reportManager.handlePhotoFile(this)" />
+              <input type="file" id="report-photo-file-input" accept="image/*" style="display:none;" onchange="window.reportManager.handlePhotoFile(this)" />
+
+              <!-- Upload Photo Dropzone / Live Preview Area -->
+              <div 
+                class="report-photo-dropzone" 
+                id="report-photo-dropzone"
+                onclick="window.reportManager.triggerUploadPhoto()"
+                ondragover="window.reportManager.handleDragOver(event)"
+                ondragleave="window.reportManager.handleDragLeave(event)"
+                ondrop="window.reportManager.handlePhotoDrop(event)"
+              >
+                <!-- Empty Placeholder State -->
+                <div class="report-photo-placeholder" id="report-photo-placeholder">
+                  <div class="report-photo-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                  </div>
+                  <div class="report-photo-text" data-i18n="report.dropPhotoText">Take a live photo or upload from device</div>
+                  <div class="report-photo-subtext" data-i18n="report.dropPhotoSub">High-resolution pet photo powers visual identification and AI community matching</div>
+                </div>
+
+                <!-- Active Image Preview State -->
+                <div class="report-photo-preview-wrap" id="report-photo-preview-wrap" style="display: none;">
+                  <img id="report-photo-preview-img" src="" alt="Pet Sighting Evidence" class="report-photo-preview-img" />
+                  <div class="report-photo-preview-overlay">
+                    <span class="report-photo-ready-badge" data-i18n="report.photoReady">Photo Attached</span>
+                    <div class="report-photo-preview-actions" onclick="event.stopPropagation();">
+                      <button type="button" class="btn btn-outline btn-sm report-photo-ctrl-btn" onclick="window.reportManager.triggerUploadPhoto()">
+                        <span data-i18n="report.retakePhoto">Change Photo</span>
+                      </button>
+                      <button type="button" class="btn btn-danger btn-sm report-photo-ctrl-btn" onclick="window.reportManager.removeUploadedPhoto()">
+                        <span data-i18n="report.removePhoto">Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Context Form Fields -->
+          <div class="report-form-column">
+            <!-- SECTION A: Found Pet Fields -->
+            <div id="report-fields-found">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.species">Animal Species *</label>
+                  <select class="form-control" id="report-found-species" style="padding: 7px 10px; font-size: 0.85rem;" onchange="const b = document.getElementById('report-found-breed'); if(this.value==='Cat') b.value='Domestic Shorthair'; else if(this.value==='Dog') b.value='Aspin';">
+                    <option value="Dog" data-i18n="report.speciesDog">Dog</option>
+                    <option value="Cat" data-i18n="report.speciesCat">Cat</option>
+                    <option value="Other" data-i18n="report.speciesOther">Other Pet</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.breed">Breed / Appearance</label>
+                  <input type="text" class="form-control" id="report-found-breed" placeholder="e.g. Golden Retriever mix" value="Aspin / Mixed" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.breedPh" />
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.locationLandmark">Location Landmark / Street *</label>
+                <input type="text" class="form-control" id="report-found-location" placeholder="e.g. Commonwealth Ave near Park Entrance" value="Quezon City, Metro Manila" required style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.locationLandmarkPh" />
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.rfidTag">Collar RFID Tag (if visible)</label>
+                  <input type="text" class="form-control" id="report-found-rfid" placeholder="e.g. 982.000109283" style="padding: 7px 10px; font-size: 0.85rem; font-family: monospace;" data-i18n-placeholder="report.rfidTagPh" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.finderPhone">Your Phone (Optional)</label>
+                  <input type="tel" class="form-control" id="report-found-phone" placeholder="+63 9XX XXX XXXX" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.finderPhonePh" />
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.messageOptional">Message (optional)</label>
+                <textarea class="form-control" id="report-found-notes" rows="3" placeholder="Your pet is safe with me near the park entrance." style="padding: 8px 10px; font-size: 0.85rem; resize: vertical; line-height: 1.35;" data-i18n-placeholder="report.messagePh"></textarea>
+              </div>
+            </div>
+
+            <!-- SECTION B: Missing Pet Alert Fields -->
+            <div id="report-fields-missing" style="display: none;">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPet">Select Registered Pet *</label>
+                <select class="form-control" id="report-missing-pet-select" style="padding: 7px 10px; font-size: 0.85rem;" onchange="window.reportManager.handlePetSelect(this.value)">
+                  <option value="">-- Select Registered Pet --</option>
+                </select>
+              </div>
+
+              <div class="form-group" id="report-missing-custom-name-wrap" style="display: none; margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.petNameDesc">Pet Name & Description *</label>
+                <input type="text" class="form-control" id="report-missing-custom-name" placeholder="e.g. Brownie (Tricolor Beagle mix)" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petNameDescPh" />
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenLoc">Last Seen Location *</label>
+                  <input type="text" class="form-control" id="report-missing-location" placeholder="e.g. Barangay Commonwealth" value="Brgy. Commonwealth, Quezon City" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.lastSeenLocPh" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenDateTime">Last Seen Date & Time</label>
+                  <input type="datetime-local" class="form-control" id="report-missing-date" style="padding: 7px 8px; font-size: 0.8rem;" />
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.ownerPhone">Emergency Contact Phone *</label>
+                <input type="tel" class="form-control" id="report-missing-phone" placeholder="+63 917 555 3829" value="+63 917 555 3829" style="padding: 7px 10px; font-size: 0.85rem;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.circumstances">Distinct Markings & Circumstances</label>
+                <textarea class="form-control" id="report-missing-notes" rows="2" placeholder="e.g. Wearing red collar with bell. Escaped during evening walk near park gate." style="padding: 7px 10px; font-size: 0.85rem; resize: vertical;" data-i18n-placeholder="report.circumstancesPh"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions: Cancel button is before the other button -->
+        <div class="modal-footer" style="padding: 12px 20px 16px; margin-top: 14px; border-top: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.15)); display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="window.reportManager.closeModal()" style="font-size: 0.85rem; padding: 7px 18px;" data-i18n="report.btnCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="report-submit-btn" style="box-shadow: 0 4px 14px rgba(234, 157, 30, 0.4); padding: 7px 18px;">
+            <span id="report-submit-label" data-i18n="report.btnSubmitFound">Submit and Notify</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 13. Image Lightbox Modal -->
+  <div class="modal-overlay" id="image-lightbox-modal" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+    <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center;">
+      <button onclick="window.pawApp.closeLightbox()" style="position: absolute; top: -42px; right: 0; background: transparent; border: none; color: #fff; font-size: 32px; cursor: pointer; line-height: 1;" aria-label="Close Lightbox">&times;</button>
+      <img id="lightbox-img" src="" alt="Pet Photo" style="max-width: 85vw; max-height: 75vh; border-radius: 12px; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9); border: 2px solid rgba(234, 157, 30, 0.4);" />
+      <div style="margin-top: 12px; text-align: center;">
+        <h4 id="lightbox-title" style="color: #fff; font-size: 16px; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Pet Photo</h4>
+        <div id="lightbox-caption" style="color: #cbd5e1; font-size: 13px; margin-top: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Registered PawTrack Transponder Pass</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. SMS Simulator Modal -->
+  <div class="modal-overlay" id="sms-simulator-modal">
+    <div class="modal-box" style="max-width: 440px; border-radius: 24px; padding: 0; overflow: hidden; background: #0f172a; color: #f8fafc; border: 2px solid rgba(234, 157, 30, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
+      <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></span>
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.05em; color: #ea9d1e;">LGU MUNICIPAL SMS GATEWAY</span>
+        </div>
+        <button onclick="window.notifManager.closeModal('sms-simulator-modal')" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+
+      <div style="padding: 20px 18px;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 2px;">Simulated Mobile Device</div>
+          <div style="font-size: 15px; font-weight: 700; font-family: monospace; color: #f8fafc;" id="sim-sms-phone">+63 917 555 3829</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 2px;" id="sim-sms-time">Today, 2:45 PM</div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(234, 157, 30, 0.25); border-radius: 16px; padding: 16px; font-size: 13px; line-height: 1.5; color: #e2e8f0; position: relative;">
+          <div style="display: flex; align-items: center; gap: 6px; color: #ea9d1e; font-weight: 700; font-size: 12px; margin-bottom: 8px;">
+            <span>OFFICIAL ANIMAL CONTROL NOTICE</span>
+          </div>
+          <div id="sim-sms-body" style="white-space: pre-line; font-size: 13px;">
+            Notice: Your registered pet has been scanned and recorded at Quezon City Animal Care Facility. Please redeem within 72 hours.
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 18px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.notifManager.closeModal('sms-simulator-modal')" style="border-radius: 99px;">Dismiss SMS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. Good Samaritan Pet Finder Info Modal -->
+  <div class="modal-overlay" id="finder-info-modal">
+    <div class="modal-box finder-modal-box">
+      <!-- Modal Header -->
+      <div class="modal-header finder-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="finder-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);" id="finder-modal-title" data-i18n="finder.modalTitle">Good Samaritan Located Your Pet</h3>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.35;" id="finder-modal-sub" data-i18n="finder.modalSub">Direct contact and sighting evidence provided by community finder.</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-squircle-btn" onclick="window.notifManager.closeModal('finder-info-modal')" aria-label="Close modal" title="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Modal Body -->
+      <div class="modal-body finder-modal-body">
+        <!-- 1. Matched Pet Banner -->
+        <div class="finder-matched-pet-card">
+          <img id="finder-pet-photo" src="" alt="Pet" class="finder-matched-pet-img" />
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h4 id="finder-pet-name" style="margin: 0; font-size: 1.05rem; font-weight: 700;">Pet Name</h4>
+              <span class="badge badge-safe" style="font-size: 10px; font-weight: 700;" id="finder-match-badge">RFID VERIFIED</span>
+            </div>
+            <div style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--primary); margin-top: 3px;" id="finder-pet-rfid">RFID: 982.000109283</div>
+          </div>
+        </div>
+
+        <!-- 2. Sighting Photo (if available) -->
+        <div id="finder-sighting-photo-wrap" class="finder-sighting-photo-card" style="display: none;">
+          <img id="finder-sighting-photo" src="" alt="Sighting Evidence" class="finder-sighting-img" onclick="window.pawApp.openLightbox(this.src, 'Sighting Photo', 'Evidence photo taken by finder')" />
+          <div class="finder-sighting-photo-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Sighting Evidence Photo (Click to zoom)</span>
+          </div>
+        </div>
+
+        <!-- 3. Finder Contact Card -->
+        <div class="finder-contact-card">
+          <div class="finder-contact-section-title" data-i18n="finder.contactHeading">Finder Contact Details</div>
+          <div class="finder-contact-header-row">
+            <div>
+              <div class="finder-person-name" id="finder-person-name">Community Good Samaritan</div>
+              <div class="finder-person-phone" id="finder-person-phone">+63 917 888 9999</div>
+            </div>
+            <a id="finder-call-btn" href="tel:+639178889999" class="btn btn-primary btn-sm finder-call-btn" style="color: #ffffff !important;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              <span data-i18n="finder.callBtn">Call Finder</span>
+            </a>
+          </div>
+          <div class="finder-notes-box" id="finder-notes-box">
+            "Your pet is safe with me near the park entrance."
+          </div>
+        </div>
+
+        <!-- 4. Sighting Location & Map Jump -->
+        <div class="finder-location-card">
+          <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;">
+            <div class="finder-loc-pin-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div class="finder-location-name" id="finder-location-name">Quezon City, Metro Manila</div>
+              <div class="finder-timestamp" id="finder-timestamp">Today at 2:30 PM</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm finder-view-map-btn" id="finder-view-map-btn" onclick="window.notifManager.jumpToFinderLocation()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+            </svg>
+            <span data-i18n="finder.viewMap">View on Map</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer finder-modal-footer">
+        <button type="button" class="btn btn-primary btn-sm" style="color: #ffffff !important; min-width: 100px; padding: 7px 18px;" onclick="window.notifManager.closeModal('finder-info-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PawTrack Core & View Scripts (Loaded at bottom of DOM) -->
+  <script src="js/i18n.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/rfid-scanner.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/views/owner-view.js"></script>
+  <script src="js/views/shelter-view.js"></script>
+  <script src="js/views/public-view.js"></script>
+  <script src="js/views/cases-view.js"></script>
+  <script src="js/views/hardware-view.js"></script>
+  <script src="js/report-manager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
