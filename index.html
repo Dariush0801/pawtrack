@@ -213,8 +213,8 @@
             </button>
           </div>
 
-          <!-- Google One Tap Prompt Box (Dynamic Google Account Sign-In) -->
-          <div id="google-onetap-prompt" style="display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 340px; background: #131314; color: #e3e3e3; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid #2d2f31; z-index: 2500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; padding: 14px 16px;">
+          <!-- Google One Tap Prompt Box -->
+          <div id="google-onetap-prompt" style="display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 320px; background: #131314; color: #e3e3e3; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.55); border: 1px solid #2d2f31; z-index: 2500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; padding: 14px 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #2d2f31;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="18" height="18" viewBox="0 0 24 24">
@@ -223,24 +223,13 @@
                   <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
                 </svg>
-                <span style="font-size: 13px; font-weight: 500; color: #e3e3e3;">Sign in with Google</span>
+                <span style="font-size: 13px; font-weight: 500; color: #e3e3e3;">Sign in to pawtrack.com with google.com</span>
               </div>
               <button id="onetap-close-btn" style="background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 16px; padding: 2px 4px; display: grid; place-items: center;">&times;</button>
             </div>
 
-            <!-- Dynamic Current Account Fields -->
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
-              <div id="onetap-avatar-circle" style="width: 38px; height: 38px; border-radius: 50%; background: #1a73e8; color: #ffffff; display: grid; place-items: center; font-size: 16px; font-weight: 700; flex: none;">
-                G
-              </div>
-              <div style="display: flex; flex-direction: column; min-width: 0; width: 100%; gap: 4px;">
-                <input type="text" id="onetap-input-name" placeholder="Your Google Name" style="background: rgba(255,255,255,0.08); border: 1px solid #3c4043; border-radius: 6px; color: #ffffff; font-size: 13px; font-weight: 600; padding: 5px 8px; width: 100%; outline: none;" />
-                <input type="email" id="onetap-input-email" placeholder="your.google.account@gmail.com" style="background: rgba(255,255,255,0.08); border: 1px solid #3c4043; border-radius: 6px; color: #9aa0a6; font-size: 11.5px; padding: 4px 8px; width: 100%; outline: none;" />
-              </div>
-            </div>
-
-            <button id="onetap-continue-btn" style="width: 100%; background: #8ab4f8; color: #1f1f1f; border: none; border-radius: 20px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: background 0.15s ease;">
-              <span id="onetap-btn-text">Sign in with Google</span>
+            <button id="onetap-continue-btn" style="width: 100%; background: #8ab4f8; color: #1f1f1f; border: none; border-radius: 20px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: background 0.15s ease;">
+              Sign in with Google
             </button>
 
             <button id="onetap-guest-btn" style="width: 100%; background: transparent; color: #8ab4f8; border: 1px solid #3c4043; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer;">

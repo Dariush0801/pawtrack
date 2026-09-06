@@ -127,35 +127,12 @@ class App {
     const notifMarkRead = document.getElementById('notif-mark-read-btn');
     const notifClose = document.getElementById('notif-dropdown-close');
 
-    const nameInput = document.getElementById('onetap-input-name');
-    const emailInput = document.getElementById('onetap-input-email');
-    const avatarEl = document.getElementById('onetap-avatar-circle');
-    const btnLabel = document.getElementById('onetap-btn-text');
-
-    const refreshOnetapFields = () => {
-      const savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
-      if (savedUser && savedUser.name) {
-        if (nameInput && !nameInput.value) nameInput.value = savedUser.name;
-        if (emailInput && !emailInput.value) emailInput.value = savedUser.email;
-        if (avatarEl) avatarEl.textContent = savedUser.avatarInitial || savedUser.name[0].toUpperCase();
-        if (btnLabel) btnLabel.textContent = `Continue as ${savedUser.shortName || savedUser.name}`;
-      }
-    };
-
-    nameInput?.addEventListener('input', () => {
-      const val = nameInput.value.trim();
-      const initial = (val[0] || 'G').toUpperCase();
-      if (avatarEl) avatarEl.textContent = initial;
-      if (btnLabel) btnLabel.textContent = val ? `Continue as ${val.split(' ')[0]}` : 'Sign in with Google';
-    });
-
     // Click "Log In" Button -> Open Google One Tap Prompt
     loginBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onetapPrompt) {
         const isShown = onetapPrompt.style.display === 'block';
         onetapPrompt.style.display = isShown ? 'none' : 'block';
-        if (!isShown) refreshOnetapFields();
       }
       if (notifDropdown) notifDropdown.style.display = 'none';
       if (userDropdown) userDropdown.style.display = 'none';
@@ -237,13 +214,24 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
     });
 
-    // Continue with Google Account
+    // Sign in with Google Account (Action Button)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      const enteredName = nameInput?.value.trim();
-      const enteredEmail = emailInput?.value.trim();
-      const name = enteredName || 'Google User';
-      const email = enteredEmail || 'user@gmail.com';
+      let savedUser = window.pawStore ? window.pawStore.getGoogleUser() : null;
+      let name = savedUser?.name;
+      let email = savedUser?.email;
+
+      if (!name) {
+        const promptedName = window.prompt('Enter your Google Account Name:', 'Dariush');
+        if (promptedName === null) return; // User clicked Cancel
+        name = promptedName.trim() || 'Google User';
+
+        const defaultEmail = `${name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`;
+        const promptedEmail = window.prompt('Enter your Google Account Email:', defaultEmail);
+        if (promptedEmail === null) return; // User clicked Cancel
+        email = promptedEmail.trim() || defaultEmail;
+      }
+
       const shortName = name.split(' ')[0] || name;
       const avatarInitial = (name[0] || 'G').toUpperCase();
 
@@ -256,11 +244,12 @@ class App {
         verified: true,
         authenticatedAt: new Date().toISOString()
       };
+
       window.pawStore.setGoogleUser(googleUser);
       if (onetapPrompt) onetapPrompt.style.display = 'none';
       if (warningModal) warningModal.style.display = 'none';
       this.updateGoogleAuthUI();
-      window.notifManager.showToast(`Signed in as ${shortName} via Google.`, 'success');
+      window.notifManager.showToast(`Signed in as ${name} via Google.`, 'success');
     });
 
     // Continue as Guest
