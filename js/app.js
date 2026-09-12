@@ -11,7 +11,8 @@ class App {
       map: window.publicView,
       cases: window.casesView,
       impounded: window.impoundedView,
-      hardware: window.hardwareView
+      hardware: window.hardwareView,
+      sightings: window.sightingsView
     };
 
     this.init();

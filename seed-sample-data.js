@@ -74,24 +74,65 @@ const pets = [
   }
 ];
 
+const missingReports = [
+  {
+    id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    petName: 'Max',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    ownerEmail: 'maria.santos@gmail.com',
+    ownerPhone: '+63 917 555 3829',
+    community: 'Philam Homes, Quezon City',
+    lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
+    lastSeenCoords: [14.6360, 121.0370],
+    lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
+    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with RFID-882194.',
+    status: 'active',
+    createdAt: new Date(Date.now() - 5 * 3600000).toISOString()
+  }
+];
+
 const sightings = [
   {
     id: 'sight-2026-001',
+    missing_report_id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    matchedPetId: 'pet-seed-01',
     species: 'Dog',
     breed: 'Golden Retriever Mix',
     color: 'Golden brown with white chest patch',
     location: 'Near Scout Gandia & Timog Ave., Quezon City',
     lat: 14.6375,
     lng: 121.0362,
-    dateTimeSeen: new Date(Date.now() - 3 * 3600000).toISOString(),
+    dateTimeSeen: new Date(Date.now() - 4 * 3600000).toISOString(),
     comments: 'Spotted friendly golden dog near convenience store wearing brown leather collar. Approached by local guard.',
     photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
     reporterName: 'Resident in South Triangle',
     reporterPhone: '+63 928 333 4411',
-    matchedPetId: 'pet-seed-01',
     confidenceScore: 94,
-    createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
-    status: 'verified'
+    createdAt: new Date(Date.now() - 4 * 3600000).toISOString(),
+    status: 'possible_sighting'
+  },
+  {
+    id: 'sight-2026-003',
+    missing_report_id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    matchedPetId: 'pet-seed-01',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    color: 'Golden brown with white chest patch',
+    location: 'EDSA cor. West Avenue pedestrian walkway',
+    lat: 14.6530,
+    lng: 121.0310,
+    dateTimeSeen: new Date(Date.now() - 1 * 3600000).toISOString(),
+    comments: 'Spotted near overpass walking toward Philam Homes perimeter gate. Alert and active.',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    reporterName: 'Kuya Ronald (Tricycle Driver)',
+    reporterPhone: '+63 919 777 2201',
+    confidenceScore: 96,
+    createdAt: new Date(Date.now() - 1 * 3600000).toISOString(),
+    status: 'possible_sighting'
   },
   {
     id: 'sight-2026-002',
@@ -109,7 +150,7 @@ const sightings = [
     matchedPetId: 'pet-seed-02',
     confidenceScore: 98,
     createdAt: new Date(Date.now() - 20 * 3600000).toISOString(),
-    status: 'verified'
+    status: 'possible_sighting'
   }
 ];
 
@@ -196,6 +237,7 @@ const postData = JSON.stringify({
   action: 'set_all',
   fullDatabase: {
     pets,
+    missingReports,
     sightings,
     impoundments,
     cases

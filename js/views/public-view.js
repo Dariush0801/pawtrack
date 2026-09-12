@@ -13,12 +13,20 @@ class PublicView {
     this.shelterMarkers = [];
     this.sightingMarkers = [];
     this.currentMapType = 'roadmap'; // 'roadmap', 'satellite', 'hybrid', 'dark'
+    this.selectedCommunity = 'all';
     this.currentTileLayer = null;
     this.activeRoute = null;
     this.routePolyline = null;
     this.routeGlowLine = null;
     this.startMarker = null;
     this.userLocation = [14.6500, 121.0350]; // Default user GPS / Central NCR Command
+  }
+
+  formatSightingDate(value) {
+    if (!value) return 'Not provided';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not provided';
+    return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
   }
 
   render(container) {
@@ -40,6 +48,9 @@ class PublicView {
           <button class="btn btn-primary btn-sm" onclick="window.publicView.openFoundPetModal()">
             <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Stray Pet')}
           </button>
+          <button class="btn btn-outline btn-sm" onclick="window.reportManager.openSightingModal()">
+            <i data-lucide="map-pin"></i> Report Pet Sighting
+          </button>
         </div>
       </div>
 
@@ -51,6 +62,12 @@ class PublicView {
 
         <div id="public-filter-btn-group" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
           ${this.renderFilterButtons()}
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; min-width:220px;">
+          <label for="public-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap;">Community</label>
+          <select id="public-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.publicView.setCommunity(this.value)">
+            ${this.renderCommunityOptions()}
+          </select>
         </div>
       </div>
 
@@ -141,12 +158,44 @@ class PublicView {
     `;
   }
 
+  renderCommunityOptions() {
+    const communities = new Set();
+    const user = window.pawStore && window.pawStore.getGoogleUser ? window.pawStore.getGoogleUser() : null;
+    if (user && user.area) communities.add(user.area);
+    window.pawStore.getPets().forEach(p => {
+      if (p.community) communities.add(p.community);
+      else if (p.owner && p.owner.community) communities.add(p.owner.community);
+    });
+    window.pawStore.getSightings().forEach(s => {
+      if (s.community) communities.add(s.community);
+    });
+    return ['<option value="all">All communities</option>']
+      .concat(Array.from(communities).sort().map(c => `<option value="${c.replace(/"/g, '&quot;')}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`))
+      .join('');
+  }
+
+  setCommunity(community) {
+    this.selectedCommunity = community || 'all';
+    this.render(document.getElementById('app-viewport'));
+  }
+
+  isInSelectedCommunity(item) {
+    if (this.selectedCommunity === 'all') return true;
+    let community = item.community || (item.owner && item.owner.community) || '';
+    if (!community && item.petId && window.pawStore) {
+      const pet = window.pawStore.getPetById(item.petId);
+      community = pet ? (pet.community || (pet.owner && pet.owner.community) || '') : '';
+    }
+    return community.toLowerCase() === this.selectedCommunity.toLowerCase();
+  }
+
   renderFilteredList(pets) {
     const sightings = window.pawStore.getSightings();
     let items = [];
 
     // 1. Add Pet items
     pets.forEach(p => {
+      if (!this.isInSelectedCommunity(p)) return;
       if (this.currentFilter === 'lost' && p.status !== 'lost') return;
       if (this.currentFilter === 'sighted') return;
       if (this.currentFilter === 'impounded' && p.status !== 'impounded' && p.status !== 'active_impounded') return;
@@ -167,6 +216,7 @@ class PublicView {
     // 2. Add Sighting items
     if (this.currentFilter === 'all' || this.currentFilter === 'sighted') {
       sightings.forEach(s => {
+        if (s.status === 'dismissed' || !this.isInSelectedCommunity(s)) return;
         if (this.searchQuery) {
           const q = this.searchQuery.toLowerCase();
           const matchBreed = (s.breed || '').toLowerCase().includes(q);
@@ -202,8 +252,11 @@ class PublicView {
                   <span class="badge" style="background:#ea9d1e22; color:#ea9d1e; border:1px solid #ea9d1e66; font-size:0.68rem; flex-shrink:0;">SIGHTED</span>
                 </div>
                 <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px;">Location: ${s.location}</div>
-                <div style="font-size:0.72rem; color:var(--primary); font-weight:700;">AI Match: ${s.confidenceScore || 92}% Confidence</div>
+                <div style="font-size:0.72rem; color:var(--primary); font-weight:700;">Seen: ${this.formatSightingDate(s.dateTimeSeen || s.createdAt)}</div>
               </div>
+            </div>
+            <div style="font-size:0.76rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:6px;">
+              <strong>Comments:</strong> ${s.comments || s.notes || 'No comments provided.'}
             </div>
             <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
               <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.publicView.showDirections(${sLat}, ${sLng}, '${(s.breed || 'Pet Sighting').replace(/'/g, "\\'")}', '${s.location.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'sighting')">
@@ -342,7 +395,8 @@ class PublicView {
 
     // Add Pet Pins with non-overlapping, well-spaced coordinates
     pets.forEach(p => {
-      let coords = petCoordinates[p.id] || [14.6400 + (Math.random() - 0.5) * 0.05, 121.0500 + (Math.random() - 0.5) * 0.05];
+      let coords = p.lastSeenCoords || petCoordinates[p.id] || [14.6400 + (Math.random() - 0.5) * 0.05, 121.0500 + (Math.random() - 0.5) * 0.05];
+      if (!this.isInSelectedCommunity(p)) return;
 
       let pinTypeClass = 'pet-safe-pin';
       let statusDisplay = 'Safe';
@@ -359,7 +413,12 @@ class PublicView {
 
       const petPin = window.L.divIcon({
         className: 'custom-map-icon-wrap',
-        html: `
+        html: p.status === 'lost' ? `
+          <div class="map-pin-bubble missing-pet-bubble">
+            <img src="${p.photoUrl}" alt="${p.name}" />
+            <span><strong>${p.name}</strong><small>${p.breed || 'Pet'} · ${p.lastSeenLocation || 'Last known location'}</small></span>
+          </div>
+        ` : `
           <div class="map-pin-pill ${pinTypeClass}">
             <span class="map-pin-dot"></span>
             <span class="map-pin-label">${p.name} (${statusDisplay})</span>
@@ -396,6 +455,7 @@ class PublicView {
             </div>
 
             <div style="display:flex; gap:6px; margin-top:0.4rem;">
+              ${p.status === 'lost' ? `<button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Report Sighting</button>` : ''}
               <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${p.name.replace(/'/g, "\\'")}', '${(p.lastSeenLocation || 'Metro Manila').replace(/'/g, "\\'")}', '${p.photoUrl}', 'pet')">
                 Directions & Place View
               </button>
@@ -414,13 +474,14 @@ class PublicView {
     this.sightingMarkers = [];
     const sightings = window.pawStore.getSightings();
     sightings.forEach(s => {
+      if (s.status === 'dismissed' || !this.isInSelectedCommunity(s)) return;
       let sCoords = (s.lat && s.lng) ? [s.lat, s.lng] : [14.6360 + (Math.random() - 0.5) * 0.02, 121.0370 + (Math.random() - 0.5) * 0.02];
       const sightingPin = window.L.divIcon({
         className: 'custom-map-icon-wrap',
         html: `
-          <div class="map-pin-pill community-sighting-pin">
-            <span class="map-pin-dot" style="background:#ea9d1e; box-shadow:0 0 8px #ea9d1e;"></span>
-            <span class="map-pin-label">Sighting: ${s.breed || 'Pet'} (${s.confidenceScore || 92}%)</span>
+          <div class="map-pin-bubble possible-sighting-bubble">
+            <img src="${s.photoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80'}" alt="Possible sighting" />
+            <span><strong>${s.status === 'confirmed_sighting' ? 'Confirmed Sighting' : 'Possible Sighting'}</strong><small>${this.getTimeAgo(s.dateTimeSeen || s.createdAt)} · ${s.location || 'Community landmark'}</small></span>
           </div>
         `,
         iconSize: null,
@@ -435,8 +496,14 @@ class PublicView {
             <h4 style="font-size:1.02rem; font-weight:800; margin-bottom:0.25rem; color:var(--text-main);">${s.breed || 'Spotted Pet'}</h4>
             <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">Location: ${s.location}</div>
             ${s.photoUrl ? `<img src="${s.photoUrl}" style="width:100%; height:110px; border-radius:var(--radius-sm); object-fit:cover; margin-bottom:0.5rem;" />` : ''}
-            <div style="font-size:0.78rem; background:rgba(234, 157, 30, 0.12); padding:6px 10px; border-radius:var(--radius-sm); border:1px solid rgba(234, 157, 30, 0.3); margin-bottom:0.5rem; color:var(--text-main);">
-              <strong>AI Match Score:</strong> ${s.confidenceScore || 92}% Confidence
+            <div style="font-size:0.78rem; color:var(--text-main); margin-bottom:0.4rem;">
+              <strong>Date &amp; time seen:</strong> ${this.formatSightingDate(s.dateTimeSeen || s.createdAt)}
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">
+              <strong>Comments:</strong> ${s.comments || s.notes || 'No comments provided.'}
+            </div>
+            <div style="font-size:0.78rem; background:rgba(22, 163, 74, 0.1); padding:6px 10px; border-radius:var(--radius-sm); border:1px solid rgba(22, 163, 74, 0.3); margin-bottom:0.5rem; color:var(--text-main);">
+              <strong>Status:</strong> ${s.status === 'confirmed_sighting' ? 'Confirmed by registered guardian' : 'Possible Sighting · Awaiting owner verification'}
             </div>
             <div style="display:flex; gap:6px;">
               <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.publicView.showDirections(${sCoords[0]}, ${sCoords[1]}, '${(s.breed || 'Pet').replace(/'/g, "\\'")}', '${s.location.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'sighting')">
@@ -453,6 +520,20 @@ class PublicView {
       markerGroup.push(sCoords);
     });
 
+    // Connect sightings for the same missing report in chronological order.
+    const sightingGroups = {};
+    this.sightingMarkers.forEach(item => {
+      const key = item.data.missing_report_id || item.data.petId;
+      if (key) (sightingGroups[key] || (sightingGroups[key] = [])).push(item);
+    });
+    Object.values(sightingGroups).forEach(group => {
+      if (group.length < 2) return;
+      group.sort((a, b) => new Date(a.data.dateTimeSeen || a.data.createdAt) - new Date(b.data.dateTimeSeen || b.data.createdAt));
+      window.L.polyline(group.map(item => item.coords), {
+        color: '#16a34a', weight: 2, opacity: 0.75, dashArray: '7 7'
+      }).addTo(this.map);
+    });
+
     if (markerGroup.length > 0 && window.L.latLngBounds) {
       const bounds = window.L.latLngBounds(markerGroup);
       this.map.fitBounds(bounds, { padding: [40, 40] });
@@ -465,6 +546,13 @@ class PublicView {
         this.map.invalidateSize();
       }
     }, 250);
+  }
+
+  getTimeAgo(value) {
+    const minutes = Math.max(1, Math.round((Date.now() - new Date(value || Date.now()).getTime()) / 60000));
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
   }
 
   setMapLayer(type, notify = true) {
@@ -985,4 +1073,3 @@ class PublicView {
 }
 
 window.publicView = new PublicView();
-
