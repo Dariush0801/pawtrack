@@ -320,7 +320,7 @@
       'report.step2FoundTitle': 'Take or Upload Photo',
       'report.step2FoundDesc': 'Switch to "Upload" to attach a clear picture for AI image matching.',
       'report.step3FoundTitle': 'Tap Phone to Collar Tag',
-      'report.step3FoundDesc': 'Tap your smartphone to the pet\'s NFC collar tag to connect and report instantly without typing any tag number.',
+      'report.step3FoundDesc': 'Tap your smartphone to the pet\'s NFC collar tag to connect and report instantly.',
       'report.step4FoundTitle': 'Submit & Notify Guardian',
       'report.step4FoundDesc': 'Click "Submit and Notify" — the owner and municipal shelters receive instant alerts.',
       'report.step1MissingTitle': 'Select Registered Pet',
