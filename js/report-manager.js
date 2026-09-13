@@ -114,7 +114,13 @@ class ReportManager {
     this.populatePetsDropdown(petId);
     this.populateFoundPetsDropdown(petId);
 
-    if (prefill && prefill.rfidTag) {
+    if (prefill && prefill.rfidTag && window.pawStore) {
+      const matched = window.pawStore.getPetByRFID(prefill.rfidTag);
+      if (matched) {
+        petId = matched.id;
+        this.populatePetsDropdown(petId);
+        this.populateFoundPetsDropdown(petId);
+      }
       const rfidInput = document.getElementById('report-found-rfid');
       if (rfidInput) rfidInput.value = prefill.rfidTag;
     }
