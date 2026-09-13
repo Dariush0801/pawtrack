@@ -1115,6 +1115,8 @@ class ReportManager {
   }
 
   submitFoundReport() {
+    const petSelect = document.getElementById('report-found-pet-select');
+    const selectedPetId = (petSelect?.value || '').trim();
     const species = (document.getElementById('report-found-species')?.value || '').trim();
     const breed = (document.getElementById('report-found-breed')?.value || '').trim();
     const location = (document.getElementById('report-found-location')?.value || '').trim();
@@ -1123,6 +1125,11 @@ class ReportManager {
     const notes = (document.getElementById('report-found-notes')?.value || '').trim();
 
     // Required fields validation (all except message/notes and rfid)
+    if (!petSelectValValid(selectedPetId)) {
+      if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
+      petSelect?.focus();
+      return;
+    }
     if (!species) {
       if (window.notifManager) window.notifManager.showToast('Please select the animal species.', 'warning', 3500);
       document.getElementById('report-found-species')?.focus();
@@ -1148,9 +1155,12 @@ class ReportManager {
 
     const sightingId = 'SIGHT-' + Date.now().toString().slice(-6);
 
-    // Check if the entered RFID matches any registered pet in the system BEFORE building sighting object
+    // Check if the selected registered pet or entered RFID matches any registered pet in the system BEFORE building sighting object
     let matchedPet = null;
-    if (rfid && window.pawStore) {
+    if (selectedPetId && selectedPetId !== 'unregistered' && selectedPetId !== 'custom' && selectedPetId !== 'registered' && window.pawStore) {
+      matchedPet = window.pawStore.getPetById(selectedPetId);
+    }
+    if (!matchedPet && rfid && window.pawStore) {
       matchedPet = window.pawStore.getPetByRFID(rfid);
     }
 
@@ -1160,7 +1170,7 @@ class ReportManager {
       breed: breed,
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
-      rfidTag: rfid,
+      rfidTag: rfid || (matchedPet ? matchedPet.rfidTag : ''),
       reporterPhone: phone,
       community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
       reporterName: 'Community Good Samaritan',
