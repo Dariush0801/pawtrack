@@ -112,6 +112,7 @@ class ReportManager {
     this.setType(type);
     this.setViewMode('map');
     this.populatePetsDropdown(petId);
+    this.populateFoundPetsDropdown(petId);
 
     if (prefill && prefill.rfidTag) {
       const rfidInput = document.getElementById('report-found-rfid');
@@ -139,7 +140,9 @@ class ReportManager {
 
   closeModal() {
     const modal = document.getElementById('report-pet-modal');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+      modal.classList.remove('active');
+    }
     this.toggleInstructionGuide(false);
   }
 
@@ -148,15 +151,13 @@ class ReportManager {
     const helpBtn = document.getElementById('report-help-btn');
     if (!panel) return;
 
-    const isShown = panel.style.display !== 'none';
-    const shouldShow = forceState !== null ? forceState : !isShown;
+    const isOpen = forceState !== null ? forceState : (panel.style.display === 'none' || !panel.style.display);
+    panel.style.display = isOpen ? 'block' : 'none';
 
-    if (shouldShow) {
+    if (isOpen) {
       this.updateInstructionsContent();
-      panel.style.display = 'block';
       if (helpBtn) helpBtn.classList.add('active');
     } else {
-      panel.style.display = 'none';
       if (helpBtn) helpBtn.classList.remove('active');
     }
   }
@@ -294,10 +295,12 @@ class ReportManager {
       if (fieldsMissing) fieldsMissing.style.display = 'none';
 
       // Set HTML5 required on Found fields, unset on Missing fields
+      const foundPet = document.getElementById('report-found-pet-select');
       const foundSpecies = document.getElementById('report-found-species');
       const foundBreed = document.getElementById('report-found-breed');
       const foundLoc = document.getElementById('report-found-location');
       const foundPhone = document.getElementById('report-found-phone');
+      if (foundPet) foundPet.required = true;
       if (foundSpecies) foundSpecies.required = true;
       if (foundBreed) foundBreed.required = true;
       if (foundLoc) foundLoc.required = true;
@@ -329,6 +332,7 @@ class ReportManager {
       if (submitBtn) {
         submitBtn.className = 'btn btn-primary';
       }
+      this.populateFoundPetsDropdown(foundPet?.value || null);
     } else {
       tabMissing?.classList.add('active');
       tabFound?.classList.remove('active');
@@ -336,10 +340,12 @@ class ReportManager {
       if (fieldsMissing) fieldsMissing.style.display = 'block';
 
       // Set HTML5 required on Missing fields, unset on Found fields
+      const foundPet = document.getElementById('report-found-pet-select');
       const foundSpecies = document.getElementById('report-found-species');
       const foundBreed = document.getElementById('report-found-breed');
       const foundLoc = document.getElementById('report-found-location');
       const foundPhone = document.getElementById('report-found-phone');
+      if (foundPet) foundPet.required = false;
       if (foundSpecies) foundSpecies.required = false;
       if (foundBreed) foundBreed.required = false;
       if (foundLoc) foundLoc.required = false;
