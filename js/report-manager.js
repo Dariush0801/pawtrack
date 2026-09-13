@@ -278,12 +278,13 @@ class ReportManager {
     const modalSub = document.getElementById('report-modal-sub');
     const modeToggle = document.getElementById('report-view-mode-toggle');
 
+    if (modeToggle) modeToggle.style.display = 'flex';
+
     if (type === 'found') {
       tabFound?.classList.add('active');
       tabMissing?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'block';
       if (fieldsMissing) fieldsMissing.style.display = 'none';
-      if (modeToggle) modeToggle.style.display = 'flex';
       if (modalTitle) {
         modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleFound', 'Found this pet?') : 'Found this pet?';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleFound');
@@ -304,14 +305,12 @@ class ReportManager {
       tabFound?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'none';
       if (fieldsMissing) fieldsMissing.style.display = 'block';
-      if (modeToggle) modeToggle.style.display = 'none';
-      this.setViewMode('map');
       if (modalTitle) {
         modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report Pet as Missing') : 'Report Pet as Missing';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleMissing');
       }
       if (modalSub) {
-        modalSub.textContent = window.pawI18n ? window.pawI18n.t('report.modalSubMissing', 'Drop a pin where the pet was last seen, add details, and broadcast an emergency alert to shelters and public map.') : 'Drop a pin where the pet was last seen, add details, and broadcast an emergency alert to shelters and public map.';
+        modalSub.textContent = window.pawI18n ? window.pawI18n.t('report.modalSubMissing', 'Drop a pin where the pet was last seen, attach a photo, and broadcast an emergency alert to shelters and public map.') : 'Drop a pin where the pet was last seen, attach a photo, and broadcast an emergency alert to shelters and public map.';
         modalSub.setAttribute('data-i18n', 'report.modalSubMissing');
       }
       if (submitLabel) {
@@ -321,7 +320,10 @@ class ReportManager {
       if (submitBtn) {
         submitBtn.className = 'btn btn-danger';
       }
+      this.updateMissingPhotoStatus();
     }
+
+    this.setViewMode(this.currentViewMode || 'map');
 
     const panel = document.getElementById('report-instructions-panel');
     if (panel && panel.style.display !== 'none') {
@@ -353,6 +355,8 @@ class ReportManager {
 
     if (selectedPetId) {
       this.handlePetSelect(selectedPetId);
+    } else {
+      this.updateMissingPhotoStatus(null, false);
     }
   }
 
@@ -360,6 +364,7 @@ class ReportManager {
     const customWrap = document.getElementById('report-missing-custom-name-wrap');
     if (petId === 'custom') {
       if (customWrap) customWrap.style.display = 'block';
+      this.updateMissingPhotoStatus(null, false);
     } else {
       if (customWrap) customWrap.style.display = 'none';
       if (petId && window.pawStore) {
@@ -370,8 +375,38 @@ class ReportManager {
           if (locInput && pet.lastSeenLocation) {
             locInput.value = pet.lastSeenLocation;
           }
+          if (pet.photoUrl || pet.photo) {
+            this.setUploadedPhoto(pet.photoUrl || pet.photo);
+            this.updateMissingPhotoStatus(pet.name, true);
+          } else {
+            this.removeUploadedPhoto(false);
+            this.updateMissingPhotoStatus(null, false);
+          }
         }
+      } else {
+        this.updateMissingPhotoStatus(null, false);
       }
+    }
+  }
+
+  updateMissingPhotoStatus(petName = null, isRegistered = false) {
+    const statusText = document.getElementById('report-missing-photo-status-text');
+    const statusBtn = document.getElementById('report-missing-photo-status-btn');
+    if (!statusText) return;
+
+    if (this.uploadedPhotoData) {
+      if (isRegistered && petName) {
+        statusText.textContent = `Attached: ${petName}'s profile photo`;
+        statusText.style.color = 'var(--text-main, #ffffff)';
+      } else {
+        statusText.textContent = 'Custom pet photo attached';
+        statusText.style.color = 'var(--primary, #ea9d1e)';
+      }
+      if (statusBtn) statusBtn.textContent = 'Change / View';
+    } else {
+      statusText.textContent = 'No photo attached';
+      statusText.style.color = 'var(--text-muted, #a89f91)';
+      if (statusBtn) statusBtn.textContent = 'Attach / Upload Photo';
     }
   }
 
