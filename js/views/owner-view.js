@@ -5,7 +5,6 @@
 class OwnerView {
   constructor() {
     this.timerInterval = null;
-    this.currentUnregisteredFilter = 'all'; // 'all', 'found', 'missing'
   }
 
   render(container) {
