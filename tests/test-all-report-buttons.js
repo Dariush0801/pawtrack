@@ -192,6 +192,8 @@ verify(22, 'All fields marked as required and validated except optional message'
          reportManagerJs.includes('if (!petId)') &&
          reportManagerJs.includes('if (!date)') &&
          indexHtml.includes('data-i18n="report.messageOptional">Message (optional)</label>');
+});
+
 // 23. Phone number is blank by default and has 09 example placeholder
 verify(23, 'Emergency Contact Phone starts empty with 09 placeholder format', () => {
   const i18nJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
