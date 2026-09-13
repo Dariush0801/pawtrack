@@ -24,14 +24,14 @@ function check(title, condition) {
   }
 }
 
-// 1. Check index.html has photo status bar in missing form
-check('index.html contains #report-missing-photo-status-bar', indexHtml.includes('id="report-missing-photo-status-bar"'));
-check('index.html contains #report-missing-photo-status-text', indexHtml.includes('id="report-missing-photo-status-text"'));
-check('index.html contains #report-missing-photo-status-btn', indexHtml.includes('id="report-missing-photo-status-btn"'));
+// 1. Check index.html keeps primary Maps & Upload buttons in left column without redundant bar
 check('index.html contains #report-view-mode-toggle with Maps & Upload buttons', 
   indexHtml.includes('id="report-view-mode-toggle"') &&
   indexHtml.includes('id="report-mode-map-btn"') &&
   indexHtml.includes('id="report-mode-upload-btn"')
+);
+check('index.html removed redundant photo status bar from missing form', 
+  !indexHtml.includes('id="report-missing-photo-status-bar"')
 );
 
 // 2. Check report-manager.js keeps mode toggle visible on missing pet alert
