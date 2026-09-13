@@ -224,6 +224,8 @@ verify(25, 'Report Missing Pet selector defaults to "Registered" with "Unregiste
   const hasNoSelectPlaceholder = !indexHtml.includes('-- Select Registered Pet --');
   const hasPopulateLogic = reportManagerJs.includes('const isCustomSelected = selectedPetId === \'custom\' || selectedPetId === \'unregistered\';');
   return hasIndexRegisteredDefault && hasNoSelectPlaceholder && hasPopulateLogic;
+});
+
 // 26. Found Pet selector has Registered and Unregistered dropdown
 verify(26, 'Found / Sighted Stray Pet selector provides Registered and Unregistered options', () => {
   const hasFoundSelect = indexHtml.includes('id="report-found-pet-select"') &&
