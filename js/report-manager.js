@@ -88,17 +88,26 @@ class ReportManager {
     this.selectedSuggestionIndex = -1;
 
     // Sighting modal state
+    this.sightingViewMode = 'map'; // 'map' or 'upload'
+    this.sightingMapType = 'roadmap'; // 'roadmap', 'satellite', 'hybrid', 'dark'
+    this.sightingTileLayer = null;
     this.sightingPhotoData = null;
     this.sightingMap = null;
     this.sightingMarker = null;
-    this.sightingPinnedLat = 14.6375;
-    this.sightingPinnedLng = 121.0362;
+    this.sightingPinnedLat = 14.6500;
+    this.sightingPinnedLng = 121.0400;
+    this.sightingSuggestions = [];
+    this.selectedSightingSuggestionIndex = -1;
 
     // Attach global click handler to dismiss location suggestions
     document.addEventListener('click', (e) => {
       const wrap = document.getElementById('report-location-search-wrap');
       if (wrap && !wrap.contains(e.target)) {
         this.hideSuggestions();
+      }
+      const sightingWrap = document.getElementById('sighting-location-search-wrap');
+      if (sightingWrap && !sightingWrap.contains(e.target)) {
+        this.hideSightingSuggestions();
       }
     });
   }
