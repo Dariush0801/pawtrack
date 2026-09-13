@@ -1419,14 +1419,10 @@ class ReportManager {
     const modal = document.getElementById('sighting-submission-modal');
     if (!modal) return;
 
-    // Reset previous inputs
-    this.sightingPhotoData = null;
-    const photoInput = document.getElementById('sighting-photo-input');
-    if (photoInput) photoInput.value = '';
-    const previewWrap = document.getElementById('sighting-preview-wrap');
-    const promptWrap = document.getElementById('sighting-dropzone-prompt');
-    if (previewWrap) previewWrap.style.display = 'none';
-    if (promptWrap) promptWrap.style.display = 'block';
+    // Reset previous inputs & photo
+    this.sightingViewMode = 'map';
+    this.setSightingViewMode('map');
+    this.removeSightingUploadedPhoto(false);
 
     const hiddenReportId = document.getElementById('sighting-missing-report-id');
     const hiddenPetId = document.getElementById('sighting-pet-id');
@@ -1498,9 +1494,8 @@ class ReportManager {
         this.sightingPinnedLng = targetReport.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
       }
 
-      if (locInput && (!locInput.value || locInput.value === '')) {
-        locInput.value = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
-      }
+      const initialLoc = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
+      this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, initialLoc);
     } else {
       // General sighting flow: populate missing pets dropdown
       if (hiddenReportId) hiddenReportId.value = '';
@@ -1519,11 +1514,10 @@ class ReportManager {
           select.innerHTML = opts;
         }
       }
-      this.sightingPinnedLat = 14.6375;
-      this.sightingPinnedLng = 121.0362;
+      this.sightingPinnedLat = 14.6500;
+      this.sightingPinnedLng = 121.0400;
+      this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, 'Quezon City, Metro Manila');
     }
-
-    this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng);
 
     modal.classList.add('active');
     modal.style.display = 'flex';
@@ -1544,6 +1538,89 @@ class ReportManager {
         this.sightingMap.remove();
       } catch (e) {}
       this.sightingMap = null;
+    }
+  }
+
+  setSightingViewMode(mode) {
+    this.sightingViewMode = mode;
+    const mapBtn = document.getElementById('sighting-mode-map-btn');
+    const uploadBtn = document.getElementById('sighting-mode-upload-btn');
+    const mapContainer = document.getElementById('sighting-map-view-container');
+    const uploadContainer = document.getElementById('sighting-upload-view-container');
+
+    if (mapBtn) mapBtn.classList.toggle('active', mode === 'map');
+    if (uploadBtn) uploadBtn.classList.toggle('active', mode === 'upload');
+
+    if (mapContainer) mapContainer.style.display = (mode === 'map' ? 'flex' : 'none');
+    if (uploadContainer) uploadContainer.style.display = (mode === 'upload' ? 'flex' : 'none');
+
+    if (mode === 'map' && this.sightingMap) {
+      setTimeout(() => {
+        if (this.sightingMap) this.sightingMap.invalidateSize();
+      }, 100);
+    }
+  }
+
+  setSightingMapLayer(type) {
+    this.sightingMapType = type;
+    const dock = document.getElementById('sighting-map-layer-dock');
+    if (dock) {
+      const btns = dock.querySelectorAll('.gmap-layer-btn');
+      btns.forEach(btn => {
+        const span = btn.querySelector('span');
+        const text = span ? span.textContent.trim().toLowerCase() : '';
+        btn.classList.toggle('active', text === type.toLowerCase());
+      });
+    }
+
+    if (!this.sightingMap || !window.L) return;
+
+    if (this.sightingTileLayer) {
+      try { this.sightingMap.removeLayer(this.sightingTileLayer); } catch (e) {}
+    }
+
+    const layerUrls = {
+      roadmap: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      hybrid: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+      dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    };
+
+    const url = layerUrls[type] || layerUrls.roadmap;
+    const maxZoom = type === 'satellite' ? 18 : 19;
+    this.sightingTileLayer = window.L.tileLayer(url, {
+      maxZoom: maxZoom,
+      attribution: '&copy; Leaflet | Google Maps'
+    }).addTo(this.sightingMap);
+  }
+
+  locateSightingMe() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          this.jumpToSightingLocation(lat, lng, 'My Current Location');
+          if (window.notifManager) window.notifManager.showToast('Centered on your current GPS location', 'success', 2500);
+        },
+        () => {
+          this.jumpToSightingLocation(14.6500, 121.0400, 'Quezon City Hall');
+          if (window.notifManager) window.notifManager.showToast('Location permission unavailable. Centered on QC.', 'info', 3000);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      this.jumpToSightingLocation(14.6500, 121.0400, 'Quezon City Hall');
+    }
+  }
+
+  jumpToSightingLocation(lat, lng, name) {
+    this.updateSightingCoords(lat, lng, name);
+    if (this.sightingMap) {
+      this.sightingMap.flyTo([lat, lng], 15, { duration: 0.8 });
+      if (this.sightingMarker) {
+        this.sightingMarker.setLatLng([lat, lng]);
+      }
     }
   }
 
@@ -1592,13 +1669,9 @@ class ReportManager {
       zoomControl: true
     }).setView([this.sightingPinnedLat, this.sightingPinnedLng], 14);
 
-    // OpenStreetMap standard tile layer (lightweight, zero billing)
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(this.sightingMap);
+    this.setSightingMapLayer(this.sightingMapType || 'roadmap');
 
-    // Green Draggable Sighting Marker
+    // Green Draggable Sighting Marker (PRESERVING EXACT PINPOINT ICON)
     const greenSightingIcon = window.L.divIcon({
       className: 'sighting-pin-leaflet-icon',
       html: `
@@ -1633,53 +1706,314 @@ class ReportManager {
     }, 150);
   }
 
-  updateSightingCoords(lat, lng) {
+  updateSightingCoords(lat, lng, name = null) {
     this.sightingPinnedLat = parseFloat(lat.toFixed(5));
     this.sightingPinnedLng = parseFloat(lng.toFixed(5));
 
     const latInput = document.getElementById('sighting-pinned-lat');
     const lngInput = document.getElementById('sighting-pinned-lng');
-    const badge = document.getElementById('sighting-coords-badge');
+    const searchInput = document.getElementById('sighting-location-input');
+    const clearBtn = document.getElementById('sighting-search-clear-btn');
 
     if (latInput) latInput.value = this.sightingPinnedLat;
     if (lngInput) lngInput.value = this.sightingPinnedLng;
-    if (badge) badge.textContent = `${this.sightingPinnedLat.toFixed(5)}, ${this.sightingPinnedLng.toFixed(5)}`;
+
+    const resolvedName = name || this.getNearestPresetName(this.sightingPinnedLat, this.sightingPinnedLng);
+
+    if (searchInput) {
+      searchInput.value = resolvedName;
+    }
+    if (clearBtn) {
+      clearBtn.style.display = 'flex';
+    }
+
+    // Background reverse geocode for exact street/building name if clicked without explicit name
+    if (!name && typeof window !== 'undefined' && window.navigator && window.navigator.onLine) {
+      this.reverseGeocode(this.sightingPinnedLat, this.sightingPinnedLng).then(geoName => {
+        if (geoName && searchInput && searchInput.value === resolvedName) {
+          searchInput.value = geoName;
+        }
+      }).catch(() => {});
+    }
   }
 
-  handleSightingPhotoInput(input) {
+  handleSightingLocationSearch(query) {
+    const trimmed = (query || '').trim();
+    const clearBtn = document.getElementById('sighting-search-clear-btn');
+    const suggestionsBox = document.getElementById('sighting-location-suggestions');
+    if (!suggestionsBox) return;
+
+    if (clearBtn) {
+      clearBtn.style.display = trimmed.length > 0 ? 'flex' : 'none';
+    }
+
+    if (trimmed.length < 1) {
+      suggestionsBox.style.display = 'none';
+      suggestionsBox.innerHTML = '';
+      this.selectedSightingSuggestionIndex = -1;
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    const matches = PRESET_LOCATIONS.filter(loc => {
+      return loc.name.toLowerCase().includes(lower) || loc.group.toLowerCase().includes(lower);
+    });
+
+    this.renderSightingSuggestions(matches, trimmed);
+  }
+
+  renderSightingSuggestions(matches, query) {
+    const suggestionsBox = document.getElementById('sighting-location-suggestions');
+    if (!suggestionsBox) return;
+
+    this.sightingSuggestions = matches;
+    this.selectedSightingSuggestionIndex = -1;
+
+    let html = '';
+
+    if (matches.length > 0) {
+      html += matches.slice(0, 8).map((loc, idx) => `
+        <div class="report-suggestion-item" data-index="${idx}" onclick="window.reportManager.selectSightingLocation(${loc.lat}, ${loc.lng}, '${loc.name.replace(/'/g, "\\'")}')">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary, #ea9d1e); flex-shrink:0;">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span class="report-suggestion-name">${loc.name}</span>
+          </div>
+          <span class="report-suggestion-badge">${loc.group}</span>
+        </div>
+      `).join('');
+    }
+
+    // Dynamic online geocoder option for any custom street, barangay, or landmark
+    if (query && query.length >= 2) {
+      html += `
+        <div class="report-suggestion-item report-suggestion-online" onclick="window.reportManager.searchOnlineNominatimSighting('${query.replace(/'/g, "\\'")}')">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#38bdf8;">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Search exact place online: "<strong>${query}</strong>"</span>
+          </div>
+          <span class="report-suggestion-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">Live GPS</span>
+        </div>
+      `;
+    }
+
+    suggestionsBox.innerHTML = html;
+    suggestionsBox.style.display = 'block';
+  }
+
+  handleSightingSearchKeydown(e) {
+    const suggestionsBox = document.getElementById('sighting-location-suggestions');
+    if (!suggestionsBox || suggestionsBox.style.display === 'none') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const input = document.getElementById('sighting-location-input');
+        if (input && input.value) {
+          this.searchOnlineNominatimSighting(input.value);
+        }
+      }
+      return;
+    }
+
+    const items = suggestionsBox.querySelectorAll('.report-suggestion-item:not(.report-suggestion-online)');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.selectedSightingSuggestionIndex = (this.selectedSightingSuggestionIndex + 1) % items.length;
+      this.highlightSightingSuggestion(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.selectedSightingSuggestionIndex = (this.selectedSightingSuggestionIndex - 1 + items.length) % items.length;
+      this.highlightSightingSuggestion(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (this.selectedSightingSuggestionIndex >= 0 && this.sightingSuggestions && this.sightingSuggestions[this.selectedSightingSuggestionIndex]) {
+        const sel = this.sightingSuggestions[this.selectedSightingSuggestionIndex];
+        this.selectSightingLocation(sel.lat, sel.lng, sel.name);
+      } else {
+        const input = document.getElementById('sighting-location-input');
+        if (input && input.value) {
+          this.searchOnlineNominatimSighting(input.value);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      this.hideSightingSuggestions();
+    }
+  }
+
+  highlightSightingSuggestion(items) {
+    items.forEach((item, idx) => {
+      item.classList.toggle('active', idx === this.selectedSightingSuggestionIndex);
+      if (idx === this.selectedSightingSuggestionIndex) {
+        item.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  selectSightingLocation(lat, lng, name) {
+    const input = document.getElementById('sighting-location-input');
+    if (input) input.value = name;
+    this.hideSightingSuggestions();
+    this.jumpToSightingLocation(lat, lng, name);
+  }
+
+  clearSightingLocationSearch() {
+    const input = document.getElementById('sighting-location-input');
+    const clearBtn = document.getElementById('sighting-search-clear-btn');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    if (clearBtn) clearBtn.style.display = 'none';
+    this.hideSightingSuggestions();
+  }
+
+  hideSightingSuggestions() {
+    const suggestionsBox = document.getElementById('sighting-location-suggestions');
+    if (suggestionsBox) {
+      suggestionsBox.style.display = 'none';
+      suggestionsBox.innerHTML = '';
+    }
+    this.selectedSightingSuggestionIndex = -1;
+  }
+
+  async searchOnlineNominatimSighting(query) {
+    this.hideSightingSuggestions();
+    if (!query) return;
+
+    if (window.notifManager) {
+      window.notifManager.showToast(`Locating "${query}" in Quezon City...`, 'info', 2000);
+    }
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Quezon City, Philippines')}&limit=1`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const result = data[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+        const displayName = result.display_name.split(',').slice(0, 3).join(',');
+        this.selectSightingLocation(lat, lon, displayName);
+        if (window.notifManager) {
+          window.notifManager.showToast(`Jumped to: ${displayName}`, 'success', 3000);
+        }
+      } else {
+        const match = PRESET_LOCATIONS.find(l => l.name.toLowerCase().includes(query.toLowerCase()));
+        if (match) {
+          this.selectSightingLocation(match.lat, match.lng, match.name);
+        } else if (window.notifManager) {
+          window.notifManager.showToast(`Location "${query}" not found in Quezon City. Try another landmark or drag pin.`, 'warning', 3500);
+        }
+      }
+    } catch (err) {
+      const match = PRESET_LOCATIONS.find(l => l.name.toLowerCase().includes(query.toLowerCase()));
+      if (match) {
+        this.selectSightingLocation(match.lat, match.lng, match.name);
+      } else if (window.notifManager) {
+        window.notifManager.showToast(`Jumped pin near ${query}.`, 'info', 2500);
+      }
+    }
+  }
+
+  triggerSightingTakePhoto() {
+    const camInput = document.getElementById('sighting-photo-camera-input');
+    if (camInput) camInput.click();
+  }
+
+  triggerSightingUploadPhoto() {
+    const fileInput = document.getElementById('sighting-photo-file-input');
+    if (fileInput) fileInput.click();
+  }
+
+  handleSightingPhotoFile(input) {
     if (!input || !input.files || !input.files[0]) return;
     const file = input.files[0];
     if (!file.type.startsWith('image/')) {
-      if (window.notifManager) window.notifManager.showToast('Please select a valid image file (JPG, PNG, WEBP).', 'warning');
+      if (window.notifManager) window.notifManager.showToast('Please select a valid image file (JPG, PNG, WEBP).', 'warning', 3000);
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      this.sightingPhotoData = e.target.result;
-      const previewImg = document.getElementById('sighting-preview-img');
-      const previewWrap = document.getElementById('sighting-preview-wrap');
-      const promptWrap = document.getElementById('sighting-dropzone-prompt');
-
-      if (previewImg) previewImg.src = this.sightingPhotoData;
-      if (previewWrap) previewWrap.style.display = 'block';
-      if (promptWrap) promptWrap.style.display = 'none';
-
+      this.setSightingUploadedPhoto(e.target.result);
       if (window.notifManager) {
-        window.notifManager.showToast('Sighting photo attached successfully.', 'success', 2500);
+        window.notifManager.showToast('Pet photo attached successfully.', 'success', 3000);
       }
     };
     reader.readAsDataURL(file);
   }
 
-  removeSightingPhoto() {
+  setSightingUploadedPhoto(dataUrl) {
+    this.sightingPhotoData = dataUrl;
+    const placeholder = document.getElementById('sighting-photo-placeholder');
+    const previewWrap = document.getElementById('sighting-photo-preview-wrap');
+    const previewImg = document.getElementById('sighting-photo-preview-img');
+
+    if (placeholder) placeholder.style.display = 'none';
+    if (previewWrap) previewWrap.style.display = 'block';
+    if (previewImg) previewImg.src = dataUrl;
+  }
+
+  removeSightingUploadedPhoto(showToast = true) {
     this.sightingPhotoData = null;
-    const photoInput = document.getElementById('sighting-photo-input');
-    if (photoInput) photoInput.value = '';
-    const previewWrap = document.getElementById('sighting-preview-wrap');
-    const promptWrap = document.getElementById('sighting-dropzone-prompt');
+    const placeholder = document.getElementById('sighting-photo-placeholder');
+    const previewWrap = document.getElementById('sighting-photo-preview-wrap');
+    const previewImg = document.getElementById('sighting-photo-preview-img');
+    const camInput = document.getElementById('sighting-photo-camera-input');
+    const fileInput = document.getElementById('sighting-photo-file-input');
+
+    if (camInput) camInput.value = '';
+    if (fileInput) fileInput.value = '';
+    if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
-    if (promptWrap) promptWrap.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'flex';
+
+    if (showToast && window.notifManager) {
+      window.notifManager.showToast('Photo removed.', 'info', 2000);
+    }
+  }
+
+  handleSightingDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('sighting-photo-dropzone');
+    if (dropzone) dropzone.classList.add('drag-over');
+  }
+
+  handleSightingDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('sighting-photo-dropzone');
+    if (dropzone) dropzone.classList.remove('drag-over');
+  }
+
+  handleSightingPhotoDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('sighting-photo-dropzone');
+    if (dropzone) dropzone.classList.remove('drag-over');
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (!file.type.startsWith('image/')) {
+        if (window.notifManager) window.notifManager.showToast('Please drop a valid image file.', 'warning', 3000);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        this.setSightingUploadedPhoto(ev.target.result);
+        if (window.notifManager) {
+          window.notifManager.showToast('Pet photo attached successfully.', 'success', 3000);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   submitCommunitySighting(e) {
