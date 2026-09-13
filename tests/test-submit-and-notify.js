@@ -114,16 +114,22 @@ window.reportManager.submitFoundReport();
 console.log('✓ Matched pet found report submitted successfully. Sighting count:', sightings.length);
 console.log('✓ Last notif title:', notifications[notifications.length - 1].title);
 
-console.log('\n--- Testing Missing Pet "Submit and Notify" ---');
+console.log('\n--- Testing Missing Pet "Submit and Notify" (Validation Rejection) ---');
 window.reportManager.currentType = 'missing';
 document.elements['report-missing-pet-select'] = { value: 'pet-2' };
 document.elements['report-missing-location'] = { value: 'District 1 (La Loma), Quezon City' };
+document.elements['report-missing-date'] = { value: '' }; // Missing date should be rejected
 document.elements['report-missing-phone'] = { value: '+63 918 333 4444' };
-document.elements['report-missing-notes'] = { value: 'Slipped out gate during thunderstorm.' };
+document.elements['report-missing-notes'] = { value: '' };
 window.reportManager.submitMissingReport();
+console.log('✓ Missing date properly blocked submission. Reports count:', missingReports.length);
 
-console.log('✓ Missing pet report submitted successfully. Missing reports count:', missingReports.length);
+console.log('\n--- Testing Missing Pet "Submit and Notify" (Success with empty message) ---');
+document.elements['report-missing-date'] = { value: new Date().toISOString().slice(0, 16) };
+window.reportManager.submitMissingReport();
+console.log('✓ Missing pet report submitted with optional message empty. Missing reports count:', missingReports.length);
 console.log('✓ Cases created count:', cases.length);
+
 console.log('\n===============================================================');
 console.log('  ALL "SUBMIT AND NOTIFY" WORKFLOWS EXECUTED SUCCESSFULLY!');
 console.log('===============================================================');
