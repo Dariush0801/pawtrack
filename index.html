@@ -1397,9 +1397,10 @@
             <!-- SECTION B: Missing Pet Alert Fields -->
             <div id="report-fields-missing" style="display: none;">
               <div class="form-group" style="margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPet">Select Registered Pet *</label>
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPet">Select Pet *</label>
                 <select class="form-control" id="report-missing-pet-select" style="padding: 7px 10px; font-size: 0.85rem;" onchange="window.reportManager.handlePetSelect(this.value)">
-                  <option value="">-- Select Registered Pet --</option>
+                  <option value="registered" selected data-i18n="report.registered">Registered</option>
+                  <option value="custom" data-i18n="report.unregistered">Unregistered</option>
                 </select>
               </div>
 
