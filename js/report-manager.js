@@ -1105,6 +1105,8 @@ class ReportManager {
       }
     } else {
       petName = customName || 'Beloved Pet';
+    }
+
     const finalPhoto = this.uploadedPhotoData || (pet ? (pet.photoUrl || pet.photo) : null) || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500';
 
     if (pet) {
