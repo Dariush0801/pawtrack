@@ -198,8 +198,8 @@ class ReportManager {
         <div class="report-step-card">
           <div class="report-step-num">3</div>
           <div class="report-step-content">
-            <strong data-i18n="report.step3FoundTitle">${t('report.step3FoundTitle', 'Check RFID Collar Tag')}</strong>
-            <p data-i18n="report.step3FoundDesc">${t('report.step3FoundDesc', 'If the pet has a collar or 134.2 kHz RFID tag, type the number to alert the owner.')}</p>
+            <strong data-i18n="report.step3FoundTitle">${t('report.step3FoundTitle', 'Tap Phone to Collar Tag')}</strong>
+            <p data-i18n="report.step3FoundDesc">${t('report.step3FoundDesc', 'Tap your smartphone to the pet\'s NFC collar tag to connect and report instantly without typing any tag number.')}</p>
           </div>
         </div>
         <div class="report-step-card">
