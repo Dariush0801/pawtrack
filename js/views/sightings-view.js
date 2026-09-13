@@ -1,36 +1,53 @@
 /**
  * PawTrack Community Pet Sightings Board
- * Dedicated view for browsing, filtering, and acting on all community-reported
- * pet sightings. Integrates with the existing store, notification system,
- * and the Owner Verification modal already wired in notifications.js.
+ * Dedicated view for browsing, filtering, archiving, retrieving, and deleting
+ * community-reported pet sightings. Integrates with the store, notification system,
+ * incident map, and owner verification modal.
  */
 
 class SightingsView {
   constructor() {
-    this.currentFilter = 'all';      // 'all' | 'possible' | 'confirmed' | 'dismissed'
+    this.currentFilter = 'all';      // 'all' | 'possible' | 'confirmed' | 'archived'
     this.currentSort   = 'newest';   // 'newest' | 'oldest' | 'confirmed_first'
     this.searchQuery   = '';
     this.selectedCommunity = 'all';
+
+    if (typeof window !== 'undefined' && window.pawStore) {
+      window.pawStore.subscribe((event) => {
+        if (
+          ['sighting_archived', 'sighting_updated', 'sighting_deleted', 'sighting_dismissed', 'sighting_confirmed', 'sighting_added', 'sync_completed'].includes(event) &&
+          window.location.hash === '#sightings'
+        ) {
+          this.refresh();
+        }
+      });
+    }
   }
 
   // ─────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────
   render(container) {
+    this.container = container || document.getElementById('app-viewport');
+    if (!this.container) return;
+
     const sightings = window.pawStore.getSightings();
     const stats = this._buildStats(sightings);
 
-    container.innerHTML = `
+    this.container.innerHTML = `
       <div class="view-header">
         <div class="view-title-group">
           <h1>Community Pet Sightings</h1>
           <div class="view-subtitle">
-            All community-reported pet sightings. Owners can verify each report to confirm or dismiss the match.
+            All community-reported pet sightings. Owners can verify matches, archive old reports, or retrieve and delete archived sightings.
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary btn-sm" onclick="window.reportManager.openSightingModal()">
             <i data-lucide="eye"></i> Report Pet Sighting
+          </button>
+          <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')">
+            <i data-lucide="archive"></i> ${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})
           </button>
           <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'">
             <i data-lucide="map"></i> View on Map
@@ -40,11 +57,11 @@ class SightingsView {
 
       <!-- Stats Bar -->
       <div class="sightings-stats-bar">
-        ${this._renderStatCard('All Reports',      stats.total,     'eye',           '#ea9d1e')}
+        ${this._renderStatCard('Active Reports',   stats.active,    'eye',           '#ea9d1e')}
         ${this._renderStatCard('Possible',         stats.possible,  'search',        '#ea9d1e')}
         ${this._renderStatCard('Confirmed',        stats.confirmed, 'check-circle-2','#16a34a')}
-        ${this._renderStatCard('Dismissed',        stats.dismissed, 'x-circle',      '#b85410')}
-        ${this._renderStatCard('Linked to Report', stats.linked,    'link',          '#ffffff')}
+        ${this._renderStatCard('Archived',         stats.archived,  'archive',       '#b85410')}
+        ${this._renderStatCard('Linked to Alert',  stats.linked,    'link',          '#ffffff')}
       </div>
 
       <!-- Filters & Search -->
@@ -63,10 +80,10 @@ class SightingsView {
 
         <!-- Status filter pills -->
         <div id="sightings-filter-pills" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          ${this._filterPill('all',       'All',       stats.total,     this.currentFilter === 'all')}
-          ${this._filterPill('possible',  'Possible',  stats.possible,  this.currentFilter === 'possible')}
-          ${this._filterPill('confirmed', 'Confirmed', stats.confirmed, this.currentFilter === 'confirmed')}
-          ${this._filterPill('dismissed', 'Dismissed', stats.dismissed, this.currentFilter === 'dismissed')}
+          ${this._filterPill('all',       'All Active', stats.active,    this.currentFilter === 'all')}
+          ${this._filterPill('possible',  'Possible',   stats.possible,  this.currentFilter === 'possible')}
+          ${this._filterPill('confirmed', 'Confirmed',  stats.confirmed, this.currentFilter === 'confirmed')}
+          ${this._filterPill('archived',  'Archived',   stats.archived,  this.currentFilter === 'archived')}
         </div>
 
         <!-- Community selector -->
@@ -94,7 +111,14 @@ class SightingsView {
       </div>
     `;
 
-    if (window.lucide) window.lucide.createIcons({ root: container });
+    if (window.lucide) window.lucide.createIcons({ root: this.container });
+  }
+
+  refresh() {
+    const container = this.container || document.getElementById('app-viewport');
+    if (container && window.location.hash === '#sightings') {
+      this.render(container);
+    }
   }
 
   // ─────────────────────────────────────────────────
@@ -102,11 +126,7 @@ class SightingsView {
   // ─────────────────────────────────────────────────
   setFilter(f) {
     this.currentFilter = f;
-    this._refreshGrid();
-    // Update pill active states without full re-render
-    document.querySelectorAll('.sightings-filter-pill').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.filter === f);
-    });
+    this.refresh();
   }
 
   handleSearch(val) {
@@ -133,15 +153,56 @@ class SightingsView {
   }
 
   // ─────────────────────────────────────────────────
+  // ARCHIVE, RETRIEVE & DELETE ACTIONS
+  // ─────────────────────────────────────────────────
+  archiveSighting(sightingId) {
+    if (!sightingId || !window.pawStore) return;
+    const updated = window.pawStore.archiveSighting(sightingId);
+    if (updated) {
+      if (window.notifManager) {
+        window.notifManager.showToast('Sighting report moved to Archive.', 'info', 3500);
+      }
+      this.refresh();
+    }
+  }
+
+  retrieveSighting(sightingId) {
+    if (!sightingId || !window.pawStore) return;
+    const restored = window.pawStore.retrieveSighting(sightingId);
+    if (restored) {
+      if (window.notifManager) {
+        window.notifManager.showToast('Sighting report retrieved and restored to active board.', 'success', 3500);
+      }
+      this.refresh();
+    }
+  }
+
+  deleteSighting(sightingId) {
+    if (!sightingId || !window.pawStore) return;
+    const confirmDelete = window.confirm('Are you sure you want to permanently delete this sighting report? This action cannot be undone.');
+    if (!confirmDelete) return;
+
+    const deleted = window.pawStore.deleteSighting(sightingId);
+    if (deleted) {
+      if (window.notifManager) {
+        window.notifManager.showToast('Sighting report permanently deleted.', 'danger', 3500);
+      }
+      this.refresh();
+    }
+  }
+
+  // ─────────────────────────────────────────────────
   // DATA HELPERS
   // ─────────────────────────────────────────────────
   _buildStats(sightings) {
+    const active = sightings.filter(s => s.status !== 'dismissed' && s.status !== 'archived');
     return {
       total:     sightings.length,
-      possible:  sightings.filter(s => s.status === 'possible_sighting').length,
-      confirmed: sightings.filter(s => s.status === 'confirmed_sighting').length,
-      dismissed: sightings.filter(s => s.status === 'dismissed').length,
-      linked:    sightings.filter(s => !!s.missing_report_id).length,
+      active:    active.length,
+      possible:  active.filter(s => s.status === 'possible_sighting').length,
+      confirmed: active.filter(s => s.status === 'confirmed_sighting').length,
+      archived:  sightings.filter(s => s.status === 'dismissed' || s.status === 'archived').length,
+      linked:    active.filter(s => !!s.missing_report_id).length,
     };
   }
 
@@ -149,9 +210,15 @@ class SightingsView {
     let list = [...sightings];
 
     // Status filter
-    if (this.currentFilter === 'possible')  list = list.filter(s => s.status === 'possible_sighting');
-    if (this.currentFilter === 'confirmed') list = list.filter(s => s.status === 'confirmed_sighting');
-    if (this.currentFilter === 'dismissed') list = list.filter(s => s.status === 'dismissed');
+    if (this.currentFilter === 'all') {
+      list = list.filter(s => s.status !== 'dismissed' && s.status !== 'archived');
+    } else if (this.currentFilter === 'possible') {
+      list = list.filter(s => s.status === 'possible_sighting');
+    } else if (this.currentFilter === 'confirmed') {
+      list = list.filter(s => s.status === 'confirmed_sighting');
+    } else if (this.currentFilter === 'archived' || this.currentFilter === 'dismissed') {
+      list = list.filter(s => s.status === 'dismissed' || s.status === 'archived');
+    }
 
     // Community filter
     if (this.selectedCommunity !== 'all') {
@@ -216,7 +283,9 @@ class SightingsView {
   _communityOptions(sightings) {
     const set = new Set();
     sightings.forEach(s => { if (s.community) set.add(s.community); });
-    window.pawStore.getPets().forEach(p => { if (p.community) set.add(p.community); });
+    if (window.pawStore) {
+      window.pawStore.getPets().forEach(p => { if (p.community) set.add(p.community); });
+    }
     const opts = ['<option value="all">All communities</option>'];
     Array.from(set).sort().forEach(c => {
       opts.push(`<option value="${this._esc(c)}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`);
@@ -228,18 +297,26 @@ class SightingsView {
     const list = this._filteredSorted(sightings);
 
     if (list.length === 0) {
+      const isArchivedView = this.currentFilter === 'archived' || this.currentFilter === 'dismissed';
       return `
         <div class="sightings-empty-state glass-card">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-            <circle cx="12" cy="12" r="3"/>
-            <line x1="3" y1="3" x2="21" y2="21"/>
+            ${isArchivedView 
+              ? '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'
+              : '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="3" x2="21" y2="21"/>'
+            }
           </svg>
-          <h3>No sightings found</h3>
-          <p>No sighting reports match the current filters. Try a different filter or be the first to report one!</p>
-          <button class="btn btn-primary" onclick="window.reportManager.openSightingModal()">
-            <i data-lucide="plus"></i> Report Pet Sighting
-          </button>
+          <h3>${isArchivedView ? 'No archived sightings' : 'No sightings found'}</h3>
+          <p>${isArchivedView ? 'You have no archived sighting reports.' : 'No active sighting reports match the current filters. Try a different filter or report a sighting!'}</p>
+          ${isArchivedView ? `
+            <button class="btn btn-outline" onclick="window.sightingsView.setFilter('all')">
+              <i data-lucide="arrow-left"></i> Back to Active Sightings
+            </button>
+          ` : `
+            <button class="btn btn-primary" onclick="window.reportManager.openSightingModal()">
+              <i data-lucide="plus"></i> Report Pet Sighting
+            </button>
+          `}
         </div>
       `;
     }
@@ -253,11 +330,11 @@ class SightingsView {
 
   _renderCard(s) {
     const isConfirmed = s.status === 'confirmed_sighting';
-    const isDismissed = s.status === 'dismissed';
+    const isArchived  = s.status === 'dismissed' || s.status === 'archived';
     const isPossible  = s.status === 'possible_sighting';
 
     const statusColor  = isConfirmed ? '#16a34a' : isPossible ? '#ea9d1e' : '#b85410';
-    const statusLabel  = isConfirmed ? 'Confirmed Sighting' : isPossible ? 'Possible Sighting' : 'Dismissed';
+    const statusLabel  = isConfirmed ? 'Confirmed Sighting' : isPossible ? 'Possible Sighting' : 'Archived';
     const statusBg     = isConfirmed ? 'rgba(22,163,74,0.12)' : isPossible ? 'rgba(234,157,30,0.12)' : 'rgba(184,84,16,0.12)';
     const statusBorder = isConfirmed ? 'rgba(22,163,74,0.3)'  : isPossible ? 'rgba(234,157,30,0.3)'  : 'rgba(184,84,16,0.3)';
 
@@ -288,10 +365,23 @@ class SightingsView {
 
     // Action buttons
     let actionHtml = '';
-    if (isPossible) {
+    if (isArchived) {
+      // Archived actions: Retrieve & Delete
       actionHtml = `
-        <button class="btn btn-primary btn-sm" style="flex:1; background:#16a34a; border-color:#16a34a;" onclick="window.notifManager.openSightingVerificationModal('${this._esc(s.id)}')">
+        <button class="btn btn-success btn-sm" style="flex:1; background:#16a34a; border-color:#16a34a; color:#ffffff; display:flex; align-items:center; gap:5px; justify-content:center;" onclick="window.sightingsView.retrieveSighting('${this._esc(s.id)}')">
+          <i data-lucide="rotate-ccw"></i> Retrieve
+        </button>
+        <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:rgba(239,68,68,0.35); display:flex; align-items:center; gap:5px; justify-content:center;" onclick="window.sightingsView.deleteSighting('${this._esc(s.id)}')" title="Permanently delete this sighting">
+          <i data-lucide="trash-2"></i> Delete
+        </button>
+      `;
+    } else if (isPossible) {
+      actionHtml = `
+        <button class="btn btn-primary btn-sm" style="flex:1; background:#16a34a; border-color:#16a34a; display:flex; align-items:center; gap:5px; justify-content:center;" onclick="window.notifManager.openSightingVerificationModal('${this._esc(s.id)}')">
           <i data-lucide="shield-check"></i> Verify Sighting
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="window.sightingsView.archiveSighting('${this._esc(s.id)}')" title="Archive this sighting" style="display:flex; align-items:center; gap:5px;">
+          <i data-lucide="archive"></i> Archive
         </button>
       `;
     } else if (isConfirmed) {
@@ -299,17 +389,14 @@ class SightingsView {
         <span class="btn btn-sm" style="flex:1; background:rgba(22,163,74,0.1); color:#16a34a; border:1px solid rgba(22,163,74,0.3); cursor:default; display:flex; align-items:center; gap:5px; justify-content:center;">
           <i data-lucide="check-circle-2"></i> Owner Confirmed
         </span>
-      `;
-    } else {
-      actionHtml = `
-        <span class="btn btn-sm" style="flex:1; background:rgba(184,84,16,0.1); color:var(--text-muted); border:1px solid var(--border-subtle); cursor:default; display:flex; align-items:center; gap:5px; justify-content:center;">
-          <i data-lucide="archive"></i> Archived
-        </span>
+        <button class="btn btn-outline btn-sm" onclick="window.sightingsView.archiveSighting('${this._esc(s.id)}')" title="Archive this sighting" style="display:flex; align-items:center; gap:5px;">
+          <i data-lucide="archive"></i> Archive
+        </button>
       `;
     }
 
     return `
-      <div class="sighting-card glass-card ${isDismissed ? 'sighting-card-dismissed' : ''}">
+      <div class="sighting-card glass-card ${isArchived ? 'sighting-card-dismissed' : ''}">
         <!-- Photo -->
         <div class="sighting-card-photo-wrap" onclick="window.pawApp && window.pawApp.openLightbox('${this._esc(photo)}', '${this._esc(s.breed || 'Spotted Pet')}', 'Community Sighting Evidence · ${this._esc(s.location || '')}')">
           <img src="${this._esc(photo)}" alt="Sighting photo" class="sighting-card-photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80'" />
@@ -360,7 +447,7 @@ class SightingsView {
           ${linkedPetHtml}
 
           <!-- Actions -->
-          <div style="display:flex; gap:0.5rem; margin-top:0.85rem; flex-wrap:wrap;">
+          <div style="display:flex; gap:0.5rem; margin-top:0.85rem; flex-wrap:wrap; align-items:center;">
             ${actionHtml}
             <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'" title="View on Incident Map" style="padding:6px 10px;">
               <i data-lucide="map-pin"></i>
