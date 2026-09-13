@@ -1437,6 +1437,8 @@ class ReportManager {
     if (notesInput) notesInput.value = '';
     if (phoneInput) phoneInput.value = '';
     if (nameInput)  nameInput.value  = '';
+    this.sightingSavedName = '';
+    this.setSightingNameMode('named');
 
     // Set default datetime to now
     if (dateInput) {
