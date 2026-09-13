@@ -94,6 +94,13 @@ class ReportManager {
       if (locInput) locInput.value = prefill.location;
     }
 
+    const missingDateInput = document.getElementById('report-missing-date');
+    if (missingDateInput && !missingDateInput.value) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      missingDateInput.value = now.toISOString().slice(0, 16);
+    }
+
     modal.classList.add('active');
 
     // Initialize or refresh pin-drop map after modal opens
@@ -257,6 +264,28 @@ class ReportManager {
       tabMissing?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'block';
       if (fieldsMissing) fieldsMissing.style.display = 'none';
+
+      // Set HTML5 required on Found fields, unset on Missing fields
+      const foundSpecies = document.getElementById('report-found-species');
+      const foundBreed = document.getElementById('report-found-breed');
+      const foundLoc = document.getElementById('report-found-location');
+      const foundPhone = document.getElementById('report-found-phone');
+      if (foundSpecies) foundSpecies.required = true;
+      if (foundBreed) foundBreed.required = true;
+      if (foundLoc) foundLoc.required = true;
+      if (foundPhone) foundPhone.required = true;
+
+      const missingPet = document.getElementById('report-missing-pet-select');
+      const missingCustom = document.getElementById('report-missing-custom-name');
+      const missingLoc = document.getElementById('report-missing-location');
+      const missingDate = document.getElementById('report-missing-date');
+      const missingPhone = document.getElementById('report-missing-phone');
+      if (missingPet) missingPet.required = false;
+      if (missingCustom) missingCustom.required = false;
+      if (missingLoc) missingLoc.required = false;
+      if (missingDate) missingDate.required = false;
+      if (missingPhone) missingPhone.required = false;
+
       if (modalTitle) {
         modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleFound', 'Found this pet?') : 'Found this pet?';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleFound');
@@ -277,6 +306,28 @@ class ReportManager {
       tabFound?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'none';
       if (fieldsMissing) fieldsMissing.style.display = 'block';
+
+      // Set HTML5 required on Missing fields, unset on Found fields
+      const foundSpecies = document.getElementById('report-found-species');
+      const foundBreed = document.getElementById('report-found-breed');
+      const foundLoc = document.getElementById('report-found-location');
+      const foundPhone = document.getElementById('report-found-phone');
+      if (foundSpecies) foundSpecies.required = false;
+      if (foundBreed) foundBreed.required = false;
+      if (foundLoc) foundLoc.required = false;
+      if (foundPhone) foundPhone.required = false;
+
+      const missingPet = document.getElementById('report-missing-pet-select');
+      const missingCustom = document.getElementById('report-missing-custom-name');
+      const missingLoc = document.getElementById('report-missing-location');
+      const missingDate = document.getElementById('report-missing-date');
+      const missingPhone = document.getElementById('report-missing-phone');
+      if (missingPet) missingPet.required = true;
+      if (missingCustom) missingCustom.required = missingPet?.value === 'custom';
+      if (missingLoc) missingLoc.required = true;
+      if (missingDate) missingDate.required = true;
+      if (missingPhone) missingPhone.required = true;
+
       if (modalTitle) {
         modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report Pet as Missing') : 'Report Pet as Missing';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleMissing');
@@ -334,11 +385,14 @@ class ReportManager {
 
   handlePetSelect(petId) {
     const customWrap = document.getElementById('report-missing-custom-name-wrap');
+    const customInput = document.getElementById('report-missing-custom-name');
     if (petId === 'custom') {
       if (customWrap) customWrap.style.display = 'block';
+      if (customInput) customInput.required = true;
       this.updateMissingPhotoStatus(null, false);
     } else {
       if (customWrap) customWrap.style.display = 'none';
+      if (customInput) customInput.required = false;
       if (petId && window.pawStore) {
         const pets = window.pawStore.getPets();
         const pet = pets.find(p => String(p.id) === String(petId));
@@ -870,12 +924,34 @@ class ReportManager {
   }
 
   submitFoundReport() {
-    const species = document.getElementById('report-found-species')?.value || 'Dog';
-    const breed = document.getElementById('report-found-breed')?.value || (species === 'Dog' ? 'Aspin' : 'Domestic Shorthair');
-    const location = document.getElementById('report-found-location')?.value || 'Quezon City';
+    const species = (document.getElementById('report-found-species')?.value || '').trim();
+    const breed = (document.getElementById('report-found-breed')?.value || '').trim();
+    const location = (document.getElementById('report-found-location')?.value || '').trim();
+    const phone = (document.getElementById('report-found-phone')?.value || '').trim();
     const rfid = (document.getElementById('report-found-rfid')?.value || '').trim();
-    const phone = document.getElementById('report-found-phone')?.value || '';
-    const notes = document.getElementById('report-found-notes')?.value || 'Stray animal spotted by community member.';
+    const notes = (document.getElementById('report-found-notes')?.value || '').trim();
+
+    // Required fields validation (all except message/notes and rfid)
+    if (!species) {
+      if (window.notifManager) window.notifManager.showToast('Please select the animal species.', 'warning', 3500);
+      document.getElementById('report-found-species')?.focus();
+      return;
+    }
+    if (!breed) {
+      if (window.notifManager) window.notifManager.showToast('Please enter the pet breed or physical appearance.', 'warning', 3500);
+      document.getElementById('report-found-breed')?.focus();
+      return;
+    }
+    if (!location) {
+      if (window.notifManager) window.notifManager.showToast('Please enter the location or landmark where the pet was found.', 'warning', 3500);
+      document.getElementById('report-found-location')?.focus();
+      return;
+    }
+    if (!phone) {
+      if (window.notifManager) window.notifManager.showToast('Please enter your contact phone number so the pet guardian can reach you.', 'warning', 3500);
+      document.getElementById('report-found-phone')?.focus();
+      return;
+    }
 
     const finalPhoto = this.uploadedPhotoData || (species === 'Cat' ? 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500' : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500');
 
@@ -982,7 +1058,40 @@ class ReportManager {
 
   submitMissingReport() {
     const select = document.getElementById('report-missing-pet-select');
-    const petId = select?.value;
+    const petId = (select?.value || '').trim();
+    const customName = (document.getElementById('report-missing-custom-name')?.value || '').trim();
+    const location = (document.getElementById('report-missing-location')?.value || '').trim();
+    const date = (document.getElementById('report-missing-date')?.value || '').trim();
+    const phone = (document.getElementById('report-missing-phone')?.value || '').trim();
+    const notes = (document.getElementById('report-missing-notes')?.value || '').trim();
+
+    // Required fields validation (all except Describe Pet message)
+    if (!petId) {
+      if (window.notifManager) window.notifManager.showToast('Please select a registered pet or select "+ Other / Unregistered Pet".', 'warning', 3500);
+      select?.focus();
+      return;
+    }
+    if (petId === 'custom' && !customName) {
+      if (window.notifManager) window.notifManager.showToast('Please enter the pet name and description.', 'warning', 3500);
+      document.getElementById('report-missing-custom-name')?.focus();
+      return;
+    }
+    if (!location) {
+      if (window.notifManager) window.notifManager.showToast('Please specify the last known location where the pet was seen.', 'warning', 3500);
+      document.getElementById('report-missing-location')?.focus();
+      return;
+    }
+    if (!date) {
+      if (window.notifManager) window.notifManager.showToast('Please provide the date and time when the pet went missing.', 'warning', 3500);
+      document.getElementById('report-missing-date')?.focus();
+      return;
+    }
+    if (!phone) {
+      if (window.notifManager) window.notifManager.showToast('Please provide an emergency contact phone number.', 'warning', 3500);
+      document.getElementById('report-missing-phone')?.focus();
+      return;
+    }
+
     let petName = 'Pet';
     let rfid = 'RFID-TAG';
     let pet = null;
@@ -995,7 +1104,7 @@ class ReportManager {
         rfid = pet.rfidTag;
       }
     } else {
-      petName = document.getElementById('report-missing-custom-name')?.value || 'Beloved Pet';
+      petName = customName || 'Beloved Pet';
     }
 
     const location = document.getElementById('report-missing-location')?.value || 'Metro Manila';
