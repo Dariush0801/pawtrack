@@ -108,15 +108,10 @@ verify(12, 'Location Search Clear Button calls clearLocationSearch()', () => {
          reportManagerJs.includes("clearLocationSearch() {");
 });
 
-// 13. Quick Jump Chips for Quezon City Districts (Districts 1 through 6)
-verify(13, 'Quick Jump QC District Chips call jumpToLocation with District coordinates', () => {
-  return indexHtml.includes("jumpToLocation(14.6380, 121.0150, 'District 1 (La Loma / SFDM)')") &&
-         indexHtml.includes("jumpToLocation(14.6850, 121.0850, 'District 2 (Commonwealth / Batasan)')") &&
-         indexHtml.includes("jumpToLocation(14.6200, 121.0530, 'District 3 (Cubao / Katipunan)')") &&
-         indexHtml.includes("jumpToLocation(14.6538, 121.0685, 'District 4 (Diliman / Tomas Morato)')") &&
-         indexHtml.includes("jumpToLocation(14.7180, 121.0350, 'District 5 (Novaliches / Fairview)')") &&
-         indexHtml.includes("jumpToLocation(14.6750, 121.0350, 'District 6 (Tandang Sora / Balintawak)')") &&
-         reportManagerJs.includes("jumpToLocation(lat, lng, name)");
+// 13. Quick Jump Chips Cleanly Removed from Report Pet Map UI
+verify(13, 'Quick Jump Chips row removed from Report Pet modal for clean unobstructed map', () => {
+  return !indexHtml.includes('report-quick-jump-row') &&
+         !indexHtml.includes('report-quick-zones');
 });
 
 // 14. Take Photo Camera Button
