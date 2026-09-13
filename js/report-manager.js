@@ -1254,12 +1254,15 @@ class ReportManager {
 
     this.closeModal();
 
-    // If currently on owner or map view, re-render to reflect new report
+    // If currently on owner, map, or sightings view, re-render to reflect new report
     if (window.location.hash === '#owner' && window.ownerView) {
       window.ownerView.render(document.getElementById('app-viewport'));
     }
     if (window.location.hash === '#map' && window.publicView) {
       window.publicView.render(document.getElementById('app-viewport'));
+    }
+    if (window.location.hash === '#sightings' && window.sightingsView) {
+      window.sightingsView.render(document.getElementById('app-viewport'));
     }
   }
 
