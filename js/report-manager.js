@@ -35,13 +35,10 @@ const PRESET_LOCATIONS = [
   { name: 'Mandaluyong City (Shaw / EDSA)', lat: 14.5794, lng: 121.0359, group: 'Metro Manila' },
   { name: 'Marikina City (Bayan / Shoe Avenue)', lat: 14.6507, lng: 121.1029, group: 'Metro Manila' },
   { name: 'San Juan City (Greenhills)', lat: 14.6019, lng: 121.0355, group: 'Metro Manila' },
-  { name: 'Caloocan City (Monumento / South)', lat: 14.6570, lng: 120.9840, group: 'Metro Manila' }
-];
-
-  { name: 'Valenzuela City (Karuhatan / McArthur)', lat: 14.7011, lng: 120.9830, group: 'City' },
-  { name: 'Malabon City (Concepcion / Tugatog)', lat: 14.6625, lng: 120.9570, group: 'City' },
-  { name: 'Navotas City (Fish Port / C4)', lat: 14.6667, lng: 120.9417, group: 'City' },
-
+  { name: 'Caloocan City (Monumento / South)', lat: 14.6570, lng: 120.9840, group: 'Metro Manila' },
+  { name: 'Valenzuela City (Karuhatan / McArthur)', lat: 14.7011, lng: 120.9830, group: 'Metro Manila' },
+  { name: 'Malabon City (Concepcion / Tugatog)', lat: 14.6625, lng: 120.9570, group: 'Metro Manila' },
+  { name: 'Navotas City (Fish Port / C4)', lat: 14.6667, lng: 120.9417, group: 'Metro Manila' },
   { name: 'Antipolo City / Rizal', lat: 14.5842, lng: 121.1763, group: 'Rizal' },
   { name: 'Cainta / Taytay, Rizal', lat: 14.5700, lng: 121.1200, group: 'Rizal' },
   { name: 'Bacoor / Imus, Cavite', lat: 14.4624, lng: 120.9645, group: 'Cavite' }
