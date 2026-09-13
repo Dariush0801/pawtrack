@@ -341,27 +341,42 @@ class PublicView {
       'pet-4': [14.5880, 121.0450]  // Mochi - Mandaluyong border
     };
 
-    // Add Shelter Pins with clean, non-overlapping names & Directions Actions
+    // Add Shelter / Facility Pins (Icon-only by default, info appears on hover, full details on click)
     shelters.forEach(s => {
-      const shortShelterName = s.name
-        .replace(' Animal Care & Adoption Facility', '')
-        .replace(' City Pound & Veterinary Inspection Board', '')
-        .replace(' City Animal Welfare Facility', '');
-
       const shelterIcon = window.L.divIcon({
         className: 'custom-map-icon-wrap',
         html: `
-          <div class="map-pin-pill shelter-pin">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
-            <span class="map-pin-label">Shelter: ${shortShelterName}</span>
+          <div class="shelter-icon-pin" title="${s.name}" aria-label="${s.name}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+              <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+            </svg>
           </div>
         `,
-        iconSize: null,
-        iconAnchor: [12, 14]
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
+
+      const tooltipContent = `
+        <div class="shelter-hover-content">
+          <div class="shelter-tooltip-header">Official Animal Facility</div>
+          <div class="shelter-tooltip-title">${s.name}</div>
+          <div class="shelter-tooltip-addr">📍 ${s.address}</div>
+          <div class="shelter-tooltip-phone">Hotline: ${s.phone}</div>
+          <div class="shelter-tooltip-hint">Click pin for directions & photos</div>
+        </div>
+      `;
 
       const sMarker = window.L.marker([s.lat, s.lng], { icon: shelterIcon })
         .addTo(this.map)
+        .bindTooltip(tooltipContent, {
+          direction: 'top',
+          offset: [0, -18],
+          className: 'shelter-hover-tooltip',
+          opacity: 0.98
+        })
         .bindPopup(`
           <div class="map-popup-card">
             <div style="font-size:0.72rem; font-weight:700; color:var(--secondary); text-transform:uppercase; margin-bottom:2px;">Official Animal Facility</div>
