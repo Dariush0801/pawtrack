@@ -176,9 +176,27 @@ verify(20, 'Form Submit Button triggers handleSubmit & persists reports without 
   return hasSubmitWiring && tdzFixed;
 });
 
+// 21. Describe Pet Label in Report Missing Pet Alert
+verify(21, 'Report Missing Pet Alert label updated from Distinct Markings to Describe Pet', () => {
+  const i18nJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  return indexHtml.includes('>Describe Pet</label>') &&
+         i18nJs.includes("'report.circumstances': 'Describe Pet'");
+});
+
+// 22. Required Form Fields (All required except message)
+verify(22, 'All fields marked as required and validated except optional message', () => {
+  return reportManagerJs.includes('if (!species)') &&
+         reportManagerJs.includes('if (!breed)') &&
+         reportManagerJs.includes('if (!location)') &&
+         reportManagerJs.includes('if (!phone)') &&
+         reportManagerJs.includes('if (!petId)') &&
+         reportManagerJs.includes('if (!date)') &&
+         indexHtml.includes('data-i18n="report.messageOptional">Message (optional)</label>');
+});
+
 console.log('\n===============================================================');
 if (allPassed) {
-  console.log('  >>> VERIFICATION RESULT: 20/20 BUTTONS VERIFIED & OPERATIONAL <<<  ');
+  console.log('  >>> VERIFICATION RESULT: ALL BUTTONS & FORM CHECKS PASSED <<<  ');
 } else {
   console.error('  >>> VERIFICATION RESULT: ONE OR MORE BUTTON CHECKS FAILED <<<  ');
   process.exit(1);
