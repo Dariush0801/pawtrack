@@ -3643,6 +3643,24 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Missing Pet Alert Photo Status Bar */
+.report-missing-photo-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface-elevated, rgba(35, 19, 10, 0.7));
+  border: 1px dashed var(--border-subtle, rgba(234, 157, 30, 0.3));
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="light"] .report-missing-photo-status-bar {
+  background: #fdfbf9;
+  border-color: #dfd7cc;
+}
+
 /* Report Panel Containers */
 .report-panel-container {
   display: flex;
