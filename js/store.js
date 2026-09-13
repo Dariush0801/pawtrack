@@ -849,6 +849,72 @@ class Store {
     return null;
   }
 
+  archiveSighting(sightingId) {
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (s) {
+      s.status = 'dismissed';
+      s.archivedAt = new Date().toISOString();
+      s.dismissedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+
+      if (s.petId) {
+        this.addCaseTimelineEvent(s.petId, {
+          timestamp: new Date().toISOString(),
+          type: 'status_update',
+          title: 'Sighting Archived by Guardian',
+          location: s.location || 'Metro Manila',
+          notes: 'Guardian archived this community sighting report from the active board.'
+        });
+      }
+
+      this.pushBackendMutation('archive_sighting', { sightingId });
+      this.notify('sighting_archived');
+      return s;
+    }
+    return null;
+  }
+
+  retrieveSighting(sightingId) {
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (s) {
+      s.status = 'possible_sighting';
+      delete s.dismissedAt;
+      delete s.archivedAt;
+      s.retrievedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+
+      if (s.petId) {
+        this.addCaseTimelineEvent(s.petId, {
+          timestamp: new Date().toISOString(),
+          type: 'status_update',
+          title: 'Sighting Retrieved by Guardian',
+          location: s.location || 'Metro Manila',
+          notes: 'Guardian restored this community sighting report back to the active board.'
+        });
+      }
+
+      this.pushBackendMutation('restore_sighting', { sightingId });
+      this.notify('sighting_updated');
+      return s;
+    }
+    return null;
+  }
+
+  deleteSighting(sightingId) {
+    let sightings = this.getSightings();
+    const initialLen = sightings.length;
+    sightings = sightings.filter(item => item.id !== sightingId);
+    if (sightings.length !== initialLen) {
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+      this.pushBackendMutation('delete_sighting', { sightingId });
+      this.notify('sighting_deleted');
+      return true;
+    }
+    return false;
+  }
+
   getCases() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.CASES)) || [];
