@@ -2024,7 +2024,8 @@ class ReportManager {
       if (window.notifManager) {
         window.notifManager.showToast('A sighting photo is required as photographic evidence.', 'danger', 4000);
       }
-      const dropzone = document.getElementById('sighting-dropzone');
+      this.setSightingViewMode('upload');
+      const dropzone = document.getElementById('sighting-photo-dropzone');
       if (dropzone) {
         dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
         dropzone.classList.add('drag-over');
