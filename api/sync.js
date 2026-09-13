@@ -57,6 +57,31 @@ const SEED_RFID_TAGS = [
   { id: 'tag-8', code: 'RFID-551980', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null }
 ];
 
+// Keep mutations available while a serverless instance is warm. The browser
+// remains the durable fallback when a new instance starts without a database.
+const cloudState = {
+  pets: [],
+  impoundments: [],
+  notifications: [],
+  sightings: [],
+  cases: [],
+  missingReports: [],
+  shelters: SEED_SHELTERS,
+  rfidTags: SEED_RFID_TAGS,
+  settings: {
+    systemName: 'PawTrack Municipal Gateway (Cloud)',
+    holdingWindowHours: 72,
+    dailyHoldingFeeDefault: 500,
+    currency: 'PHP',
+    autoNotifyOwnerOnIntake: true,
+    autoNotifyOwnerOnExpiryWarning: true,
+    expiryWarningHours: 12,
+    rfidScannerBaudRate: 9600,
+    municipalJurisdiction: 'National Capital Region (Metro Manila)',
+    syncStatus: 'Vercel Serverless Ready'
+  }
+};
+
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -68,36 +93,35 @@ module.exports = (req, res) => {
   }
 
   if (req.method === 'GET') {
-    res.status(200).json({
-      pets: [],
-      impoundments: [],
-      notifications: [],
-      sightings: [],
-      cases: [],
-      shelters: SEED_SHELTERS,
-      rfidTags: SEED_RFID_TAGS,
-      settings: {
-        systemName: 'PawTrack Municipal Gateway (Cloud)',
-        holdingWindowHours: 72,
-        dailyHoldingFeeDefault: 500,
-        currency: 'PHP',
-        autoNotifyOwnerOnIntake: true,
-        autoNotifyOwnerOnExpiryWarning: true,
-        expiryWarningHours: 12,
-        rfidScannerBaudRate: 9600,
-        municipalJurisdiction: 'National Capital Region (Metro Manila)',
-        syncStatus: 'Vercel Serverless Ready'
-      }
-    });
+    res.status(200).json(cloudState);
     return;
   }
 
   if (req.method === 'POST') {
     const payload = req.body || {};
+    if (payload.action === 'create_sighting' && payload.sighting) {
+      cloudState.sightings = cloudState.sightings.filter(item => item.id !== payload.sighting.id);
+      cloudState.sightings.unshift(payload.sighting);
+    } else if (
+      (payload.action === 'confirm_sighting' || payload.action === 'dismiss_sighting' || payload.action === 'update_sighting_status') &&
+      payload.sightingId
+    ) {
+      const sighting = cloudState.sightings.find(item => item.id === payload.sightingId);
+      if (sighting) {
+        sighting.status = payload.action === 'confirm_sighting'
+          ? 'confirmed_sighting'
+          : payload.action === 'dismiss_sighting'
+            ? 'dismissed'
+            : payload.status;
+      }
+    } else if (payload.action === 'set_key' && payload.key && Object.prototype.hasOwnProperty.call(cloudState, payload.key)) {
+      cloudState[payload.key] = payload.data;
+    }
     res.status(200).json({
       success: true,
       message: 'State synced successfully on cloud function',
-      payload
+      payload,
+      db: cloudState
     });
     return;
   }

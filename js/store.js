@@ -321,22 +321,35 @@ class Store {
   applyDatabaseState(db, source = 'backend') {
     if (!db) return;
     try {
-      if (Array.isArray(db.pets)) {
+      // A newly deployed serverless backend may not have state yet. Do not
+      // erase locally seeded or user-created records with empty collections.
+      const shouldApplyCollection = (key, collection) => {
+        if (!Array.isArray(collection)) return false;
+        if (collection.length > 0) return true;
+        const current = localStorage.getItem(key);
+        try {
+          return !current || JSON.parse(current).length === 0;
+        } catch {
+          return true;
+        }
+      };
+
+      if (shouldApplyCollection(STORAGE_KEYS.PETS, db.pets)) {
         localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(db.pets));
       }
-      if (Array.isArray(db.impoundments)) {
+      if (shouldApplyCollection(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments)) {
         localStorage.setItem(STORAGE_KEYS.IMPOUNDMENTS, JSON.stringify(db.impoundments));
       }
-      if (Array.isArray(db.notifications)) {
+      if (shouldApplyCollection(STORAGE_KEYS.NOTIFICATIONS, db.notifications)) {
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(db.notifications));
       }
-      if (Array.isArray(db.sightings)) {
+      if (shouldApplyCollection(STORAGE_KEYS.SIGHTINGS, db.sightings)) {
         localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(db.sightings));
       }
-      if (Array.isArray(db.cases)) {
+      if (shouldApplyCollection(STORAGE_KEYS.CASES, db.cases)) {
         localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(db.cases));
       }
-      if (Array.isArray(db.missingReports)) {
+      if (shouldApplyCollection(STORAGE_KEYS.MISSING_REPORTS, db.missingReports)) {
         localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(db.missingReports));
       }
       if (Array.isArray(db.shelters) && db.shelters.length > 0) {
