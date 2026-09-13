@@ -1618,19 +1618,6 @@
             </div>
           </div>
 
-          <!-- Form Row: Date & Time Spotted (REQUIRED) + Contact Phone (OPTIONAL) in the same line -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Date & Time Spotted *</label>
-              <input type="datetime-local" id="sighting-datetime-input" required />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Your Contact Phone <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
-              <input type="tel" id="sighting-reporter-phone" placeholder="+63 9XX XXX XXXX" autocomplete="tel" />
-            </div>
-          </div>
-
           <!-- Form Row: Your Name in one line with Name / Anonymous Toggle Button -->
           <div class="form-group" id="sighting-reporter-name-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -1655,6 +1642,19 @@
               autocomplete="name" 
               oninput="window.reportManager ? window.reportManager.handleSightingNameInput(this.value) : null"
             />
+          </div>
+
+          <!-- Form Row: Date & Time Spotted (REQUIRED) + Contact Phone (OPTIONAL) in the same line -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date & Time Spotted *</label>
+              <input type="datetime-local" id="sighting-datetime-input" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Your Contact Phone <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
+              <input type="tel" id="sighting-reporter-phone" placeholder="e.g. 0917 123 4567" autocomplete="tel" />
+            </div>
           </div>
 
           <!-- Form Row 4: Sighting Notes / Comments (OPTIONAL) -->
