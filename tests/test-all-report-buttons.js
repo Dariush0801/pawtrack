@@ -146,10 +146,10 @@ verify(17, 'Missing Pet Select dropdown triggers handlePetSelect()', () => {
          reportManagerJs.includes("handlePetSelect(petId)");
 });
 
-// 18. Missing Pet Photo Status Bar Quick Button
-verify(18, 'Missing Pet Photo Status Button calls setViewMode("upload")', () => {
-  return indexHtml.includes('id="report-missing-photo-status-btn"') &&
-         indexHtml.includes("window.reportManager.setViewMode('upload')");
+// 18. Removed Redundant Photo Status Bar from Missing Pet Form
+verify(18, 'Photo Status Bar removed from Missing Pet Form for clean UI layout', () => {
+  return !indexHtml.includes('id="report-missing-photo-status-bar"') &&
+         !indexHtml.includes('id="report-missing-photo-status-btn"');
 });
 
 // 19. Modal Footer Cancel Button
