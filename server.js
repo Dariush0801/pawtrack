@@ -608,18 +608,28 @@ const server = http.createServer((req, res) => {
               petCase.lastUpdated = new Date().toISOString();
             }
           }
-        } else if (payload.action === 'dismiss_sighting') {
+        } else if (payload.action === 'dismiss_sighting' || payload.action === 'archive_sighting') {
           const s = db.sightings.find(x => x.id === payload.sightingId);
           if (s) {
             s.status = 'dismissed';
             s.dismissedAt = new Date().toISOString();
+            s.archivedAt = new Date().toISOString();
           }
+        } else if (payload.action === 'restore_sighting') {
+          const s = db.sightings.find(x => x.id === payload.sightingId);
+          if (s) {
+            s.status = 'possible_sighting';
+            delete s.dismissedAt;
+            delete s.archivedAt;
+          }
+        } else if (payload.action === 'delete_sighting') {
+          db.sightings = (db.sightings || []).filter(x => x.id !== payload.sightingId);
         } else if (payload.action === 'update_sighting_status') {
           const s = db.sightings.find(x => x.id === payload.sightingId);
           if (s) {
             s.status = payload.status;
             if (payload.status === 'confirmed_sighting') s.confirmedAt = new Date().toISOString();
-            if (payload.status === 'dismissed') s.dismissedAt = new Date().toISOString();
+            if (payload.status === 'dismissed' || payload.status === 'archived') s.dismissedAt = new Date().toISOString();
           }
         } else if (payload.action === 'update_case') {
           const caseData = payload.caseData;

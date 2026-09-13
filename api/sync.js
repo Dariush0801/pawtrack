@@ -102,15 +102,24 @@ module.exports = (req, res) => {
     if (payload.action === 'create_sighting' && payload.sighting) {
       cloudState.sightings = cloudState.sightings.filter(item => item.id !== payload.sighting.id);
       cloudState.sightings.unshift(payload.sighting);
+    } else if (payload.action === 'delete_sighting' && payload.sightingId) {
+      cloudState.sightings = cloudState.sightings.filter(item => item.id !== payload.sightingId);
+    } else if (payload.action === 'restore_sighting' && payload.sightingId) {
+      const sighting = cloudState.sightings.find(item => item.id === payload.sightingId);
+      if (sighting) {
+        sighting.status = 'possible_sighting';
+        delete sighting.dismissedAt;
+        delete sighting.archivedAt;
+      }
     } else if (
-      (payload.action === 'confirm_sighting' || payload.action === 'dismiss_sighting' || payload.action === 'update_sighting_status') &&
+      (payload.action === 'confirm_sighting' || payload.action === 'dismiss_sighting' || payload.action === 'archive_sighting' || payload.action === 'update_sighting_status') &&
       payload.sightingId
     ) {
       const sighting = cloudState.sightings.find(item => item.id === payload.sightingId);
       if (sighting) {
         sighting.status = payload.action === 'confirm_sighting'
           ? 'confirmed_sighting'
-          : payload.action === 'dismiss_sighting'
+          : (payload.action === 'dismiss_sighting' || payload.action === 'archive_sighting')
             ? 'dismissed'
             : payload.status;
       }
