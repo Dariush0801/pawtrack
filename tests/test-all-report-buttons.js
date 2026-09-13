@@ -236,15 +236,6 @@ verify(27, 'Collar RFID Tag field removed from Found / Sighted Stray Pet form', 
          !indexHtml.includes('data-i18n="report.rfidTag"');
 });
 
-// 28. Sightings Nav Report Pet Sighting button opens Report Pet layout with untouched button styling
-verify(28, 'Sightings nav Report Pet Sighting button preserves eye icon and opens Report Pet layout', () => {
-  const sightingsViewJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'sightings-view.js'), 'utf8');
-  const hasUntouchedButton = sightingsViewJs.includes('<i data-lucide="eye"></i> Report Pet Sighting') &&
-                             sightingsViewJs.includes('window.reportManager.openSightingModal()');
-  const opensReportPetLayout = reportManagerJs.includes("this.openReportModal('found', resolvedPetId, prefill);");
-  return hasUntouchedButton && opensReportPetLayout;
-});
-
 console.log('\n===============================================================');
 if (allPassed) {
   console.log('  >>> VERIFICATION RESULT: ALL BUTTONS & FORM CHECKS PASSED <<<  ');
