@@ -108,10 +108,14 @@ verify(12, 'Location Search Clear Button calls clearLocationSearch()', () => {
          reportManagerJs.includes("clearLocationSearch() {");
 });
 
-// 13. Quick Jump City Chips (QC, Manila, Makati, Taguig, Pasig, Mandaluyong)
-verify(13, 'Quick Jump NCR Chips call jumpToLocation with coordinates', () => {
-  return indexHtml.includes("jumpToLocation(14.6500, 121.0400, 'Quezon City')") &&
-         indexHtml.includes("jumpToLocation(14.5995, 120.9842, 'Manila City')") &&
+// 13. Quick Jump Chips for Quezon City Districts (Districts 1 through 6)
+verify(13, 'Quick Jump QC District Chips call jumpToLocation with District coordinates', () => {
+  return indexHtml.includes("jumpToLocation(14.6380, 121.0150, 'District 1 (La Loma / SFDM)')") &&
+         indexHtml.includes("jumpToLocation(14.6850, 121.0850, 'District 2 (Commonwealth / Batasan)')") &&
+         indexHtml.includes("jumpToLocation(14.6200, 121.0530, 'District 3 (Cubao / Katipunan)')") &&
+         indexHtml.includes("jumpToLocation(14.6538, 121.0685, 'District 4 (Diliman / Tomas Morato)')") &&
+         indexHtml.includes("jumpToLocation(14.7180, 121.0350, 'District 5 (Novaliches / Fairview)')") &&
+         indexHtml.includes("jumpToLocation(14.6750, 121.0350, 'District 6 (Tandang Sora / Balintawak)')") &&
          reportManagerJs.includes("jumpToLocation(lat, lng, name)");
 });
 
@@ -155,13 +159,21 @@ verify(19, 'Footer Cancel Button calls closeModal()', () => {
 });
 
 // 20. Form Submit Button (Submit and Notify / Missing Alert)
-verify(20, 'Form Submit Button triggers handleSubmit & persists reports', () => {
-  return indexHtml.includes('id="report-submit-btn"') &&
-         indexHtml.includes('onsubmit="window.reportManager.handleSubmit(event)"') &&
-         reportManagerJs.includes('handleSubmit(e)') &&
-         reportManagerJs.includes('submitFoundReport()') &&
-         reportManagerJs.includes('submitMissingReport()') &&
-         ownerViewJs.includes("window.reportManager.openReportModal('missing', petId)");
+verify(20, 'Form Submit Button triggers handleSubmit & persists reports without TDZ bugs', () => {
+  const hasSubmitWiring = indexHtml.includes('id="report-submit-btn"') &&
+                          indexHtml.includes('onsubmit="window.reportManager.handleSubmit(event)"') &&
+                          reportManagerJs.includes('handleSubmit(e)') &&
+                          reportManagerJs.includes('submitFoundReport()') &&
+                          reportManagerJs.includes('submitMissingReport()') &&
+                          ownerViewJs.includes("window.reportManager.openReportModal('missing', petId)");
+
+  // Verify TDZ bug is fixed: matchedPet declared before sighting construction in submitFoundReport
+  const submitFoundIdx = reportManagerJs.indexOf('submitFoundReport()');
+  const sightingIdx = reportManagerJs.indexOf('const sighting = {', submitFoundIdx);
+  const matchedPetDeclIdx = reportManagerJs.indexOf('let matchedPet = null;', submitFoundIdx);
+  const tdzFixed = matchedPetDeclIdx !== -1 && matchedPetDeclIdx < sightingIdx;
+
+  return hasSubmitWiring && tdzFixed;
 });
 
 console.log('\n===============================================================');
