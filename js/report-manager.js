@@ -1548,6 +1548,47 @@ class ReportManager {
     }
   }
 
+  setSightingNameMode(mode) {
+    this.sightingNameMode = mode;
+    const nameBtn = document.getElementById('sighting-name-btn');
+    const anonBtn = document.getElementById('sighting-anon-btn');
+    const nameInput = document.getElementById('sighting-reporter-name');
+
+    if (nameBtn) nameBtn.classList.toggle('active', mode === 'named');
+    if (anonBtn) anonBtn.classList.toggle('active', mode === 'anonymous');
+
+    if (nameInput) {
+      if (mode === 'anonymous') {
+        if (nameInput.value && nameInput.value.trim().toLowerCase() !== 'anonymous') {
+          this.sightingSavedName = nameInput.value;
+        }
+        nameInput.value = 'Anonymous';
+        nameInput.placeholder = 'Anonymous';
+        nameInput.style.opacity = '0.75';
+      } else {
+        if (nameInput.value === 'Anonymous') {
+          nameInput.value = this.sightingSavedName || '';
+        }
+        nameInput.placeholder = 'e.g. Juan dela Cruz';
+        nameInput.style.opacity = '1';
+        nameInput.focus();
+      }
+    }
+  }
+
+  handleSightingNameInput(value) {
+    const trimmed = (value || '').trim();
+    if (trimmed && trimmed.toLowerCase() !== 'anonymous' && this.sightingNameMode === 'anonymous') {
+      this.sightingNameMode = 'named';
+      const nameBtn = document.getElementById('sighting-name-btn');
+      const anonBtn = document.getElementById('sighting-anon-btn');
+      if (nameBtn) nameBtn.classList.add('active');
+      if (anonBtn) anonBtn.classList.remove('active');
+      const nameInput = document.getElementById('sighting-reporter-name');
+      if (nameInput) nameInput.style.opacity = '1';
+    }
+  }
+
   setSightingMapLayer(type) {
     this.sightingMapType = type;
     const dock = document.getElementById('sighting-map-layer-dock');
