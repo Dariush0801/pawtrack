@@ -240,7 +240,9 @@ class NotificationManager {
     const userDropdown = document.getElementById('user-account-dropdown');
     if (userDropdown) userDropdown.style.display = 'none';
 
-    if (notif.type === 'pet_found_match' || notif.finderPhone || (notif.title && notif.title.includes('FOUND YOUR PET'))) {
+    if (notif.type === 'sighting_verification' || notif.sightingId) {
+      this.openSightingVerificationModal(notif.sightingId || notif.id);
+    } else if (notif.type === 'pet_found_match' || notif.finderPhone || (notif.title && notif.title.includes('FOUND YOUR PET'))) {
       this.showFinderInfo(notif);
     } else if (notif.type === 'impound_alert' && notif.impoundData) {
       this.showSmsSimulation(notif.impoundData);
@@ -429,6 +431,190 @@ class NotificationManager {
     if (modal) {
       modal.classList.remove('active');
       modal.style.display = 'none';
+    }
+  }
+
+  // =========================================================
+  // OWNER SIGHTING VERIFICATION METHODS
+  // =========================================================
+
+  openSightingVerificationModal(sightingIdOrData) {
+    let sighting = null;
+    if (typeof sightingIdOrData === 'object' && sightingIdOrData !== null) {
+      sighting = sightingIdOrData;
+    } else if (window.pawStore) {
+      sighting = window.pawStore.getSightingById(sightingIdOrData);
+      if (!sighting) {
+        const sightings = window.pawStore.getSightings() || [];
+        sighting = sightings.find(s => String(s.id) === String(sightingIdOrData) || String(s.missing_report_id) === String(sightingIdOrData));
+      }
+    }
+
+    if (!sighting) {
+      this.showToast('Sighting details not found or already archived.', 'info');
+      return;
+    }
+
+    // Close notification panel if open
+    const notifDropdown = document.getElementById('notif-dropdown-panel');
+    if (notifDropdown) notifDropdown.style.display = 'none';
+
+    // Find linked pet
+    let pet = null;
+    if (sighting.petId && window.pawStore) {
+      pet = window.pawStore.getPetById(sighting.petId);
+    }
+    if (!pet && sighting.missing_report_id && window.pawStore) {
+      const rep = window.pawStore.getMissingReportById(sighting.missing_report_id);
+      if (rep && rep.petId) {
+        pet = window.pawStore.getPetById(rep.petId);
+      }
+    }
+    if (!pet && sighting.matchedPetId && window.pawStore) {
+      pet = window.pawStore.getPetById(sighting.matchedPetId);
+    }
+    if (!pet && window.pawStore) {
+      // Fallback to active missing pet
+      const lostPets = window.pawStore.getPets().filter(p => p.status === 'lost');
+      if (lostPets.length > 0) pet = lostPets[0];
+    }
+
+    // Populate hidden fields
+    const hiddenSightingId = document.getElementById('verification-sighting-id');
+    const hiddenPetId = document.getElementById('verification-pet-id');
+    if (hiddenSightingId) hiddenSightingId.value = sighting.id;
+    if (hiddenPetId) hiddenPetId.value = pet ? pet.id : (sighting.petId || '');
+
+    // Status Pill
+    const statusDot = document.getElementById('verification-status-dot');
+    const statusBadge = document.getElementById('verification-status-badge');
+    const timeElapsed = document.getElementById('verification-time-elapsed');
+
+    const isConfirmed = sighting.status === 'confirmed_sighting';
+    if (statusDot) statusDot.style.background = isConfirmed ? '#22c55e' : '#ea9d1e';
+    if (statusBadge) {
+      statusBadge.textContent = isConfirmed ? 'CONFIRMED SIGHTING' : 'POSSIBLE SIGHTING';
+      statusBadge.style.background = isConfirmed ? 'rgba(34,197,94,0.15)' : 'rgba(234,157,30,0.15)';
+      statusBadge.style.color = isConfirmed ? '#16a34a' : '#ea9d1e';
+      statusBadge.style.borderColor = isConfirmed ? 'rgba(34,197,94,0.3)' : 'rgba(234,157,30,0.3)';
+    }
+
+    // Compute relative time
+    if (timeElapsed && sighting.dateTimeSeen) {
+      const diffMs = Date.now() - new Date(sighting.dateTimeSeen).getTime();
+      const diffMins = Math.max(1, Math.round(diffMs / 60000));
+      if (diffMins < 60) {
+        timeElapsed.textContent = `Reported ${diffMins}m ago`;
+      } else {
+        const diffHours = Math.round(diffMins / 60);
+        timeElapsed.textContent = `Reported ${diffHours}h ago`;
+      }
+    }
+
+    // Populate Left Column: Registered Pet Profile
+    const verifyRegPhoto = document.getElementById('verify-reg-photo');
+    const verifyRegName = document.getElementById('verify-reg-name');
+    const verifyRegBreed = document.getElementById('verify-reg-breed');
+    const verifyRegColor = document.getElementById('verify-reg-color');
+    const verifyRegRfid = document.getElementById('verify-reg-rfid');
+    const verifyRegLastSeen = document.getElementById('verify-reg-last-seen');
+    const verifyRegCommunity = document.getElementById('verify-reg-community');
+
+    if (pet) {
+      if (verifyRegPhoto) verifyRegPhoto.src = pet.photoUrl;
+      if (verifyRegName) verifyRegName.textContent = pet.name;
+      if (verifyRegBreed) verifyRegBreed.textContent = `${pet.species || 'Dog'} · ${pet.breed || 'Breed'}`;
+      if (verifyRegColor) verifyRegColor.textContent = `${pet.gender || 'Unknown'} · ${pet.color || 'Standard markings'}`;
+      if (verifyRegRfid) verifyRegRfid.textContent = pet.rfidTag ? `RFID: ${pet.rfidTag}` : 'No RFID recorded';
+      if (verifyRegLastSeen) verifyRegLastSeen.textContent = pet.lastSeenLocation || (pet.owner ? pet.owner.address : 'Metro Manila');
+      if (verifyRegCommunity) verifyRegCommunity.textContent = pet.community || (pet.owner ? pet.owner.address : 'Philam Homes, QC');
+    } else {
+      if (verifyRegPhoto) verifyRegPhoto.src = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80';
+      if (verifyRegName) verifyRegName.textContent = sighting.breed || 'Registered Pet';
+      if (verifyRegBreed) verifyRegBreed.textContent = `${sighting.species || 'Dog'} · ${sighting.breed || 'Mixed'}`;
+      if (verifyRegColor) verifyRegColor.textContent = sighting.color || 'Observed coat color';
+      if (verifyRegRfid) verifyRegRfid.textContent = 'RFID verification pending';
+      if (verifyRegLastSeen) verifyRegLastSeen.textContent = 'Community Alert';
+      if (verifyRegCommunity) verifyRegCommunity.textContent = 'Metro Manila';
+    }
+
+    // Populate Right Column: Sighting Report
+    const verifySightPhoto = document.getElementById('verify-sight-photo');
+    const verifySightLocation = document.getElementById('verify-sight-location');
+    const verifySightDatetime = document.getElementById('verify-sight-datetime');
+    const verifySightCoords = document.getElementById('verify-sight-coords');
+    const verifySightReporter = document.getElementById('verify-sight-reporter');
+    const verifySightPhone = document.getElementById('verify-sight-phone');
+    const verifySightNotes = document.getElementById('verify-sight-notes');
+
+    const photoSrc = sighting.photoUrl || sighting.photo || (pet ? pet.photoUrl : '');
+    if (verifySightPhoto) verifySightPhoto.src = photoSrc;
+    if (verifySightLocation) verifySightLocation.textContent = sighting.location || 'Reported landmark';
+    if (verifySightDatetime) {
+      verifySightDatetime.textContent = sighting.dateTimeSeen 
+        ? new Date(sighting.dateTimeSeen).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        : 'Recently reported';
+    }
+    const coordsStr = sighting.coords 
+      ? `${sighting.coords[0].toFixed(4)}, ${sighting.coords[1].toFixed(4)}`
+      : (sighting.lat && sighting.lng ? `${sighting.lat.toFixed(4)}, ${sighting.lng.toFixed(4)}` : '14.6500, 121.0350');
+    if (verifySightCoords) verifySightCoords.textContent = coordsStr;
+
+    if (verifySightReporter) verifySightReporter.textContent = sighting.reporterName || 'Community Good Samaritan';
+    if (verifySightPhone) verifySightPhone.textContent = sighting.reporterPhone || '+63 9XX XXX XXXX';
+    if (verifySightNotes) verifySightNotes.textContent = `"${sighting.comments || sighting.notes || 'Spotted moving in area.'}"`;
+
+    this.openModal('sighting-verification-modal');
+  }
+
+  handleVerificationDecision(isMatch) {
+    const hiddenSightingId = document.getElementById('verification-sighting-id');
+    const sightingId = hiddenSightingId ? hiddenSightingId.value : null;
+
+    if (!sightingId) {
+      this.closeModal('sighting-verification-modal');
+      return;
+    }
+
+    if (isMatch) {
+      if (window.pawStore) {
+        window.pawStore.confirmSighting(sightingId);
+      }
+      this.showToast('YES! Sighting Confirmed as Your Pet! Location verified on Community Map.', 'success', 5500);
+
+      // Update in-modal badge
+      const statusBadge = document.getElementById('verification-status-badge');
+      if (statusBadge) {
+        statusBadge.textContent = 'CONFIRMED SIGHTING';
+        statusBadge.style.background = 'rgba(34,197,94,0.15)';
+        statusBadge.style.color = '#16a34a';
+        statusBadge.style.borderColor = 'rgba(34,197,94,0.3)';
+      }
+      const statusDot = document.getElementById('verification-status-dot');
+      if (statusDot) statusDot.style.background = '#22c55e';
+
+      setTimeout(() => {
+        this.closeModal('sighting-verification-modal');
+        if (window.publicView && window.location.hash === '#map') {
+          window.publicView.render(document.getElementById('app-viewport'));
+        }
+        if (window.ownerView && window.location.hash === '#owner') {
+          window.ownerView.render(document.getElementById('app-viewport'));
+        }
+      }, 900);
+    } else {
+      if (window.pawStore) {
+        window.pawStore.dismissSighting(sightingId);
+      }
+      this.showToast("Sighting dismissed. Pin archived from the active map to prevent clutter.", 'info', 4500);
+      this.closeModal('sighting-verification-modal');
+
+      if (window.publicView && window.location.hash === '#map') {
+        window.publicView.render(document.getElementById('app-viewport'));
+      }
+      if (window.ownerView && window.location.hash === '#owner') {
+        window.ownerView.render(document.getElementById('app-viewport'));
+      }
     }
   }
 }

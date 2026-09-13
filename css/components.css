@@ -982,6 +982,55 @@
   transition: transform 0.15s ease;
 }
 
+.map-pin-bubble {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 150px;
+  max-width: 230px;
+  padding: 4px 8px 4px 4px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(12, 6, 3, 0.6);
+  font-size: 0.72rem;
+  line-height: 1.15;
+}
+
+.map-pin-bubble img {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.map-pin-bubble span {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.map-pin-bubble strong,
+.map-pin-bubble small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-pin-bubble small {
+  font-size: 0.63rem;
+  opacity: 0.9;
+}
+
+.missing-pet-bubble {
+  background: #ba3820;
+}
+
+.possible-sighting-bubble {
+  background: #16a34a;
+}
+
 .map-pin-pill:hover {
   transform: scale(1.06);
 }
@@ -5699,5 +5748,646 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ===================================================
+   COMMUNITY PET SIGHTING: CUSTOM BUBBLE MARKERS & HUD
+   =================================================== */
+
+/* 🔴 Missing Pet Custom Bubble Pin */
+.bubble-missing-pin {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(186, 56, 32, 0.95);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 28px;
+  padding: 3px 12px 3px 3px;
+  box-shadow: 0 6px 20px rgba(186, 56, 32, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pulseMissingHalo 2.2s infinite;
+  white-space: nowrap;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+.bubble-missing-pin:hover {
+  transform: scale(1.08) translateY(-2px);
+  background: rgba(220, 38, 38, 0.98);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.7);
+  z-index: 1000 !important;
+}
+
+.bubble-pin-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  margin-right: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.bubble-pin-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.bubble-pin-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bubble-pin-tag-missing {
+  font-size: 0.62rem;
+  background: #ffffff;
+  color: #ba3820;
+  padding: 1px 5px;
+  border-radius: 99px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bubble-pin-meta {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes pulseMissingHalo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.75), 0 6px 20px rgba(186, 56, 32, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(239, 68, 68, 0), 0 6px 20px rgba(186, 56, 32, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 6px 20px rgba(186, 56, 32, 0.55);
+  }
+}
+
+/* 🟢 Possible Sighting Custom Bubble Pin */
+.bubble-sighting-pin {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(22, 163, 74, 0.95);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 28px;
+  padding: 3px 12px 3px 3px;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pulseSightingHalo 2.2s infinite;
+  white-space: nowrap;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+.bubble-sighting-pin:hover {
+  transform: scale(1.08) translateY(-2px);
+  background: rgba(21, 128, 61, 0.98);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.7);
+  z-index: 1000 !important;
+}
+
+.bubble-pin-tag-sighting {
+  font-size: 0.62rem;
+  background: #ffffff;
+  color: #16a34a;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Confirmed Sighting State (Golden / Emerald Verified) */
+.bubble-sighting-pin.confirmed {
+  background: linear-gradient(135deg, #15803d, #047857) !important;
+  border-color: #facc15 !important;
+  box-shadow: 0 6px 20px rgba(250, 204, 21, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  animation: pulseConfirmedHalo 2.5s infinite !important;
+}
+
+.bubble-sighting-pin.confirmed .bubble-pin-tag-sighting {
+  background: #facc15 !important;
+  color: #064e3b !important;
+}
+
+@keyframes pulseSightingHalo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.75), 0 6px 20px rgba(34, 197, 94, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(34, 197, 94, 0), 0 6px 20px rgba(34, 197, 94, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0), 0 6px 20px rgba(34, 197, 94, 0.55);
+  }
+}
+
+@keyframes pulseConfirmedHalo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.8), 0 6px 20px rgba(250, 204, 21, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(250, 204, 21, 0), 0 6px 20px rgba(250, 204, 21, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 6px 20px rgba(250, 204, 21, 0.55);
+  }
+}
+
+/* Chronological Sighting Trail Polyline & Step Node Badges */
+.sighting-polyline-dash {
+  stroke-dasharray: 8, 10;
+  animation: polylineDashMove 24s linear infinite;
+}
+
+@keyframes polylineDashMove {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+.sighting-step-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ea580c;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Subdivision / Community Scope Selector Bar */
+.community-scope-card {
+  padding: 0.75rem 1.15rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.community-scope-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.community-scope-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(234, 88, 12, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(234, 88, 12, 0.3);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.community-scope-select {
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  padding: 0 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.community-scope-select:focus {
+  border-color: var(--primary);
+}
+
+/* Side-by-Side Verification Modal Layout */
+.verification-modal-box {
+  max-width: 860px;
+  width: 95%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.verification-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .verification-split-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.verification-column {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.verification-column.official-col {
+  border-color: rgba(234, 88, 12, 0.4);
+  background: linear-gradient(180deg, rgba(234, 88, 12, 0.05) 0%, var(--bg-surface) 100%);
+}
+
+.verification-column.sighting-col {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.05) 0%, var(--bg-surface) 100%);
+}
+
+.verification-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.verification-photo-box {
+  width: 100%;
+  height: 190px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  background: #000000;
+}
+
+.verification-photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.verification-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border-subtle);
+  font-size: 0.82rem;
+}
+
+.verification-detail-row:last-child {
+  border-bottom: none;
+}
+
+.verification-detail-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.verification-detail-val {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: right;
+  word-break: break-word;
+}
+
+.verification-notes-callout {
+  background: var(--bg-surface-elevated);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary);
+  font-size: 0.8rem;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.verification-actions-bar {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+/* Sighting Submission Modal Styles */
+.sighting-submission-box {
+  max-width: 680px;
+  width: 95%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sighting-prefill-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(234, 88, 12, 0.12);
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 1rem;
+}
+
+.sighting-prefill-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  flex-shrink: 0;
+}
+
+.sighting-dropzone {
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-surface);
+}
+
+.sighting-dropzone.drag-over,
+.sighting-dropzone:hover {
+  border-color: var(--primary);
+  background: rgba(234, 88, 12, 0.05);
+}
+
+.sighting-preview-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.sighting-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sighting-pin-map-container {
+  width: 100%;
+  height: 160px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+
+/* =====================================================
+   COMMUNITY SIGHTINGS VIEW
+   ===================================================== */
+
+/* Stats Bar */
+.sightings-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sightings-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.sightings-stat-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.sightings-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  line-height: 1;
+}
+
+.sightings-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Filter Bar */
+.sightings-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Filter pills */
+.sightings-filter-pill {
+  font-size: 0.8rem;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  transition: var(--transition);
+}
+
+.sightings-filter-pill.active {
+  font-weight: 700;
+}
+
+/* Cards Grid */
+.sightings-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 1.1rem;
+}
+
+/* Individual Sighting Card */
+.sighting-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sighting-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.sighting-card-dismissed {
+  opacity: 0.6;
+}
+
+.sighting-card-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 170px;
+  overflow: hidden;
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.sighting-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.sighting-card:hover .sighting-card-photo {
+  transform: scale(1.04);
+}
+
+.sighting-card-status-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+
+.sighting-card-body {
+  padding: 0.95rem 1rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sighting-card-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.sighting-card-detail-row svg {
+  flex-shrink: 0;
+}
+
+.sighting-card-notes {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0.45rem 0 0;
+  padding: 6px 10px;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--border-glass);
+}
+
+.sighting-card-linked-pet {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 8px 10px;
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+}
+
+.sighting-card-linked-pet img {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.sightings-empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.sightings-empty-state h3 {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.sightings-empty-state p {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+/* Responsive tweaks */
+@media (max-width: 640px) {
+  .sightings-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sightings-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sightings-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

@@ -1,0 +1,397 @@
+/**
+ * PawTrack Community Pet Sightings Board
+ * Dedicated view for browsing, filtering, and acting on all community-reported
+ * pet sightings. Integrates with the existing store, notification system,
+ * and the Owner Verification modal already wired in notifications.js.
+ */
+
+class SightingsView {
+  constructor() {
+    this.currentFilter = 'all';      // 'all' | 'possible' | 'confirmed' | 'dismissed'
+    this.currentSort   = 'newest';   // 'newest' | 'oldest' | 'confirmed_first'
+    this.searchQuery   = '';
+    this.selectedCommunity = 'all';
+  }
+
+  // ─────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────
+  render(container) {
+    const sightings = window.pawStore.getSightings();
+    const stats = this._buildStats(sightings);
+
+    container.innerHTML = `
+      <div class="view-header">
+        <div class="view-title-group">
+          <h1>Community Pet Sightings</h1>
+          <div class="view-subtitle">
+            All community-reported pet sightings. Owners can verify each report to confirm or dismiss the match.
+          </div>
+        </div>
+        <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="window.reportManager.openSightingModal()">
+            <i data-lucide="eye"></i> Report Pet Sighting
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'">
+            <i data-lucide="map"></i> View on Map
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="sightings-stats-bar">
+        ${this._renderStatCard('All Reports',      stats.total,     'eye',           '#ea9d1e')}
+        ${this._renderStatCard('Possible',         stats.possible,  'search',        '#ea9d1e')}
+        ${this._renderStatCard('Confirmed',        stats.confirmed, 'check-circle-2','#16a34a')}
+        ${this._renderStatCard('Dismissed',        stats.dismissed, 'x-circle',      '#b85410')}
+        ${this._renderStatCard('Linked to Report', stats.linked,    'link',          '#ffffff')}
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="glass-card sightings-filter-bar">
+        <!-- Search -->
+        <div style="flex:1; min-width:220px;">
+          <input
+            type="text"
+            id="sightings-search-input"
+            placeholder="Search by location, breed, reporter name…"
+            value="${this._esc(this.searchQuery)}"
+            oninput="window.sightingsView.handleSearch(this.value)"
+            style="width:100%;"
+          />
+        </div>
+
+        <!-- Status filter pills -->
+        <div id="sightings-filter-pills" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          ${this._filterPill('all',       'All',       stats.total,     this.currentFilter === 'all')}
+          ${this._filterPill('possible',  'Possible',  stats.possible,  this.currentFilter === 'possible')}
+          ${this._filterPill('confirmed', 'Confirmed', stats.confirmed, this.currentFilter === 'confirmed')}
+          ${this._filterPill('dismissed', 'Dismissed', stats.dismissed, this.currentFilter === 'dismissed')}
+        </div>
+
+        <!-- Community selector -->
+        <div style="display:flex; align-items:center; gap:0.5rem; min-width:200px;">
+          <label for="sightings-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Community</label>
+          <select id="sightings-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.sightingsView.setCommunity(this.value)">
+            ${this._communityOptions(sightings)}
+          </select>
+        </div>
+
+        <!-- Sort -->
+        <div style="display:flex; align-items:center; gap:0.5rem; min-width:160px;">
+          <label for="sightings-sort-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Sort</label>
+          <select id="sightings-sort-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.sightingsView.setSort(this.value)">
+            <option value="newest"          ${this.currentSort === 'newest'          ? 'selected' : ''}>Newest First</option>
+            <option value="oldest"          ${this.currentSort === 'oldest'          ? 'selected' : ''}>Oldest First</option>
+            <option value="confirmed_first" ${this.currentSort === 'confirmed_first' ? 'selected' : ''}>Confirmed First</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Sighting Cards Grid -->
+      <div id="sightings-grid">
+        ${this._renderGrid(sightings)}
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons({ root: container });
+  }
+
+  // ─────────────────────────────────────────────────
+  // FILTER / SEARCH / SORT HANDLERS
+  // ─────────────────────────────────────────────────
+  setFilter(f) {
+    this.currentFilter = f;
+    this._refreshGrid();
+    // Update pill active states without full re-render
+    document.querySelectorAll('.sightings-filter-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.filter === f);
+    });
+  }
+
+  handleSearch(val) {
+    this.searchQuery = val;
+    this._refreshGrid();
+  }
+
+  setCommunity(val) {
+    this.selectedCommunity = val;
+    this._refreshGrid();
+  }
+
+  setSort(val) {
+    this.currentSort = val;
+    this._refreshGrid();
+  }
+
+  _refreshGrid() {
+    const grid = document.getElementById('sightings-grid');
+    if (!grid) return;
+    const sightings = window.pawStore.getSightings();
+    grid.innerHTML = this._renderGrid(sightings);
+    if (window.lucide) window.lucide.createIcons({ root: grid });
+  }
+
+  // ─────────────────────────────────────────────────
+  // DATA HELPERS
+  // ─────────────────────────────────────────────────
+  _buildStats(sightings) {
+    return {
+      total:     sightings.length,
+      possible:  sightings.filter(s => s.status === 'possible_sighting').length,
+      confirmed: sightings.filter(s => s.status === 'confirmed_sighting').length,
+      dismissed: sightings.filter(s => s.status === 'dismissed').length,
+      linked:    sightings.filter(s => !!s.missing_report_id).length,
+    };
+  }
+
+  _filteredSorted(sightings) {
+    let list = [...sightings];
+
+    // Status filter
+    if (this.currentFilter === 'possible')  list = list.filter(s => s.status === 'possible_sighting');
+    if (this.currentFilter === 'confirmed') list = list.filter(s => s.status === 'confirmed_sighting');
+    if (this.currentFilter === 'dismissed') list = list.filter(s => s.status === 'dismissed');
+
+    // Community filter
+    if (this.selectedCommunity !== 'all') {
+      list = list.filter(s =>
+        (s.community || '').toLowerCase() === this.selectedCommunity.toLowerCase()
+      );
+    }
+
+    // Search
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase();
+      list = list.filter(s =>
+        (s.location     || '').toLowerCase().includes(q) ||
+        (s.breed        || '').toLowerCase().includes(q) ||
+        (s.reporterName || '').toLowerCase().includes(q) ||
+        (s.community    || '').toLowerCase().includes(q) ||
+        (s.comments     || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (this.currentSort === 'newest') {
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (this.currentSort === 'oldest') {
+      list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    } else if (this.currentSort === 'confirmed_first') {
+      const rank = s => s.status === 'confirmed_sighting' ? 0 : s.status === 'possible_sighting' ? 1 : 2;
+      list.sort((a, b) => rank(a) - rank(b) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
+    return list;
+  }
+
+  // ─────────────────────────────────────────────────
+  // RENDER HELPERS
+  // ─────────────────────────────────────────────────
+  _renderStatCard(label, value, icon, color) {
+    return `
+      <div class="sightings-stat-card glass-card">
+        <div class="sightings-stat-icon" style="color:${color};">
+          <i data-lucide="${icon}"></i>
+        </div>
+        <div>
+          <div class="sightings-stat-value" style="color:${color};">${value}</div>
+          <div class="sightings-stat-label">${label}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _filterPill(filter, label, count, active) {
+    return `
+      <button
+        type="button"
+        class="btn btn-sm sightings-filter-pill ${active ? 'btn-primary active' : 'btn-outline'}"
+        data-filter="${filter}"
+        onclick="window.sightingsView.setFilter('${filter}')"
+      >${label} <span style="opacity:0.7;">(${count})</span></button>
+    `;
+  }
+
+  _communityOptions(sightings) {
+    const set = new Set();
+    sightings.forEach(s => { if (s.community) set.add(s.community); });
+    window.pawStore.getPets().forEach(p => { if (p.community) set.add(p.community); });
+    const opts = ['<option value="all">All communities</option>'];
+    Array.from(set).sort().forEach(c => {
+      opts.push(`<option value="${this._esc(c)}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`);
+    });
+    return opts.join('');
+  }
+
+  _renderGrid(sightings) {
+    const list = this._filteredSorted(sightings);
+
+    if (list.length === 0) {
+      return `
+        <div class="sightings-empty-state glass-card">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="3" y1="3" x2="21" y2="21"/>
+          </svg>
+          <h3>No sightings found</h3>
+          <p>No sighting reports match the current filters. Try a different filter or be the first to report one!</p>
+          <button class="btn btn-primary" onclick="window.reportManager.openSightingModal()">
+            <i data-lucide="plus"></i> Report Pet Sighting
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="sightings-cards-grid">
+        ${list.map(s => this._renderCard(s)).join('')}
+      </div>
+    `;
+  }
+
+  _renderCard(s) {
+    const isConfirmed = s.status === 'confirmed_sighting';
+    const isDismissed = s.status === 'dismissed';
+    const isPossible  = s.status === 'possible_sighting';
+
+    const statusColor  = isConfirmed ? '#16a34a' : isPossible ? '#ea9d1e' : '#b85410';
+    const statusLabel  = isConfirmed ? 'Confirmed Sighting' : isPossible ? 'Possible Sighting' : 'Dismissed';
+    const statusBg     = isConfirmed ? 'rgba(22,163,74,0.12)' : isPossible ? 'rgba(234,157,30,0.12)' : 'rgba(184,84,16,0.12)';
+    const statusBorder = isConfirmed ? 'rgba(22,163,74,0.3)'  : isPossible ? 'rgba(234,157,30,0.3)'  : 'rgba(184,84,16,0.3)';
+
+    const timeAgo = this._timeAgo(s.dateTimeSeen || s.createdAt);
+    const photo   = s.photoUrl || s.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80';
+
+    // Look up linked pet
+    let linkedPetHtml = '';
+    if (s.petId || s.missing_report_id) {
+      let pet = s.petId ? window.pawStore.getPetById(s.petId) : null;
+      if (!pet && s.missing_report_id) {
+        const rep = window.pawStore.getMissingReportById(s.missing_report_id);
+        if (rep) pet = window.pawStore.getPetById(rep.petId);
+      }
+      if (pet) {
+        linkedPetHtml = `
+          <div class="sighting-card-linked-pet">
+            <img src="${this._esc(pet.photoUrl)}" alt="${this._esc(pet.name)}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=80&q=80'" />
+            <div>
+              <div style="font-size:0.7rem; color:var(--primary); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Linked Missing Pet</div>
+              <div style="font-size:0.85rem; font-weight:700; color:var(--text-main);">${this._esc(pet.name)}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${this._esc(pet.breed || '')} · RFID: ${this._esc(pet.rfidTag || 'N/A')}</div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Action buttons
+    let actionHtml = '';
+    if (isPossible) {
+      actionHtml = `
+        <button class="btn btn-primary btn-sm" style="flex:1; background:#16a34a; border-color:#16a34a;" onclick="window.notifManager.openSightingVerificationModal('${this._esc(s.id)}')">
+          <i data-lucide="shield-check"></i> Verify Sighting
+        </button>
+      `;
+    } else if (isConfirmed) {
+      actionHtml = `
+        <span class="btn btn-sm" style="flex:1; background:rgba(22,163,74,0.1); color:#16a34a; border:1px solid rgba(22,163,74,0.3); cursor:default; display:flex; align-items:center; gap:5px; justify-content:center;">
+          <i data-lucide="check-circle-2"></i> Owner Confirmed
+        </span>
+      `;
+    } else {
+      actionHtml = `
+        <span class="btn btn-sm" style="flex:1; background:rgba(184,84,16,0.1); color:var(--text-muted); border:1px solid var(--border-subtle); cursor:default; display:flex; align-items:center; gap:5px; justify-content:center;">
+          <i data-lucide="archive"></i> Archived
+        </span>
+      `;
+    }
+
+    return `
+      <div class="sighting-card glass-card ${isDismissed ? 'sighting-card-dismissed' : ''}">
+        <!-- Photo -->
+        <div class="sighting-card-photo-wrap" onclick="window.pawApp && window.pawApp.openLightbox('${this._esc(photo)}', '${this._esc(s.breed || 'Spotted Pet')}', 'Community Sighting Evidence · ${this._esc(s.location || '')}')">
+          <img src="${this._esc(photo)}" alt="Sighting photo" class="sighting-card-photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80'" />
+          <!-- Status badge over photo -->
+          <span class="sighting-card-status-badge" style="background:${statusBg}; color:${statusColor}; border-color:${statusBorder};">
+            ${statusLabel}
+          </span>
+        </div>
+
+        <!-- Body -->
+        <div class="sighting-card-body">
+          <!-- Breed + time -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.4rem; gap:0.5rem;">
+            <div>
+              <div style="font-size:1rem; font-weight:800; color:var(--text-main); line-height:1.2;">${this._esc(s.breed || 'Spotted Pet')}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${this._esc(s.species || 'Animal')}</div>
+            </div>
+            <span style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">${timeAgo}</span>
+          </div>
+
+          <!-- Location -->
+          <div class="sighting-card-detail-row">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>${this._esc(s.location || 'Location not specified')}</span>
+          </div>
+
+          <!-- Date/Time -->
+          <div class="sighting-card-detail-row">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>${s.dateTimeSeen ? new Date(s.dateTimeSeen).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently spotted'}</span>
+          </div>
+
+          <!-- Reporter -->
+          <div class="sighting-card-detail-row">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+            <span>${this._esc(s.reporterName || 'Community Good Samaritan')}</span>
+            ${s.reporterPhone && s.reporterPhone !== '+63 9XX XXX XXXX' ? `<span style="color:var(--primary); font-size:0.72rem; margin-left:4px;">${this._esc(s.reporterPhone)}</span>` : ''}
+          </div>
+
+          <!-- Notes (truncated) -->
+          ${(s.comments || s.notes) ? `
+            <div class="sighting-card-notes">
+              "${this._esc((s.comments || s.notes || '').substring(0, 90))}${(s.comments || s.notes || '').length > 90 ? '…' : ''}"
+            </div>
+          ` : ''}
+
+          <!-- Linked pet banner -->
+          ${linkedPetHtml}
+
+          <!-- Actions -->
+          <div style="display:flex; gap:0.5rem; margin-top:0.85rem; flex-wrap:wrap;">
+            ${actionHtml}
+            <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'" title="View on Incident Map" style="padding:6px 10px;">
+              <i data-lucide="map-pin"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────
+  // UTILITIES
+  // ─────────────────────────────────────────────────
+  _timeAgo(value) {
+    if (!value) return 'Unknown time';
+    const mins = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+    if (mins < 60)   return `${mins}m ago`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24)    return `${hrs}h ago`;
+    return `${Math.round(hrs / 24)}d ago`;
+  }
+
+  _esc(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/'/g, '&#39;');
+  }
+}
+
+window.sightingsView = new SightingsView();

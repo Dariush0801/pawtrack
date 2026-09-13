@@ -88,6 +88,13 @@ class ReportManager {
     this.currentSuggestions = [];
     this.selectedSuggestionIndex = -1;
 
+    // Sighting modal state
+    this.sightingPhotoData = null;
+    this.sightingMap = null;
+    this.sightingMarker = null;
+    this.sightingPinnedLat = 14.6375;
+    this.sightingPinnedLng = 121.0362;
+
     // Attach global click handler to dismiss location suggestions
     document.addEventListener('click', (e) => {
       const wrap = document.getElementById('report-location-search-wrap');
@@ -861,6 +868,7 @@ class ReportManager {
       coords: [this.pinnedLat, this.pinnedLng],
       rfidTag: rfid,
       reporterPhone: phone,
+      community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
       reporterName: 'Community Good Samaritan',
       comments: notes,
       timestamp: new Date().toISOString(),
@@ -984,10 +992,27 @@ class ReportManager {
       });
     }
 
+    // Create First-Class Missing Report Entity
+    const missingReport = window.pawStore.createMissingReport({
+      petId: pet ? pet.id : 'pet-temp',
+      petName: petName,
+      species: pet ? pet.species : 'Pet',
+      breed: pet ? pet.breed : 'Mixed Breed',
+      ownerEmail: pet && pet.owner ? pet.owner.email : 'user@gmail.com',
+      ownerPhone: phone,
+      community: (pet && pet.community) ? pet.community : (pet && pet.owner && pet.owner.address ? pet.owner.address : 'Metro Manila'),
+      lastSeenLocation: location,
+      lastSeenCoords: [this.pinnedLat, this.pinnedLng],
+      lastSeenDate: date,
+      notes: notes,
+      status: 'active'
+    });
+
     // Add Missing Pet Alert to Cases and Notifications
     const newCase = {
       id: 'CASE-' + Date.now().toString().slice(-4),
       petId: pet ? pet.id : 'pet-temp',
+      missingReportId: missingReport.id,
       petName: petName,
       rfidTag: rfid,
       status: 'missing',
@@ -1011,6 +1036,8 @@ class ReportManager {
       title: `Emergency Alert: "${petName}" Missing`,
       message: `Guardian reported ${petName} (${rfid}) missing near ${location}. Checkpoints & public map notified.`,
       type: 'missing',
+      missingReportId: missingReport.id,
+      petId: pet ? pet.id : null,
       timestamp: new Date().toISOString()
     });
 
@@ -1022,6 +1049,391 @@ class ReportManager {
 
     if (window.location.hash === '#map' && window.publicView) {
       window.publicView.render(document.getElementById('app-viewport'));
+    }
+  }
+
+  // =========================================================
+  // COMMUNITY SIGHTING SUBMISSION FLOW METHODS
+  // =========================================================
+
+  openSightingModal(missingReportId = null, petId = null) {
+    const modal = document.getElementById('sighting-submission-modal');
+    if (!modal) return;
+
+    // Reset previous inputs
+    this.sightingPhotoData = null;
+    const photoInput = document.getElementById('sighting-photo-input');
+    if (photoInput) photoInput.value = '';
+    const previewWrap = document.getElementById('sighting-preview-wrap');
+    const promptWrap = document.getElementById('sighting-dropzone-prompt');
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (promptWrap) promptWrap.style.display = 'block';
+
+    const hiddenReportId = document.getElementById('sighting-missing-report-id');
+    const hiddenPetId = document.getElementById('sighting-pet-id');
+    const prefillBanner = document.getElementById('sighting-prefill-banner');
+    const petPickerGroup = document.getElementById('sighting-pet-picker-group');
+    const modalTitle = document.getElementById('sighting-modal-title');
+    const locInput = document.getElementById('sighting-location-input');
+    const notesInput = document.getElementById('sighting-notes-input');
+    const dateInput = document.getElementById('sighting-datetime-input');
+    const phoneInput = document.getElementById('sighting-reporter-phone');
+    const nameInput = document.getElementById('sighting-reporter-name');
+
+    if (notesInput) notesInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (nameInput)  nameInput.value  = '';
+
+    // Set default datetime to now
+    if (dateInput) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      dateInput.value = now.toISOString().slice(0, 16);
+    }
+
+    // Determine target pet / missing report
+    let targetPet = null;
+    let targetReport = null;
+
+    if (missingReportId) {
+      targetReport = window.pawStore.getMissingReportById(missingReportId);
+      if (targetReport) {
+        targetPet = window.pawStore.getPetById(targetReport.petId);
+      }
+    }
+    if (!targetPet && petId) {
+      targetPet = window.pawStore.getPetById(petId);
+      if (targetPet) {
+        targetReport = window.pawStore.getActiveMissingReportForPet(petId);
+      }
+    }
+
+    if (targetPet || targetReport) {
+      const resolvedPetName = targetPet ? targetPet.name : (targetReport ? targetReport.petName : 'Missing Pet');
+      const resolvedReportId = targetReport ? targetReport.id : (missingReportId || 'mr-' + Date.now());
+      const resolvedPetId = targetPet ? targetPet.id : (targetReport ? targetReport.petId : petId);
+
+      if (hiddenReportId) hiddenReportId.value = resolvedReportId;
+      if (hiddenPetId) hiddenPetId.value = resolvedPetId;
+
+      if (modalTitle) modalTitle.textContent = `Report Sighting: "${resolvedPetName}"`;
+
+      if (prefillBanner) {
+        prefillBanner.style.display = 'flex';
+        const thumb = document.getElementById('sighting-prefill-pet-thumb');
+        const nameEl = document.getElementById('sighting-prefill-pet-name');
+        const metaEl = document.getElementById('sighting-prefill-pet-meta');
+        if (thumb) thumb.src = targetPet ? targetPet.photoUrl : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80';
+        if (nameEl) nameEl.textContent = resolvedPetName;
+        if (metaEl) metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area')}`;
+      }
+
+      if (petPickerGroup) petPickerGroup.style.display = 'none';
+
+      // Default pinned coords to last seen location
+      if (targetPet && targetPet.lastSeenCoords) {
+        this.sightingPinnedLat = targetPet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
+        this.sightingPinnedLng = targetPet.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
+      } else if (targetReport && targetReport.lastSeenCoords) {
+        this.sightingPinnedLat = targetReport.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
+        this.sightingPinnedLng = targetReport.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
+      }
+
+      if (locInput && (!locInput.value || locInput.value === '')) {
+        locInput.value = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
+      }
+    } else {
+      // General sighting flow: populate missing pets dropdown
+      if (hiddenReportId) hiddenReportId.value = '';
+      if (hiddenPetId) hiddenPetId.value = '';
+      if (modalTitle) modalTitle.textContent = 'Report Pet Sighting';
+      if (prefillBanner) prefillBanner.style.display = 'none';
+      if (petPickerGroup) {
+        petPickerGroup.style.display = 'block';
+        const select = document.getElementById('sighting-pet-picker-select');
+        if (select) {
+          const pets = window.pawStore.getPets().filter(p => p.status === 'lost');
+          let opts = '<option value="">-- General Unlinked Stray / Community Sighting --</option>';
+          pets.forEach(p => {
+            opts += `<option value="${p.id}">Link to Missing Alert: ${p.name} (${p.breed || 'Pet'} - RFID: ${p.rfidTag})</option>`;
+          });
+          select.innerHTML = opts;
+        }
+      }
+      this.sightingPinnedLat = 14.6375;
+      this.sightingPinnedLng = 121.0362;
+    }
+
+    this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng);
+
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+
+    setTimeout(() => {
+      this.initSightingPinMap();
+    }, 180);
+  }
+
+  closeSightingModal() {
+    const modal = document.getElementById('sighting-submission-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
+    if (this.sightingMap) {
+      try {
+        this.sightingMap.remove();
+      } catch (e) {}
+      this.sightingMap = null;
+    }
+  }
+
+  handleSightingPetPicker(petId) {
+    const hiddenReportId = document.getElementById('sighting-missing-report-id');
+    const hiddenPetId = document.getElementById('sighting-pet-id');
+    const locInput = document.getElementById('sighting-location-input');
+
+    if (!petId) {
+      if (hiddenReportId) hiddenReportId.value = '';
+      if (hiddenPetId) hiddenPetId.value = '';
+      return;
+    }
+
+    const pet = window.pawStore.getPetById(petId);
+    if (pet) {
+      const activeReport = window.pawStore.getActiveMissingReportForPet(petId);
+      if (hiddenPetId) hiddenPetId.value = pet.id;
+      if (hiddenReportId) hiddenReportId.value = activeReport ? activeReport.id : 'mr-' + pet.id;
+      if (locInput && pet.lastSeenLocation) {
+        locInput.value = `Near ${pet.lastSeenLocation}`;
+      }
+      if (pet.lastSeenCoords) {
+        this.sightingPinnedLat = pet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
+        this.sightingPinnedLng = pet.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
+        this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng);
+        if (this.sightingMap) {
+          this.sightingMap.setView([this.sightingPinnedLat, this.sightingPinnedLng], 14);
+          if (this.sightingMarker) this.sightingMarker.setLatLng([this.sightingPinnedLat, this.sightingPinnedLng]);
+        }
+      }
+    }
+  }
+
+  initSightingPinMap() {
+    const container = document.getElementById('sighting-pin-map');
+    if (!container || !window.L) return;
+
+    if (this.sightingMap) {
+      try { this.sightingMap.remove(); } catch (e) {}
+      this.sightingMap = null;
+    }
+
+    this.sightingMap = window.L.map('sighting-pin-map', {
+      scrollWheelZoom: true,
+      zoomControl: true
+    }).setView([this.sightingPinnedLat, this.sightingPinnedLng], 14);
+
+    // OpenStreetMap standard tile layer (lightweight, zero billing)
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(this.sightingMap);
+
+    // Green Draggable Sighting Marker
+    const greenSightingIcon = window.L.divIcon({
+      className: 'sighting-pin-leaflet-icon',
+      html: `
+        <div style="position:relative; transform:translate(-50%, -100%); cursor:grab;">
+          <div style="width:34px; height:34px; border-radius:50% 50% 50% 0; background:linear-gradient(135deg, #22c55e, #15803d); transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(0,0,0,0.4); border:2px solid #ffffff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          </div>
+          <div style="width:8px; height:3px; border-radius:50%; background:rgba(0,0,0,0.3); margin:2px auto 0;"></div>
+        </div>
+      `,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+
+    this.sightingMarker = window.L.marker([this.sightingPinnedLat, this.sightingPinnedLng], {
+      icon: greenSightingIcon,
+      draggable: true
+    }).addTo(this.sightingMap);
+
+    this.sightingMarker.on('dragend', (e) => {
+      const pos = e.target.getLatLng();
+      this.updateSightingCoords(pos.lat, pos.lng);
+    });
+
+    this.sightingMap.on('click', (e) => {
+      this.updateSightingCoords(e.latlng.lat, e.latlng.lng);
+      if (this.sightingMarker) this.sightingMarker.setLatLng(e.latlng);
+    });
+
+    setTimeout(() => {
+      if (this.sightingMap) this.sightingMap.invalidateSize();
+    }, 150);
+  }
+
+  updateSightingCoords(lat, lng) {
+    this.sightingPinnedLat = parseFloat(lat.toFixed(5));
+    this.sightingPinnedLng = parseFloat(lng.toFixed(5));
+
+    const latInput = document.getElementById('sighting-pinned-lat');
+    const lngInput = document.getElementById('sighting-pinned-lng');
+    const badge = document.getElementById('sighting-coords-badge');
+
+    if (latInput) latInput.value = this.sightingPinnedLat;
+    if (lngInput) lngInput.value = this.sightingPinnedLng;
+    if (badge) badge.textContent = `${this.sightingPinnedLat.toFixed(5)}, ${this.sightingPinnedLng.toFixed(5)}`;
+  }
+
+  handleSightingPhotoInput(input) {
+    if (!input || !input.files || !input.files[0]) return;
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+      if (window.notifManager) window.notifManager.showToast('Please select a valid image file (JPG, PNG, WEBP).', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.sightingPhotoData = e.target.result;
+      const previewImg = document.getElementById('sighting-preview-img');
+      const previewWrap = document.getElementById('sighting-preview-wrap');
+      const promptWrap = document.getElementById('sighting-dropzone-prompt');
+
+      if (previewImg) previewImg.src = this.sightingPhotoData;
+      if (previewWrap) previewWrap.style.display = 'block';
+      if (promptWrap) promptWrap.style.display = 'none';
+
+      if (window.notifManager) {
+        window.notifManager.showToast('Sighting photo attached successfully.', 'success', 2500);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeSightingPhoto() {
+    this.sightingPhotoData = null;
+    const photoInput = document.getElementById('sighting-photo-input');
+    if (photoInput) photoInput.value = '';
+    const previewWrap = document.getElementById('sighting-preview-wrap');
+    const promptWrap = document.getElementById('sighting-dropzone-prompt');
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (promptWrap) promptWrap.style.display = 'block';
+  }
+
+  submitCommunitySighting(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    // 1. Validate Photo (REQUIRED)
+    if (!this.sightingPhotoData) {
+      if (window.notifManager) {
+        window.notifManager.showToast('A sighting photo is required as photographic evidence.', 'danger', 4000);
+      }
+      const dropzone = document.getElementById('sighting-dropzone');
+      if (dropzone) {
+        dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        dropzone.classList.add('drag-over');
+        setTimeout(() => dropzone.classList.remove('drag-over'), 1500);
+      }
+      return;
+    }
+
+    // 2. Validate Location (REQUIRED)
+    const locInput = document.getElementById('sighting-location-input');
+    const location = (locInput ? locInput.value : '').trim();
+    if (!location) {
+      if (window.notifManager) window.notifManager.showToast('Please describe the location / landmark where the pet was spotted.', 'warning');
+      if (locInput) locInput.focus();
+      return;
+    }
+
+    // 3. Validate Date & Time (REQUIRED)
+    const dateInput = document.getElementById('sighting-datetime-input');
+    const dateTimeSeen = (dateInput ? dateInput.value : '').trim();
+    if (!dateTimeSeen) {
+      if (window.notifManager) window.notifManager.showToast('Please provide the date and time when you saw the pet.', 'warning');
+      if (dateInput) dateInput.focus();
+      return;
+    }
+
+    const notes = (document.getElementById('sighting-notes-input')?.value || '').trim();
+    const phone = (document.getElementById('sighting-reporter-phone')?.value || '').trim();
+    const reporterNameRaw = (document.getElementById('sighting-reporter-name')?.value || '').trim();
+    const reporterName = reporterNameRaw || 'Community Good Samaritan';
+    const missingReportId = document.getElementById('sighting-missing-report-id')?.value || null;
+    const petId = document.getElementById('sighting-pet-id')?.value || null;
+
+    let matchedPet = null;
+    if (petId) {
+      matchedPet = window.pawStore.getPetById(petId);
+    } else if (missingReportId) {
+      const rep = window.pawStore.getMissingReportById(missingReportId);
+      if (rep) matchedPet = window.pawStore.getPetById(rep.petId);
+    }
+
+    const sightingId = 'sight-' + Date.now().toString().slice(-6);
+
+    const sighting = {
+      id: sightingId,
+      missing_report_id: missingReportId || (matchedPet ? (matchedPet.missingReportId || 'mr-' + matchedPet.id) : null),
+      petId: petId || (matchedPet ? matchedPet.id : null),
+      community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
+      species: matchedPet ? matchedPet.species : 'Dog',
+      breed: matchedPet ? matchedPet.breed : 'Spotted Pet',
+      color: matchedPet ? matchedPet.color : 'Mixed',
+      location: location,
+      coords: [this.sightingPinnedLat, this.sightingPinnedLng],
+      lat: this.sightingPinnedLat,
+      lng: this.sightingPinnedLng,
+      dateTimeSeen: dateTimeSeen,
+      comments: notes || 'Possible pet sighting observed in the community.',
+      notes: notes || 'Possible pet sighting observed in the community.',
+      photoUrl: this.sightingPhotoData,
+      photo: this.sightingPhotoData,
+      reporterName: reporterName,
+      reporterPhone: phone || '+63 9XX XXX XXXX',
+      status: 'possible_sighting',
+      createdAt: new Date().toISOString()
+    };
+
+    window.pawStore.addSighting(sighting);
+
+    // Trigger In-App Notification specifically for the pet owner
+    const petDisplayName = matchedPet ? matchedPet.name : 'COMMUNITY PET';
+    const ownerNotif = {
+      id: 'notif-sight-' + Date.now(),
+      type: 'sighting_verification',
+      title: `POSSIBLE SIGHTING: "${petDisplayName.toUpperCase()}"`,
+      message: `${reporterName} reported a possible sighting of ${petDisplayName} near ${location}. Please review the photo and verify.`,
+      petId: matchedPet ? matchedPet.id : null,
+      ownerEmail: matchedPet && matchedPet.owner ? matchedPet.owner.email : null,
+      missingReportId: sighting.missing_report_id,
+      sightingId: sighting.id,
+      location: location,
+      coords: sighting.coords,
+      photoUrl: this.sightingPhotoData,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+    window.pawStore.addNotification(ownerNotif);
+
+    if (window.notifManager) {
+      window.notifManager.showToast(`Possible Sighting pinned on Community Map! Notification dispatched to pet owner.`, 'success', 5000);
+    }
+
+    this.closeSightingModal();
+
+    // Re-render views
+    if (window.publicView && window.location.hash === '#map') {
+      window.publicView.render(document.getElementById('app-viewport'));
+    }
+    if (window.ownerView && window.location.hash === '#owner') {
+      window.ownerView.render(document.getElementById('app-viewport'));
+    }
+    if (window.sightingsView && window.location.hash === '#sightings') {
+      window.sightingsView.render(document.getElementById('app-viewport'));
     }
   }
 }

@@ -126,6 +126,7 @@ function getDefaultDatabase() {
     notifications: [],
     sightings: [],
     cases: [],
+    missingReports: [],
     shelters: SEED_SHELTERS,
     rfidTags: SEED_RFID_TAGS,
     settings: SEED_SETTINGS
@@ -145,6 +146,7 @@ function getDatabase() {
           if (!Array.isArray(parsed.notifications)) parsed.notifications = [];
           if (!Array.isArray(parsed.sightings)) parsed.sightings = [];
           if (!Array.isArray(parsed.cases)) parsed.cases = [];
+          if (!Array.isArray(parsed.missingReports)) parsed.missingReports = [];
           if (!Array.isArray(parsed.shelters) || parsed.shelters.length === 0) parsed.shelters = SEED_SHELTERS;
           if (!Array.isArray(parsed.rfidTags) || parsed.rfidTags.length === 0) parsed.rfidTags = SEED_RFID_TAGS;
           if (!parsed.settings) parsed.settings = SEED_SETTINGS;
@@ -459,6 +461,7 @@ const server = http.createServer((req, res) => {
         if (!Array.isArray(db.notifications)) db.notifications = [];
         if (!Array.isArray(db.sightings)) db.sightings = [];
         if (!Array.isArray(db.cases)) db.cases = [];
+        if (!Array.isArray(db.missingReports)) db.missingReports = [];
         if (!Array.isArray(db.rfidTags)) db.rfidTags = [];
 
         if (payload.action === 'save_pet') {
@@ -542,6 +545,43 @@ const server = http.createServer((req, res) => {
               notes: sighting.comments || 'Visual sighting reported via community radar.',
               photoUrl: sighting.photoUrl
             });
+          }
+        } else if (payload.action === 'create_missing_report') {
+          if (!Array.isArray(db.missingReports)) db.missingReports = [];
+          db.missingReports.unshift(payload.report);
+          const pet = db.pets.find(p => p.id === payload.report.petId);
+          if (pet) {
+            pet.status = 'lost';
+            if (payload.report.lastSeenLocation) pet.lastSeenLocation = payload.report.lastSeenLocation;
+            if (payload.report.lastSeenDate) pet.lastSeenDate = payload.report.lastSeenDate;
+            if (payload.report.lastSeenCoords) pet.lastSeenCoords = payload.report.lastSeenCoords;
+          }
+        } else if (payload.action === 'confirm_sighting') {
+          const s = db.sightings.find(x => x.id === payload.sightingId);
+          if (s) {
+            s.status = 'confirmed_sighting';
+            s.confirmedAt = new Date().toISOString();
+          }
+          if (payload.caseTimeline) {
+            let petCase = db.cases.find(c => c.petId === payload.petId);
+            if (petCase) {
+              if (!Array.isArray(petCase.timeline)) petCase.timeline = [];
+              petCase.timeline.unshift(payload.caseTimeline);
+              petCase.lastUpdated = new Date().toISOString();
+            }
+          }
+        } else if (payload.action === 'dismiss_sighting') {
+          const s = db.sightings.find(x => x.id === payload.sightingId);
+          if (s) {
+            s.status = 'dismissed';
+            s.dismissedAt = new Date().toISOString();
+          }
+        } else if (payload.action === 'update_sighting_status') {
+          const s = db.sightings.find(x => x.id === payload.sightingId);
+          if (s) {
+            s.status = payload.status;
+            if (payload.status === 'confirmed_sighting') s.confirmedAt = new Date().toISOString();
+            if (payload.status === 'dismissed') s.dismissedAt = new Date().toISOString();
           }
         } else if (payload.action === 'update_case') {
           const caseData = payload.caseData;

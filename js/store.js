@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'pawtrack_system_settings',
   SIGHTINGS: 'pawtrack_sightings',
   CASES: 'pawtrack_cases',
+  MISSING_REPORTS: 'pawtrack_missing_reports',
   MAP_API_KEY: 'pawtrack_map_api_key'
 };
 
@@ -59,6 +60,169 @@ const SEED_SHELTERS = [
   }
 ];
 
+const SEED_PETS = [
+  {
+    id: 'pet-seed-01',
+    name: 'Max',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    gender: 'Male',
+    color: 'Golden brown with white chest patch',
+    rfidTag: 'RFID-882194',
+    microchipNo: '98514100882194',
+    status: 'lost',
+    medicalNotes: 'Friendly, microchipped, floppy ears, distinctive white patch on chest.',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
+    owner: {
+      name: 'Maria Santos',
+      phone: '+63 917 555 3829',
+      email: 'maria.santos@gmail.com',
+      address: 'Philam Homes, Quezon City',
+      community: 'Philam Homes, Quezon City'
+    },
+    community: 'Philam Homes, Quezon City',
+    lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
+    lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
+    lastSeenCoords: [14.6360, 121.0370],
+    registeredDate: '2026-08-01',
+    missingReportId: 'mr-2026-001'
+  },
+  {
+    id: 'pet-seed-02',
+    name: 'Luna',
+    species: 'Cat',
+    breed: 'Calico / Domestic Shorthair',
+    gender: 'Female',
+    color: 'Tri-color (Orange, Black, White)',
+    rfidTag: 'RFID-441920',
+    microchipNo: '98514100441920',
+    status: 'impounded',
+    medicalNotes: 'Spayed, calico coat pattern, wearing blue collar with bell.',
+    photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
+    owner: {
+      name: 'Maria Santos',
+      phone: '+63 918 222 9182',
+      email: 'maria.santos@gmail.com',
+      address: 'Brgy. Payatas, Quezon City',
+      community: 'Payatas, Quezon City'
+    },
+    community: 'Payatas, Quezon City',
+    lastSeenLocation: 'Lupang Pangako, Payatas, Quezon City',
+    lastSeenDate: new Date(Date.now() - 18 * 3600000).toISOString(),
+    lastSeenCoords: [14.7118, 121.1037],
+    registeredDate: '2026-07-15'
+  },
+  {
+    id: 'pet-seed-03',
+    name: 'Rocky',
+    species: 'Dog',
+    breed: 'Beagle',
+    gender: 'Male',
+    color: 'Tricolor (White, Brown, Black)',
+    rfidTag: 'RFID-912044',
+    microchipNo: '98514100912044',
+    status: 'safe',
+    medicalNotes: 'Fully vaccinated, active tracker collar, highly energetic.',
+    photoUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80',
+    owner: {
+      name: 'Carlos Mendoza',
+      phone: '+63 920 444 8812',
+      email: 'carlos.m@gmail.com',
+      address: 'Kapitolyo, Pasig City',
+      community: 'Kapitolyo, Pasig City'
+    },
+    community: 'Kapitolyo, Pasig City',
+    lastSeenLocation: 'Kapitolyo, Pasig City',
+    lastSeenCoords: [14.5750, 121.0620],
+    registeredDate: '2026-08-10'
+  }
+];
+
+const SEED_MISSING_REPORTS = [
+  {
+    id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    petName: 'Max',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    ownerEmail: 'maria.santos@gmail.com',
+    ownerPhone: '+63 917 555 3829',
+    community: 'Philam Homes, Quezon City',
+    lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
+    lastSeenCoords: [14.6360, 121.0370],
+    lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
+    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with RFID-882194.',
+    status: 'active',
+    createdAt: new Date(Date.now() - 5 * 3600000).toISOString()
+  }
+];
+
+const SEED_SIGHTINGS = [
+  {
+    id: 'sight-2026-001',
+    missing_report_id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    matchedPetId: 'pet-seed-01',
+    species: 'Dog',
+    breed: 'Golden Retriever Mix',
+    color: 'Golden brown with white chest patch',
+    location: 'Near Scout Gandia & Timog Ave., Quezon City',
+    coords: [14.6375, 121.0362],
+    lat: 14.6375,
+    lng: 121.0362,
+    dateTimeSeen: new Date(Date.now() - 4 * 3600000).toISOString(),
+    comments: 'Spotted friendly golden dog near convenience store wearing brown leather collar. Approached by local guard.',
+    notes: 'Spotted friendly golden dog near convenience store wearing brown leather collar. Approached by local guard.',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    photo: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    reporterName: 'Resident in South Triangle',
+    reporterPhone: '+63 928 333 4411',
+    confidenceScore: 94,
+    createdAt: new Date(Date.now() - 4 * 3600000).toISOString(),
+    status: 'possible_sighting'
+  },
+  {
+    id: 'sight-2026-003',
+    missing_report_id: 'mr-2026-001',
+    petId: 'pet-seed-01',
+    matchedPetId: 'pet-seed-01',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    color: 'Golden brown with white chest patch',
+    location: 'EDSA cor. West Avenue pedestrian walkway',
+    coords: [14.6530, 121.0310],
+    lat: 14.6530,
+    lng: 121.0310,
+    dateTimeSeen: new Date(Date.now() - 1 * 3600000).toISOString(),
+    comments: 'Spotted near overpass walking toward Philam Homes perimeter gate. Alert and active.',
+    notes: 'Spotted near overpass walking toward Philam Homes perimeter gate. Alert and active.',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    photo: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    reporterName: 'Kuya Ronald (Tricycle Driver)',
+    reporterPhone: '+63 919 777 2201',
+    confidenceScore: 96,
+    createdAt: new Date(Date.now() - 1 * 3600000).toISOString(),
+    status: 'possible_sighting'
+  }
+];
+
+const SEED_NOTIFICATIONS = [
+  {
+    id: 'notif-sight-review-01',
+    type: 'sighting_verification',
+    title: 'POSSIBLE SIGHTING: "MAX" REPORTED NEAR WEST AVENUE',
+    message: 'A community member submitted a sighting report for your missing pet Max near EDSA cor. West Avenue. Please verify if this is your pet.',
+    petId: 'pet-seed-01',
+    missingReportId: 'mr-2026-001',
+    sightingId: 'sight-2026-003',
+    location: 'EDSA cor. West Avenue pedestrian walkway',
+    coords: [14.6530, 121.0310],
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    timestamp: new Date(Date.now() - 1 * 3600000).toISOString(),
+    read: false
+  }
+];
+
 class Store {
   constructor() {
     this.listeners = [];
@@ -77,19 +241,22 @@ class Store {
       localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(SEED_SHELTERS));
     }
     if (localStorage.getItem(STORAGE_KEYS.PETS) === null) {
-      localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(SEED_PETS));
     }
     if (localStorage.getItem(STORAGE_KEYS.IMPOUNDMENTS) === null) {
       localStorage.setItem(STORAGE_KEYS.IMPOUNDMENTS, JSON.stringify([]));
     }
     if (localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) === null) {
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(SEED_NOTIFICATIONS));
     }
     if (localStorage.getItem(STORAGE_KEYS.SIGHTINGS) === null) {
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(SEED_SIGHTINGS));
     }
     if (localStorage.getItem(STORAGE_KEYS.CASES) === null) {
       localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify([]));
+    }
+    if (localStorage.getItem(STORAGE_KEYS.MISSING_REPORTS) === null) {
+      localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(SEED_MISSING_REPORTS));
     }
   }
 
@@ -168,6 +335,9 @@ class Store {
       }
       if (Array.isArray(db.cases)) {
         localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(db.cases));
+      }
+      if (Array.isArray(db.missingReports)) {
+        localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(db.missingReports));
       }
       if (Array.isArray(db.shelters) && db.shelters.length > 0) {
         localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(db.shelters));
@@ -519,13 +689,151 @@ class Store {
       ...sighting,
       id: sighting.id || 'sight-' + Date.now(),
       createdAt: sighting.createdAt || new Date().toISOString(),
-      status: sighting.status || 'active_sighting'
+      status: sighting.status || 'possible_sighting'
     };
     sightings.unshift(newSighting);
     localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
     this.pushBackendMutation('create_sighting', { sighting: newSighting });
     this.notify('sighting_added');
     return newSighting;
+  }
+
+  getMissingReports() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.MISSING_REPORTS)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  getMissingReportById(id) {
+    if (!id) return null;
+    return this.getMissingReports().find(r => r.id === id || r.petId === id);
+  }
+
+  getActiveMissingReportForPet(petId) {
+    if (!petId) return null;
+    return this.getMissingReports().find(r => r.petId === petId && r.status === 'active');
+  }
+
+  createMissingReport(reportData) {
+    const reports = this.getMissingReports();
+    const newReport = {
+      ...reportData,
+      id: reportData.id || 'mr-' + Date.now(),
+      status: reportData.status || 'active',
+      createdAt: reportData.createdAt || new Date().toISOString()
+    };
+    reports.unshift(newReport);
+    localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(reports));
+
+    if (newReport.petId) {
+      this.updatePetStatus(newReport.petId, 'lost', {
+        lastSeenLocation: newReport.lastSeenLocation,
+        lastSeenDate: newReport.lastSeenDate,
+        lastSeenCoords: newReport.lastSeenCoords,
+        missingReportId: newReport.id
+      });
+    }
+
+    this.pushBackendMutation('create_missing_report', { report: newReport });
+    this.notify('missing_report_created');
+    return newReport;
+  }
+
+  updateMissingReport(id, updates) {
+    const reports = this.getMissingReports();
+    const idx = reports.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      reports[idx] = { ...reports[idx], ...updates, updatedAt: new Date().toISOString() };
+      localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(reports));
+      this.pushBackendMutation('update_missing_report', { report: reports[idx] });
+      this.notify('missing_report_updated');
+      return reports[idx];
+    }
+    return null;
+  }
+
+  getSightingsForMissingReport(missingReportId) {
+    if (!missingReportId) return [];
+    return this.getSightings().filter(s => s.missing_report_id === missingReportId || s.matchedPetId === missingReportId);
+  }
+
+  getSightingById(id) {
+    if (!id) return null;
+    return this.getSightings().find(s => s.id === id);
+  }
+
+  updateSighting(sightingId, updates) {
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (s) {
+      Object.assign(s, updates);
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+      this.pushBackendMutation('update_sighting_status', { sightingId, status: s.status, updates });
+      this.notify('sighting_updated');
+      return s;
+    }
+    return null;
+  }
+
+  confirmSighting(sightingId) {
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (s) {
+      s.status = 'confirmed_sighting';
+      s.confirmedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+
+      // Case timeline update
+      const timelineEvent = {
+        timestamp: new Date().toISOString(),
+        type: 'sighting',
+        title: 'Guardian Confirmed Sighting Match',
+        location: s.location || 'Metro Manila',
+        finder: s.reporterName ? `${s.reporterName} (${s.reporterPhone || 'Phone on file'})` : 'Community Good Samaritan',
+        notes: `Owner visually verified photo and details. Status updated to Confirmed Sighting.`,
+        photoUrl: s.photoUrl || s.photo
+      };
+
+      if (s.petId) {
+        this.addCaseTimelineEvent(s.petId, timelineEvent);
+      }
+
+      this.pushBackendMutation('confirm_sighting', {
+        sightingId,
+        petId: s.petId,
+        caseTimeline: timelineEvent
+      });
+      this.notify('sighting_confirmed');
+      return s;
+    }
+    return null;
+  }
+
+  dismissSighting(sightingId) {
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (s) {
+      s.status = 'dismissed';
+      s.dismissedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+
+      if (s.petId) {
+        this.addCaseTimelineEvent(s.petId, {
+          timestamp: new Date().toISOString(),
+          type: 'status_update',
+          title: 'Sighting Dismissed by Guardian',
+          location: s.location || 'Metro Manila',
+          notes: 'Guardian reviewed sighting report and marked as non-matching (archived from active map).'
+        });
+      }
+
+      this.pushBackendMutation('dismiss_sighting', { sightingId });
+      this.notify('sighting_dismissed');
+      return s;
+    }
+    return null;
   }
 
   getCases() {
