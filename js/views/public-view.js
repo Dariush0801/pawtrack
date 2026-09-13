@@ -363,7 +363,7 @@ class PublicView {
         <div class="shelter-hover-content">
           <div class="shelter-tooltip-header">Official Animal Facility</div>
           <div class="shelter-tooltip-title">${s.name}</div>
-          <div class="shelter-tooltip-addr">📍 ${s.address}</div>
+          <div class="shelter-tooltip-addr">${s.address}</div>
           <div class="shelter-tooltip-phone">Hotline: ${s.phone}</div>
           <div class="shelter-tooltip-hint">Click pin for directions & photos</div>
         </div>
