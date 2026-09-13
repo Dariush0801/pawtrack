@@ -388,40 +388,54 @@ class ReportManager {
 
   populatePetsDropdown(selectedPetId = null) {
     const select = document.getElementById('report-missing-pet-select');
-    if (!select || !window.pawStore) return;
+    if (!select) return;
 
-    const selectPetPh = window.pawI18n ? window.pawI18n.t('report.selectPetPh', '-- Select Registered Pet --') : '-- Select Registered Pet --';
-    const otherPetText = window.pawI18n ? window.pawI18n.t('report.otherPet', '+ Other / Unregistered Pet') : '+ Other / Unregistered Pet';
+    const registeredLabel = window.pawI18n ? window.pawI18n.t('report.registered', 'Registered') : 'Registered';
+    const unregisteredLabel = window.pawI18n ? window.pawI18n.t('report.unregistered', 'Unregistered') : 'Unregistered';
 
-    const pets = window.pawStore.getPets();
-    let options = `<option value="">${selectPetPh}</option>`;
+    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    let options = '';
 
-    pets.forEach(p => {
-      const isSelected = selectedPetId && String(p.id) === String(selectedPetId);
-      options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
-    });
+    const isCustomSelected = selectedPetId === 'custom' || selectedPetId === 'unregistered';
 
-    options += `<option value="custom">${otherPetText}</option>`;
-    select.innerHTML = options;
+    if (pets && pets.length > 0) {
+      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(pets[0].id) : null);
 
-    if (selectedPetId) {
-      this.handlePetSelect(selectedPetId);
+      pets.forEach((p, idx) => {
+        const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+      });
+
+      options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      select.innerHTML = options;
+
+      const activeVal = select.value || (isCustomSelected ? 'custom' : pets[0].id);
+      this.handlePetSelect(activeVal);
     } else {
-      this.updateMissingPhotoStatus(null, false);
+      options += `<option value="registered" ${!isCustomSelected ? 'selected' : ''}>${registeredLabel}</option>`;
+      options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      select.innerHTML = options;
+
+      this.handlePetSelect(isCustomSelected ? 'custom' : 'registered');
     }
   }
 
   handlePetSelect(petId) {
     const customWrap = document.getElementById('report-missing-custom-name-wrap');
     const customInput = document.getElementById('report-missing-custom-name');
-    if (petId === 'custom') {
+    const isUnregistered = petId === 'custom' || petId === 'unregistered';
+
+    if (isUnregistered) {
       if (customWrap) customWrap.style.display = 'block';
       if (customInput) customInput.required = true;
       this.updateMissingPhotoStatus(null, false);
     } else {
       if (customWrap) customWrap.style.display = 'none';
-      if (customInput) customInput.required = false;
-      if (petId && window.pawStore) {
+      if (customInput) {
+        customInput.required = false;
+        customInput.value = '';
+      }
+      if (petId && petId !== 'registered' && window.pawStore) {
         const pets = window.pawStore.getPets();
         const pet = pets.find(p => String(p.id) === String(petId));
         if (pet) {
@@ -435,6 +449,15 @@ class ReportManager {
           } else {
             this.removeUploadedPhoto(false);
             this.updateMissingPhotoStatus(null, false);
+          }
+        }
+      } else if (petId === 'registered' && window.pawStore) {
+        const pets = window.pawStore.getPets();
+        if (pets && pets.length > 0) {
+          const pet = pets[0];
+          if (pet.photoUrl || pet.photo) {
+            this.setUploadedPhoto(pet.photoUrl || pet.photo);
+            this.updateMissingPhotoStatus(pet.name, true);
           }
         }
       } else {
