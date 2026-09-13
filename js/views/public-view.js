@@ -216,7 +216,7 @@ class PublicView {
     // 2. Add Sighting items
     if (this.currentFilter === 'all' || this.currentFilter === 'sighted') {
       sightings.forEach(s => {
-        if (s.status === 'dismissed' || !this.isInSelectedCommunity(s)) return;
+        if (s.status === 'dismissed' || s.status === 'archived' || !this.isInSelectedCommunity(s)) return;
         if (this.searchQuery) {
           const q = this.searchQuery.toLowerCase();
           const matchBreed = (s.breed || '').toLowerCase().includes(q);
@@ -474,7 +474,7 @@ class PublicView {
     this.sightingMarkers = [];
     const sightings = window.pawStore.getSightings();
     sightings.forEach(s => {
-      if (s.status === 'dismissed' || !this.isInSelectedCommunity(s)) return;
+      if (s.status === 'dismissed' || s.status === 'archived' || !this.isInSelectedCommunity(s)) return;
       let sCoords = (s.lat && s.lng) ? [s.lat, s.lng] : [14.6360 + (Math.random() - 0.5) * 0.02, 121.0370 + (Math.random() - 0.5) * 0.02];
       const sightingPin = window.L.divIcon({
         className: 'custom-map-icon-wrap',
