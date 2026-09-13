@@ -249,7 +249,7 @@ verify(28, 'Report Pet Sighting modal has Maps/Upload layout, layers, search bar
   return hasModeToggle && hasLayerDock && hasSearchWrap && hasUploadContainer && hasPinIcon && hasMethods;
 });
 
-// 29. Report Pet Sighting modal has Name / Anonymous toggle button, single-line name, and same-line Date & Phone
+// 29. Report Pet Sighting modal has Name / Anonymous toggle button, single-line name first, and same-line Date & Phone with 09 placeholder
 verify(29, 'Report Pet Sighting has Name/Anonymous toggle, 1-line name, and same-line Date & Phone', () => {
   const hasNameToggle = indexHtml.includes('id="sighting-name-type-toggle"') &&
                         indexHtml.includes('id="sighting-name-btn"') &&
@@ -259,7 +259,11 @@ verify(29, 'Report Pet Sighting has Name/Anonymous toggle, 1-line name, and same
                                 indexHtml.includes('id="sighting-reporter-phone"');
   const hasMethods = reportManagerJs.includes('setSightingNameMode(') &&
                      reportManagerJs.includes('handleSightingNameInput(');
-  return hasNameToggle && hasSingleLineName && hasDatePhoneInSameRow && hasMethods;
+  const nameIdx = indexHtml.indexOf('id="sighting-reporter-name-group"');
+  const dateIdx = indexHtml.indexOf('id="sighting-datetime-input"');
+  const nameFirst = nameIdx !== -1 && dateIdx !== -1 && nameIdx < dateIdx;
+  const phoneStarts09 = indexHtml.includes('id="sighting-reporter-phone" placeholder="e.g. 0917 123 4567"');
+  return hasNameToggle && hasSingleLineName && hasDatePhoneInSameRow && hasMethods && nameFirst && phoneStarts09;
 });
 
 console.log('\n===============================================================');
