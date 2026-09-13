@@ -711,7 +711,7 @@
       'report.step2FoundTitle': 'Litrato ng Alaga',
       'report.step2FoundDesc': 'Lumipat sa "Upload" para maglagay ng litrato para sa visual at AI matching.',
       'report.step3FoundTitle': 'I-tap ang Phone sa Collar Tag',
-      'report.step3FoundDesc': 'I-tap ang iyong smartphone sa NFC collar tag ng alaga para maikonekta at maiulat agad nang hindi kailangang mag-type ng numero.',
+      'report.step3FoundDesc': 'I-tap ang iyong smartphone sa NFC collar tag ng alaga para maikonekta at maiulat agad.',
       'report.step4FoundTitle': 'Ipasa at Abisuhan',
       'report.step4FoundDesc': 'Pindutin ang "Submit and Notify" para maabisuhan ang may-ari at municipal shelters.',
       'report.step1MissingTitle': 'Piliin ang Alaga',
