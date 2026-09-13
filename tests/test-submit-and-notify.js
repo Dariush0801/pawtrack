@@ -11,19 +11,14 @@ global.document = {
   elements: {},
   getElementById(id) {
     if (!this.elements[id]) {
-      this.elements[id] = {
-        value: '',
-        style: {},
-        classList: {
-          add() {},
-          remove() {},
-          toggle() {}
-        },
-        focus() {},
-        scrollIntoView() {}
-      };
+      this.elements[id] = { value: '' };
     }
-    return this.elements[id];
+    const el = this.elements[id];
+    if (!el.style) el.style = {};
+    if (!el.classList) el.classList = { add() {}, remove() {}, toggle() {} };
+    if (!el.focus) el.focus = function() {};
+    if (!el.scrollIntoView) el.scrollIntoView = function() {};
+    return el;
   },
   querySelectorAll() {
     return [];
