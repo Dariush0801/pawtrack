@@ -192,6 +192,12 @@ verify(22, 'All fields marked as required and validated except optional message'
          reportManagerJs.includes('if (!petId)') &&
          reportManagerJs.includes('if (!date)') &&
          indexHtml.includes('data-i18n="report.messageOptional">Message (optional)</label>');
+// 23. Phone number is blank by default and has 09 example placeholder
+verify(23, 'Emergency Contact Phone starts empty with 09 placeholder format', () => {
+  const i18nJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  return indexHtml.includes('id="report-missing-phone" placeholder="e.g. 0917 555 3829" value=""') &&
+         i18nJs.includes("'report.ownerPhonePh': 'e.g. 0917 555 3829'") &&
+         !indexHtml.includes('id="report-missing-phone" placeholder="+63');
 });
 
 console.log('\n===============================================================');
