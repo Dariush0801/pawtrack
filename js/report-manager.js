@@ -1176,11 +1176,12 @@ class ReportManager {
 
     // Required fields validation (all except Describe Pet message)
     if (!petId) {
-      if (window.notifManager) window.notifManager.showToast('Please select a registered pet or select "+ Other / Unregistered Pet".', 'warning', 3500);
+      if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
       select?.focus();
       return;
     }
-    if (petId === 'custom' && !customName) {
+    const isUnregistered = petId === 'custom' || petId === 'unregistered';
+    if (isUnregistered && !customName) {
       if (window.notifManager) window.notifManager.showToast('Please enter the pet name and description.', 'warning', 3500);
       document.getElementById('report-missing-custom-name')?.focus();
       return;
@@ -1205,12 +1206,16 @@ class ReportManager {
     let rfid = 'RFID-TAG';
     let pet = null;
 
-    if (petId && petId !== 'custom') {
-      const pets = window.pawStore.getPets();
-      pet = pets.find(p => String(p.id) === String(petId));
-      if (pet) {
-        petName = pet.name;
-        rfid = pet.rfidTag;
+    if (petId && !isUnregistered) {
+      if (window.pawStore) {
+        const pets = window.pawStore.getPets();
+        pet = pets.find(p => String(p.id) === String(petId)) || (petId === 'registered' && pets.length > 0 ? pets[0] : null);
+        if (pet) {
+          petName = pet.name;
+          rfid = pet.rfidTag;
+        } else {
+          petName = 'Registered Pet';
+        }
       }
     } else {
       petName = customName || 'Beloved Pet';
