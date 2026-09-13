@@ -851,6 +851,8 @@ class ReportManager {
     if (placeholder) placeholder.style.display = 'none';
     if (previewWrap) previewWrap.style.display = 'block';
     if (previewImg) previewImg.src = dataUrl;
+
+    this.updateMissingPhotoStatus();
   }
 
   removeUploadedPhoto(showToast = true) {
@@ -866,6 +868,8 @@ class ReportManager {
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
+
+    this.updateMissingPhotoStatus();
 
     if (showToast && window.notifManager) {
       window.notifManager.showToast('Photo removed.', 'info', 2000);
@@ -1017,13 +1021,17 @@ class ReportManager {
     const phone = document.getElementById('report-missing-phone')?.value || '+63 917 555 3829';
     const notes = document.getElementById('report-missing-notes')?.value || '';
 
+    const finalPhoto = this.uploadedPhotoData || (pet ? (pet.photoUrl || pet.photo) : null) || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500';
+
     if (pet) {
       window.pawStore.updatePetStatus(pet.id, 'lost', {
         lastSeenLocation: location,
         lastSeenDate: date,
         lastSeenCoords: [this.pinnedLat, this.pinnedLng],
         ownerPhone: phone,
-        notes: notes
+        notes: notes,
+        photoUrl: finalPhoto,
+        photo: finalPhoto
       });
     }
 
@@ -1033,6 +1041,8 @@ class ReportManager {
       petName: petName,
       species: pet ? pet.species : 'Pet',
       breed: pet ? pet.breed : 'Mixed Breed',
+      photoUrl: finalPhoto,
+      photo: finalPhoto,
       ownerEmail: pet && pet.owner ? pet.owner.email : 'user@gmail.com',
       ownerPhone: phone,
       community: (pet && pet.community) ? pet.community : (pet && pet.owner && pet.owner.address ? pet.owner.address : 'Metro Manila'),
@@ -1053,6 +1063,8 @@ class ReportManager {
       status: 'missing',
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
+      photoUrl: finalPhoto,
+      photo: finalPhoto,
       createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       timeline: [
@@ -1061,7 +1073,8 @@ class ReportManager {
           type: 'missing',
           title: 'Missing Alert Broadcast Activated',
           location: location,
-          notes: `Guardian reported missing with pinned coordinates [${this.pinnedLat}, ${this.pinnedLng}]. Notes: ${notes}`
+          notes: `Guardian reported missing with pinned coordinates [${this.pinnedLat}, ${this.pinnedLng}]. Notes: ${notes}`,
+          photoUrl: finalPhoto
         }
       ]
     };
@@ -1073,6 +1086,7 @@ class ReportManager {
       type: 'missing',
       missingReportId: missingReport.id,
       petId: pet ? pet.id : null,
+      photoUrl: finalPhoto,
       timestamp: new Date().toISOString()
     });
 
@@ -1084,6 +1098,9 @@ class ReportManager {
 
     if (window.location.hash === '#map' && window.publicView) {
       window.publicView.render(document.getElementById('app-viewport'));
+    }
+    if (window.location.hash === '#owner' && window.ownerView) {
+      window.ownerView.render(document.getElementById('app-viewport'));
     }
   }
 
