@@ -199,7 +199,7 @@ class ReportManager {
           <div class="report-step-num">3</div>
           <div class="report-step-content">
             <strong data-i18n="report.step3FoundTitle">${t('report.step3FoundTitle', 'Tap Phone to Collar Tag')}</strong>
-            <p data-i18n="report.step3FoundDesc">${t('report.step3FoundDesc', 'Tap your smartphone to the pet\'s NFC collar tag to connect and report instantly without typing any tag number.')}</p>
+            <p data-i18n="report.step3FoundDesc">${t('report.step3FoundDesc', 'Tap your smartphone to the pet\'s NFC collar tag to connect and report instantly.')}</p>
           </div>
         </div>
         <div class="report-step-card">
