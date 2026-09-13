@@ -202,6 +202,21 @@ verify(23, 'Emergency Contact Phone starts empty with 09 placeholder format', ()
          !indexHtml.includes('id="report-missing-phone" placeholder="+63');
 });
 
+// 24. Pin-drop synchronizes to search bar, missing location, and QC-only presets
+verify(24, 'Pinning on map syncs search bar, missing location, and presets are QC-only', () => {
+  const hasSyncLogic = reportManagerJs.includes("document.getElementById('report-location-search-input')") &&
+                       reportManagerJs.includes("document.getElementById('report-missing-location')") &&
+                       reportManagerJs.includes("getNearestPresetName(this.pinnedLat, this.pinnedLng)");
+  const hasQcPlaceholder = indexHtml.includes('placeholder="Search barangay, district, or landmark in Quezon City..."');
+  const qcOnlyPresets = !reportManagerJs.includes("'Manila City") &&
+                        !reportManagerJs.includes("'Makati CBD") &&
+                        !reportManagerJs.includes("'Taguig - BGC") &&
+                        !reportManagerJs.includes("'Pasig City") &&
+                        reportManagerJs.includes("'QC - Commonwealth Market") &&
+                        reportManagerJs.includes("'QC - Diliman / UP Campus");
+  return hasSyncLogic && hasQcPlaceholder && qcOnlyPresets;
+});
+
 console.log('\n===============================================================');
 if (allPassed) {
   console.log('  >>> VERIFICATION RESULT: ALL BUTTONS & FORM CHECKS PASSED <<<  ');
