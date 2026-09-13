@@ -3,66 +3,40 @@
  */
 
 const PRESET_LOCATIONS = [
-  { name: 'Quezon City (Central / Elliptical)', lat: 14.6500, lng: 121.0400, group: 'City' },
-  { name: 'QC - Commonwealth / Batasan', lat: 14.6850, lng: 121.0850, group: 'District' },
-  { name: 'QC - Tomas Morato / Timog', lat: 14.6342, lng: 121.0375, group: 'District' },
-  { name: 'QC - Cubao / Araneta City', lat: 14.6200, lng: 121.0530, group: 'District' },
-  { name: 'QC - Diliman / UP Campus', lat: 14.6538, lng: 121.0685, group: 'District' },
-  { name: 'QC - Eastwood City / Libis', lat: 14.6090, lng: 121.0800, group: 'District' },
-  { name: 'QC - Novaliches / Quirino', lat: 14.7180, lng: 121.0350, group: 'District' },
-  { name: 'QC - Fairview / Regalado', lat: 14.7000, lng: 121.0650, group: 'District' },
-  { name: 'QC - Project 4 / Katipunan', lat: 14.6280, lng: 121.0730, group: 'District' },
-  { name: 'QC - West Triangle / EDSA', lat: 14.6450, lng: 121.0330, group: 'District' },
+  // Quezon City Congressional Districts (Primary Presets)
+  { name: 'District 1 (La Loma / SFDM / Project 6)', lat: 14.6380, lng: 121.0150, group: 'QC District 1' },
+  { name: 'District 2 (Commonwealth / Batasan / Payatas)', lat: 14.6850, lng: 121.0850, group: 'QC District 2' },
+  { name: 'District 3 (Cubao / Katipunan / Loyola / Eastwood)', lat: 14.6200, lng: 121.0530, group: 'QC District 3' },
+  { name: 'District 4 (Diliman / Tomas Morato / UP / New Manila)', lat: 14.6538, lng: 121.0685, group: 'QC District 4' },
+  { name: 'District 5 (Novaliches / Fairview / Lagro)', lat: 14.7180, lng: 121.0350, group: 'QC District 5' },
+  { name: 'District 6 (Tandang Sora / Balintawak / Culiat)', lat: 14.6750, lng: 121.0350, group: 'QC District 6' },
 
-  { name: 'Manila City (City Hall / Central)', lat: 14.5995, lng: 120.9842, group: 'City' },
-  { name: 'Manila - Intramuros', lat: 14.5895, lng: 120.9747, group: 'District' },
-  { name: 'Manila - Malate / Ermita', lat: 14.5750, lng: 120.9850, group: 'District' },
-  { name: 'Manila - Sampaloc / UST', lat: 14.6050, lng: 120.9950, group: 'District' },
-  { name: 'Manila - Binondo (Chinatown)', lat: 14.6000, lng: 120.9750, group: 'District' },
-  { name: 'Manila - Tondo / Gagalangin', lat: 14.6200, lng: 120.9700, group: 'District' },
-  { name: 'Manila - Sta. Mesa / PUP', lat: 14.5980, lng: 121.0120, group: 'District' },
+  // Quezon City Hubs & Landmarks
+  { name: 'Quezon Memorial Circle (Elliptical Road)', lat: 14.6500, lng: 121.0400, group: 'Quezon City' },
+  { name: 'QC - Tomas Morato / Scout Area', lat: 14.6342, lng: 121.0375, group: 'Quezon City' },
+  { name: 'QC - Cubao / Araneta City', lat: 14.6200, lng: 121.0530, group: 'Quezon City' },
+  { name: 'QC - Diliman / UP Campus', lat: 14.6538, lng: 121.0685, group: 'Quezon City' },
+  { name: 'QC - Eastwood City / Libis', lat: 14.6090, lng: 121.0800, group: 'Quezon City' },
+  { name: 'QC - Fairview / Regalado', lat: 14.7000, lng: 121.0650, group: 'Quezon City' },
+  { name: 'QC - Novaliches Proper', lat: 14.7180, lng: 121.0350, group: 'Quezon City' },
+  { name: 'QC - Project 6 / Mindanao Avenue', lat: 14.6650, lng: 121.0300, group: 'Quezon City' },
+  { name: 'QC - Batasan Hills / Sandiganbayan', lat: 14.6890, lng: 121.0920, group: 'Quezon City' },
+  { name: 'QC - Loyola Heights / Katipunan Avenue', lat: 14.6390, lng: 121.0770, group: 'Quezon City' },
+  { name: 'QC - New Manila / E. Rodriguez', lat: 14.6190, lng: 121.0300, group: 'Quezon City' },
+  { name: 'QC - La Loma / Calavite', lat: 14.6310, lng: 121.0020, group: 'Quezon City' },
+  { name: 'QC - Tandang Sora / Banlat', lat: 14.6750, lng: 121.0450, group: 'Quezon City' },
+  { name: 'QC - Payatas / Litex', lat: 14.7050, lng: 121.1080, group: 'Quezon City' },
 
-  { name: 'Makati CBD / Ayala Avenue', lat: 14.5547, lng: 121.0244, group: 'City' },
-  { name: 'Makati - Poblacion / Rockwell', lat: 14.5670, lng: 121.0320, group: 'District' },
-  { name: 'Makati - Legazpi / Salcedo Village', lat: 14.5580, lng: 121.0180, group: 'District' },
-  { name: 'Makati - Guadalupe / EDSA', lat: 14.5680, lng: 121.0450, group: 'District' },
-  { name: 'Makati - San Antonio / Chino Roces', lat: 14.5600, lng: 121.0080, group: 'District' },
-
-  { name: 'Taguig - BGC (Bonifacio Global City)', lat: 14.5500, lng: 121.0500, group: 'City' },
-  { name: 'Taguig - McKinley Hill', lat: 14.5340, lng: 121.0530, group: 'District' },
-  { name: 'Taguig - Arca South / FTI', lat: 14.5050, lng: 121.0450, group: 'District' },
-  { name: 'Taguig - Ususan / C5 Road', lat: 14.5280, lng: 121.0650, group: 'District' },
-
-  { name: 'Pasig City (City Hall / Kapasigan)', lat: 14.5800, lng: 121.0600, group: 'City' },
-  { name: 'Pasig - Ortigas Center', lat: 14.5860, lng: 121.0610, group: 'District' },
-  { name: 'Pasig - Kapitolyo', lat: 14.5750, lng: 121.0620, group: 'District' },
-  { name: 'Pasig - Rosario / C5', lat: 14.5880, lng: 121.0820, group: 'District' },
-  { name: 'Pasig - Manggahan / Santolan', lat: 14.6050, lng: 121.0950, group: 'District' },
-
-  { name: 'Mandaluyong City (Shaw / EDSA)', lat: 14.5794, lng: 121.0359, group: 'City' },
-  { name: 'Mandaluyong - Pioneer / Boni Avenue', lat: 14.5700, lng: 121.0450, group: 'District' },
-  { name: 'Mandaluyong - Highway Hills', lat: 14.5820, lng: 121.0480, group: 'District' },
-
-  { name: 'Marikina City (Bayan / Shoe Avenue)', lat: 14.6507, lng: 121.1029, group: 'City' },
-  { name: 'Marikina - Concepcion / Riverbanks', lat: 14.6380, lng: 121.0950, group: 'District' },
-  { name: 'Marikina - Heights / Lilac Street', lat: 14.6450, lng: 121.1200, group: 'District' },
-
-  { name: 'San Juan City (Greenhills / Ortigas Ave)', lat: 14.6019, lng: 121.0355, group: 'City' },
-
-  { name: 'Caloocan City (Monumento / South)', lat: 14.6570, lng: 120.9840, group: 'City' },
-  { name: 'Caloocan North (Bagong Silang / Camarin)', lat: 14.7600, lng: 121.0450, group: 'District' },
-
-  { name: 'Pasay City (Mall of Asia / Bay Area)', lat: 14.5350, lng: 120.9820, group: 'City' },
-  { name: 'Pasay - NAIA Airport Terminal Area', lat: 14.5150, lng: 121.0150, group: 'District' },
-
-  { name: 'Parañaque City (BF Homes)', lat: 14.4500, lng: 121.0200, group: 'City' },
-  { name: 'Parañaque - Sucat / Dr. A. Santos', lat: 14.4800, lng: 121.0450, group: 'District' },
-  { name: 'Parañaque - Baclaran / Roxas Blvd', lat: 14.5320, lng: 120.9920, group: 'District' },
-
-  { name: 'Muntinlupa City (Alabang / Filinvest)', lat: 14.4250, lng: 121.0400, group: 'City' },
-  { name: 'Muntinlupa - Tunasan / National Road', lat: 14.3900, lng: 121.0450, group: 'District' },
-
-  { name: 'Las Piñas City (Alabang-Zapote Road)', lat: 14.4445, lng: 120.9939, group: 'City' },
+  // Surrounding Metro Manila areas
+  { name: 'Manila City (City Hall / Central)', lat: 14.5995, lng: 120.9842, group: 'Metro Manila' },
+  { name: 'Makati CBD / Ayala Avenue', lat: 14.5547, lng: 121.0244, group: 'Metro Manila' },
+  { name: 'Taguig - BGC (Bonifacio Global City)', lat: 14.5500, lng: 121.0500, group: 'Metro Manila' },
+  { name: 'Pasig City (Ortigas Center)', lat: 14.5860, lng: 121.0610, group: 'Metro Manila' },
+  { name: 'Mandaluyong City (Shaw / EDSA)', lat: 14.5794, lng: 121.0359, group: 'Metro Manila' },
+  { name: 'Marikina City (Bayan / Shoe Avenue)', lat: 14.6507, lng: 121.1029, group: 'Metro Manila' },
+  { name: 'San Juan City (Greenhills)', lat: 14.6019, lng: 121.0355, group: 'Metro Manila' },
+  { name: 'Caloocan City (Monumento / South)', lat: 14.6570, lng: 120.9840, group: 'Metro Manila' }
+];
 
   { name: 'Valenzuela City (Karuhatan / McArthur)', lat: 14.7011, lng: 120.9830, group: 'City' },
   { name: 'Malabon City (Concepcion / Tugatog)', lat: 14.6625, lng: 120.9570, group: 'City' },
@@ -761,19 +735,29 @@ class ReportManager {
     const chips = document.querySelectorAll('.report-zone-chip');
     chips.forEach(chip => {
       const chipText = chip.textContent.trim().toLowerCase();
-      const match = name.toLowerCase().includes(chipText);
-      chip.classList.toggle('active', match);
+      const nLower = name.toLowerCase();
+      const distMatch = nLower.match(/district\s*(\d)/);
+      const chipDistMatch = chipText.match(/district\s*(\d)/);
+      let match = false;
+      if (distMatch && chipDistMatch && distMatch[1] === chipDistMatch[1]) {
+        match = true;
+      } else {
+        match = nLower.includes(chipText) || chipText.includes(nLower);
+      }
+      chip.classList.toggle('active', !!match);
     });
+
+    const formattedLoc = name.toLowerCase().includes('quezon city') ? name : `${name}, Quezon City`;
 
     if (this.currentType === 'found') {
       const locInput = document.getElementById('report-found-location');
       if (locInput) {
-        locInput.value = `${name}, Metro Manila`;
+        locInput.value = formattedLoc;
       }
     } else {
       const locInput = document.getElementById('report-missing-location');
       if (locInput) {
-        locInput.value = `${name}, Metro Manila`;
+        locInput.value = formattedLoc;
       }
     }
   }
@@ -891,7 +875,7 @@ class ReportManager {
   submitFoundReport() {
     const species = document.getElementById('report-found-species')?.value || 'Dog';
     const breed = document.getElementById('report-found-breed')?.value || (species === 'Dog' ? 'Aspin' : 'Domestic Shorthair');
-    const location = document.getElementById('report-found-location')?.value || 'Metro Manila';
+    const location = document.getElementById('report-found-location')?.value || 'Quezon City';
     const rfid = (document.getElementById('report-found-rfid')?.value || '').trim();
     const phone = document.getElementById('report-found-phone')?.value || '';
     const notes = document.getElementById('report-found-notes')?.value || 'Stray animal spotted by community member.';
@@ -899,6 +883,12 @@ class ReportManager {
     const finalPhoto = this.uploadedPhotoData || (species === 'Cat' ? 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500' : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500');
 
     const sightingId = 'SIGHT-' + Date.now().toString().slice(-6);
+
+    // Check if the entered RFID matches any registered pet in the system BEFORE building sighting object
+    let matchedPet = null;
+    if (rfid && window.pawStore) {
+      matchedPet = window.pawStore.getPetByRFID(rfid);
+    }
 
     const sighting = {
       id: sightingId,
@@ -919,12 +909,6 @@ class ReportManager {
     };
 
     window.pawStore.addSighting(sighting);
-
-    // Check if the entered RFID matches any registered pet in the system
-    let matchedPet = null;
-    if (rfid && window.pawStore) {
-      matchedPet = window.pawStore.getPetByRFID(rfid);
-    }
 
     if (matchedPet) {
       // Create high-priority notification for the pet owner with complete finder info
