@@ -473,6 +473,81 @@ class ReportManager {
     }
   }
 
+  populateFoundPetsDropdown(selectedPetId = null) {
+    const select = document.getElementById('report-found-pet-select');
+    if (!select) return;
+
+    const registeredLabel = window.pawI18n ? window.pawI18n.t('report.registered', 'Registered') : 'Registered';
+    const unregisteredLabel = window.pawI18n ? window.pawI18n.t('report.unregistered', 'Unregistered') : 'Unregistered';
+
+    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    let options = '';
+
+    const isCustomSelected = selectedPetId === 'custom' || selectedPetId === 'unregistered';
+
+    if (pets && pets.length > 0) {
+      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(pets[0].id) : null);
+
+      pets.forEach((p, idx) => {
+        const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+      });
+
+      options += `<option value="unregistered" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      select.innerHTML = options;
+
+      const activeVal = select.value || (isCustomSelected ? 'unregistered' : pets[0].id);
+      this.handleFoundPetSelect(activeVal);
+    } else {
+      options += `<option value="registered" ${!isCustomSelected ? 'selected' : ''}>${registeredLabel}</option>`;
+      options += `<option value="unregistered" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      select.innerHTML = options;
+
+      this.handleFoundPetSelect(isCustomSelected ? 'unregistered' : 'registered');
+    }
+  }
+
+  handleFoundPetSelect(petId) {
+    const isUnregistered = petId === 'custom' || petId === 'unregistered';
+    const speciesSelect = document.getElementById('report-found-species');
+    const breedInput = document.getElementById('report-found-breed');
+    const rfidInput = document.getElementById('report-found-rfid');
+
+    if (isUnregistered) {
+      if (rfidInput && !rfidInput.dataset.manual) {
+        rfidInput.value = '';
+      }
+    } else {
+      if (petId && petId !== 'registered' && window.pawStore) {
+        const pets = window.pawStore.getPets();
+        const pet = pets.find(p => String(p.id) === String(petId));
+        if (pet) {
+          if (speciesSelect && pet.species) {
+            speciesSelect.value = (pet.species === 'Cat' ? 'Cat' : pet.species === 'Dog' ? 'Dog' : 'Other');
+          }
+          if (breedInput && pet.breed) {
+            breedInput.value = pet.breed;
+          }
+          if (rfidInput && pet.rfidTag) {
+            rfidInput.value = pet.rfidTag;
+          }
+          if (pet.photoUrl || pet.photo) {
+            this.setUploadedPhoto(pet.photoUrl || pet.photo);
+          }
+        }
+      } else if (petId === 'registered' && window.pawStore) {
+        const pets = window.pawStore.getPets();
+        if (pets && pets.length > 0) {
+          const pet = pets[0];
+          if (speciesSelect && pet.species) speciesSelect.value = (pet.species === 'Cat' ? 'Cat' : pet.species === 'Dog' ? 'Dog' : 'Other');
+          if (breedInput && pet.breed) breedInput.value = pet.breed;
+          if (rfidInput && pet.rfidTag) rfidInput.value = pet.rfidTag;
+          if (pet.photoUrl || pet.photo) this.setUploadedPhoto(pet.photoUrl || pet.photo);
+        }
+      }
+    }
+  }
+
   updateMissingPhotoStatus(petName = null, isRegistered = false) {
     const statusText = document.getElementById('report-missing-photo-status-text');
     const statusBtn = document.getElementById('report-missing-photo-status-btn');
