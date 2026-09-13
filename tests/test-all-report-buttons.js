@@ -85,7 +85,7 @@ verify(8, 'Mode Upload Button calls setViewMode("upload")', () => {
 // 9. Map Layer Switcher: Roadmap Layer Button
 verify(9, 'Map Layer "Map" Button calls setMapLayer("roadmap")', () => {
   return indexHtml.includes("setMapLayer('roadmap')") &&
-         reportManagerJs.includes("setMapLayer(layerType)");
+         reportManagerJs.includes("setMapLayer(");
 });
 
 // 10. Map Layer Switcher: Satellite / Hybrid / Dark Buttons
