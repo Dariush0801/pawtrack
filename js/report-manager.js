@@ -1427,7 +1427,6 @@ class ReportManager {
     const hiddenReportId = document.getElementById('sighting-missing-report-id');
     const hiddenPetId = document.getElementById('sighting-pet-id');
     const prefillBanner = document.getElementById('sighting-prefill-banner');
-    const petPickerGroup = document.getElementById('sighting-pet-picker-group');
     const modalTitle = document.getElementById('sighting-modal-title');
     const locInput = document.getElementById('sighting-location-input');
     const notesInput = document.getElementById('sighting-notes-input');
@@ -1483,8 +1482,6 @@ class ReportManager {
         if (metaEl) metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area')}`;
       }
 
-      if (petPickerGroup) petPickerGroup.style.display = 'none';
-
       // Default pinned coords to last seen location
       if (targetPet && targetPet.lastSeenCoords) {
         this.sightingPinnedLat = targetPet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
@@ -1497,23 +1494,11 @@ class ReportManager {
       const initialLoc = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
       this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, initialLoc);
     } else {
-      // General sighting flow: populate missing pets dropdown
+      // General sighting flow
       if (hiddenReportId) hiddenReportId.value = '';
       if (hiddenPetId) hiddenPetId.value = '';
       if (modalTitle) modalTitle.textContent = 'Report Pet Sighting';
       if (prefillBanner) prefillBanner.style.display = 'none';
-      if (petPickerGroup) {
-        petPickerGroup.style.display = 'block';
-        const select = document.getElementById('sighting-pet-picker-select');
-        if (select) {
-          const pets = window.pawStore.getPets().filter(p => p.status === 'lost');
-          let opts = '<option value="">-- General Unlinked Stray / Community Sighting --</option>';
-          pets.forEach(p => {
-            opts += `<option value="${p.id}">Link to Missing Alert: ${p.name} (${p.breed || 'Pet'} - RFID: ${p.rfidTag})</option>`;
-          });
-          select.innerHTML = opts;
-        }
-      }
       this.sightingPinnedLat = 14.6500;
       this.sightingPinnedLng = 121.0400;
       this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, 'Quezon City, Metro Manila');
