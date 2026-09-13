@@ -228,6 +228,10 @@ verify(26, 'Found / Sighted Stray Pet selector provides Registered and Unregiste
   const hasPopulateFound = reportManagerJs.includes('populateFoundPetsDropdown(') &&
                            reportManagerJs.includes('handleFoundPetSelect(');
   return hasFoundSelect && hasPopulateFound;
+// 27. Collar RFID field removed from Found Pet form
+verify(27, 'Collar RFID Tag field removed from Found / Sighted Stray Pet form', () => {
+  return !indexHtml.includes('id="report-found-rfid"') &&
+         !indexHtml.includes('data-i18n="report.rfidTag"');
 });
 
 console.log('\n===============================================================');
