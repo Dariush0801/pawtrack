@@ -6,11 +6,19 @@ echo   PawTrack Instant Sync & Push to GitHub
 echo   Repository: https://github.com/Dariush0801/pawtrack.git
 echo ========================================================
 echo.
-echo [1/3] Staging all files...
+echo [1/4] Staging modified files...
 git add -A
-echo [2/3] Committing changes...
-git commit -m "Update PawTrack code and configuration"
-echo [3/3] Pushing to GitHub (main)...
+echo.
+set /p COMMIT_MSG="Enter commit message (or press ENTER for default): "
+if "%COMMIT_MSG%"=="" set COMMIT_MSG=Manual sync update: PawTrack Pet Owner Portal
+echo.
+echo [2/4] Committing changes...
+git commit -m "%COMMIT_MSG%"
+echo.
+echo [3/4] Pulling remote updates with rebase (if any)...
+git pull --rebase origin main
+echo.
+echo [4/4] Pushing to GitHub (main branch)...
 git push origin main
 echo.
 echo ========================================================

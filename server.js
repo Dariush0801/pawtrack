@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const autoSync = require('./scripts/auto-sync');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -215,6 +216,13 @@ if (!fs.existsSync(SHARED_DB_PATH)) {
 }
 setupWatcher();
 
+// Initialize Git Auto-Sync Watcher
+try {
+  autoSync.startWatcher();
+} catch (e) {
+  console.warn('Could not start Git Auto-Sync watcher:', e.message);
+}
+
 const server = http.createServer((req, res) => {
   // Global CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -242,9 +250,39 @@ const server = http.createServer((req, res) => {
         pets: (db.pets || []).length,
         impoundments: (db.impoundments || []).length,
         shelters: (db.shelters || []).length,
-        rfidTags: (db.rfidTags || []).length
-      }
+        rfidTags: (db.rfidTags || []).length,
+        sightings: (db.sightings || []).length,
+        cases: (db.cases || []).length
+      },
+      git: autoSync.getStatusSummary()
     }));
+    return;
+  }
+
+  // API: Git Status Query
+  if (parsedUrl === '/api/git/status' || parsedUrl === '/api/git-status') {
+    const summary = autoSync.getStatusSummary();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(summary));
+    return;
+  }
+
+  // API: Git Manual Sync / Force Push Trigger
+  if ((parsedUrl === '/api/git/sync' || parsedUrl === '/api/git-sync') && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = body ? JSON.parse(body) : {};
+        const result = autoSync.performSync(payload.message);
+        broadcastSSE({ type: 'git_synced', result, timestamp: Date.now() });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
     return;
   }
 
@@ -730,10 +768,12 @@ server.on('error', (err) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n==================================================');
-  console.log('  PawTrack Pet Owner Portal Server Running');
+  console.log('  🐾 PawTrack Pet Owner Portal Server Running');
   console.log('  Local URL:    http://localhost:' + PORT);
   console.log('  Shared DB:    ' + SHARED_DB_PATH);
   console.log('  SSE Stream:   http://localhost:' + PORT + '/api/events');
   console.log('  Health API:   http://localhost:' + PORT + '/api/health');
+  console.log('  Git Status:   http://localhost:' + PORT + '/api/git/status');
+  console.log('  Git Sync:     POST http://localhost:' + PORT + '/api/git/sync');
   console.log('==================================================\n');
 });
