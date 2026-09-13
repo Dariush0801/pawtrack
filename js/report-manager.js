@@ -219,8 +219,8 @@ class ReportManager {
         <div class="report-step-card">
           <div class="report-step-num">3</div>
           <div class="report-step-content">
-            <strong data-i18n="report.step3MissingTitle">${t('report.step3MissingTitle', 'Set Contact Phone')}</strong>
-            <p data-i18n="report.step3MissingDesc">${t('report.step3MissingDesc', 'Provide your active mobile number so finders and animal pound officers can call you.')}</p>
+            <strong data-i18n="report.step3MissingTitle">${t('report.step3MissingTitle', 'Attach / Upload Pet Photo')}</strong>
+            <p data-i18n="report.step3MissingDesc">${t('report.step3MissingDesc', 'Switch to "Upload" tab to attach a clear, recent picture for AI community matching.')}</p>
           </div>
         </div>
         <div class="report-step-card">
