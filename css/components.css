@@ -1040,6 +1040,116 @@
   color: #ffffff;
 }
 
+/* Shelter & Facility Icon-Only Map Pin */
+.shelter-icon-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #7c3aed 0%, #54280e 100%);
+  background-color: #54280e;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(84, 40, 14, 0.4);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shelter-icon-pin:hover {
+  transform: scale(1.18);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(234, 157, 30, 0.5);
+  background-color: #ba3820;
+}
+
+.shelter-icon-pin svg {
+  width: 16px;
+  height: 16px;
+  stroke: #ffffff;
+  flex-shrink: 0;
+}
+
+/* Shelter Hover Tooltip */
+.leaflet-tooltip.shelter-hover-tooltip {
+  background: var(--bg-surface-elevated, #23130a) !important;
+  color: var(--text-main, #ffffff) !important;
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.3)) !important;
+  border-radius: var(--radius-md, 8px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  padding: 8px 12px !important;
+  font-family: var(--font-body, inherit) !important;
+  font-size: 0.8rem !important;
+  line-height: 1.35 !important;
+  max-width: 260px !important;
+  pointer-events: none !important;
+}
+
+.leaflet-tooltip-top.shelter-hover-tooltip:before {
+  border-top-color: var(--bg-surface-elevated, #23130a) !important;
+}
+
+.shelter-tooltip-header {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary, #ea9d1e);
+  margin-bottom: 2px;
+}
+
+.shelter-tooltip-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+  line-height: 1.25;
+  margin-bottom: 3px;
+}
+
+.shelter-tooltip-addr {
+  font-size: 0.74rem;
+  color: var(--text-muted, #a89f91);
+  margin-bottom: 3px;
+}
+
+.shelter-tooltip-phone {
+  font-size: 0.74rem;
+  color: var(--text-main, #ffffff);
+  font-weight: 600;
+}
+
+.shelter-tooltip-hint {
+  font-size: 0.68rem;
+  color: var(--text-dim, #786d5f);
+  margin-top: 4px;
+  border-top: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.15));
+  padding-top: 3px;
+  font-style: italic;
+}
+
+[data-theme="light"] .leaflet-tooltip.shelter-hover-tooltip {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .leaflet-tooltip-top.shelter-hover-tooltip:before {
+  border-top-color: #ffffff !important;
+}
+
+[data-theme="light"] .shelter-tooltip-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .shelter-tooltip-addr {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .shelter-tooltip-phone {
+  color: #0f172a !important;
+}
+
 .map-pin-pill.pet-lost-pin {
   background: #ba3820;
   color: #ffffff;
