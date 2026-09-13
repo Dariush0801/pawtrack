@@ -1472,49 +1472,157 @@
             </select>
           </div>
 
-          <!-- Form Row 1: Photo Upload (REQUIRED) -->
-          <div class="form-group">
-            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Sighting Photo * <span style="color:#ba3820; font-weight:700;">(Required Evidence)</span></span>
-              <span style="font-size:0.75rem; color:var(--text-muted);">JPEG, PNG, WEBP</span>
-            </label>
-            
-            <div class="sighting-dropzone" id="sighting-dropzone" onclick="document.getElementById('sighting-photo-input').click()">
-              <input type="file" id="sighting-photo-input" accept="image/*" style="display:none;" onchange="window.reportManager ? window.reportManager.handleSightingPhotoInput(this) : null" />
+          <!-- Image & Map Component (Maps / Upload Mode Toggle) -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <div class="report-pin-header" style="margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="report-live-pulse-dot" id="sighting-header-dot"></span>
+                <span id="sighting-header-title" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);">Pinned Location:</span>
+              </div>
               
-              <div id="sighting-dropzone-prompt">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 6px;">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <div style="font-size:0.85rem; font-weight:700; color:var(--text-main);">Click to Upload Photo or Drag & Drop</div>
-                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Clear photo of the spotted pet helps the guardian verify immediately</div>
+              <!-- Maps and Upload mode toggle buttons -->
+              <div class="report-view-mode-toggle" id="sighting-view-mode-toggle">
+                <button type="button" class="report-mode-btn active" id="sighting-mode-map-btn" onclick="window.reportManager.setSightingViewMode('map')">Maps</button>
+                <button type="button" class="report-mode-btn" id="sighting-mode-upload-btn" onclick="window.reportManager.setSightingViewMode('upload')">Upload</button>
+              </div>
+            </div>
+
+            <!-- CONTAINER 1: Maps View Panel -->
+            <div id="sighting-map-view-container" class="report-panel-container">
+              <div class="report-map-wrapper">
+                <div id="sighting-pin-map"></div>
+
+                <!-- Map Layer Switcher Floating Dock -->
+                <div class="gmap-layer-dock report-gmap-layer-dock" id="sighting-map-layer-dock">
+                  <button type="button" class="gmap-layer-btn active" onclick="window.reportManager.setSightingMapLayer('roadmap')" title="Map (Street Network)">
+                    <span>Map</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('satellite')" title="Satellite Photographic View">
+                    <span>Satellite</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('hybrid')" title="Hybrid View">
+                    <span>Hybrid</span>
+                  </button>
+                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('dark')" title="Dark Theme">
+                    <span>Dark</span>
+                  </button>
+                </div>
+
+                <!-- Quick Recenter GPS Tool -->
+                <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
+                  <button type="button" class="gmap-tool-btn" style="width: 28px; height: 28px;" onclick="window.reportManager.locateSightingMe()" title="Recenter to My Location">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">
+                  <span>Tap or drag pin to mark exact location</span>
+                </div>
               </div>
 
-              <div id="sighting-preview-wrap" class="sighting-preview-wrap" style="display:none;">
-                <img id="sighting-preview-img" src="" alt="Sighting Preview" class="sighting-preview-img" />
-                <button type="button" class="btn btn-danger btn-sm" style="position:absolute; top:8px; right:8px; padding:3px 8px; font-size:0.7rem;" onclick="event.stopPropagation(); window.reportManager ? window.reportManager.removeSightingPhoto() : null">
-                  Remove Photo
+              <!-- Location Quick Search & Autocomplete Bar -->
+              <div class="report-location-search-wrap" id="sighting-location-search-wrap" style="position: relative; margin-top: 6px;">
+                <div class="report-location-search-box">
+                  <svg class="report-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    id="sighting-location-input" 
+                    class="report-location-search-input" 
+                    placeholder="Search barangay, district, or landmark in Quezon City..." 
+                    autocomplete="off"
+                    required
+                    oninput="window.reportManager.handleSightingLocationSearch(this.value)"
+                    onkeydown="window.reportManager.handleSightingSearchKeydown(event)"
+                    onfocus="if(this.value.trim().length > 0) window.reportManager.handleSightingLocationSearch(this.value);"
+                  />
+                  <button 
+                    type="button" 
+                    id="sighting-search-clear-btn" 
+                    class="report-search-clear-btn" 
+                    onclick="window.reportManager.clearSightingLocationSearch()" 
+                    style="display: none;" 
+                    title="Clear search"
+                    aria-label="Clear location search"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <!-- Autocomplete suggestions dropdown -->
+                <div id="sighting-location-suggestions" class="report-location-suggestions" style="display: none;"></div>
+              </div>
+            </div>
+
+            <!-- CONTAINER 2: Upload Photo Panel -->
+            <div id="sighting-upload-view-container" class="report-panel-container" style="display: none;">
+              <!-- Two Action Buttons: Take photo & Upload photo -->
+              <div class="report-photo-actions-bar">
+                <button type="button" class="btn btn-primary report-photo-action-btn" onclick="window.reportManager.triggerSightingTakePhoto()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  <span>Take photo</span>
+                </button>
+                <button type="button" class="btn btn-outline report-photo-action-btn" onclick="window.reportManager.triggerSightingUploadPhoto()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span>Upload photo</span>
                 </button>
               </div>
-            </div>
-          </div>
 
-          <!-- Form Row 2: Location / Landmark Description (REQUIRED) + Map Drop-Pin -->
-          <div class="form-group">
-            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Location / Landmark Description *</span>
-              <span id="sighting-coords-badge" style="font-size:0.72rem; font-family:monospace; color:var(--primary);">14.6375, 121.0362</span>
-            </label>
-            <input type="text" id="sighting-location-input" placeholder="e.g. Near West Avenue cor. EDSA, Philam gate" required />
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:4px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>Drag or tap the map pin below to set exact sighting coordinates</span>
-            </div>
+              <!-- Hidden File Inputs -->
+              <input type="file" id="sighting-photo-camera-input" accept="image/*" capture="environment" style="display:none;" onchange="window.reportManager.handleSightingPhotoFile(this)" />
+              <input type="file" id="sighting-photo-file-input" accept="image/*" style="display:none;" onchange="window.reportManager.handleSightingPhotoFile(this)" />
 
-            <!-- Mini Interactive Pin-Drop Leaflet Map -->
-            <div id="sighting-pin-map" class="sighting-pin-map-container"></div>
+              <!-- Upload Photo Dropzone / Live Preview Area -->
+              <div 
+                class="report-photo-dropzone" 
+                id="sighting-photo-dropzone"
+                onclick="window.reportManager.triggerSightingUploadPhoto()"
+                ondragover="window.reportManager.handleSightingDragOver(event)"
+                ondragleave="window.reportManager.handleSightingDragLeave(event)"
+                ondrop="window.reportManager.handleSightingPhotoDrop(event)"
+                style="height: 260px;"
+              >
+                <!-- Empty Placeholder State -->
+                <div class="report-photo-placeholder" id="sighting-photo-placeholder">
+                  <div class="report-photo-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                  </div>
+                  <div class="report-photo-text">Take a live photo or upload from device</div>
+                  <div class="report-photo-subtext">Clear photo of the spotted pet helps the guardian verify immediately</div>
+                </div>
+
+                <!-- Active Image Preview State -->
+                <div class="report-photo-preview-wrap" id="sighting-photo-preview-wrap" style="display: none;">
+                  <img id="sighting-photo-preview-img" src="" alt="Pet Sighting Evidence" class="report-photo-preview-img" />
+                  <div class="report-photo-preview-overlay">
+                    <span class="report-photo-ready-badge">Photo Attached</span>
+                    <div class="report-photo-preview-actions" onclick="event.stopPropagation();">
+                      <button type="button" class="btn btn-outline btn-sm report-photo-ctrl-btn" onclick="window.reportManager.triggerSightingUploadPhoto()">
+                        <span>Change Photo</span>
+                      </button>
+                      <button type="button" class="btn btn-danger btn-sm report-photo-ctrl-btn" onclick="window.reportManager.removeSightingUploadedPhoto()">
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Form Row 3: Date & Time Seen (REQUIRED) + Reporter Name -->
