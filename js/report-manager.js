@@ -11,37 +11,65 @@ const PRESET_LOCATIONS = [
   { name: 'District 5 (Novaliches / Fairview / Lagro)', lat: 14.7180, lng: 121.0350, group: 'QC District 5' },
   { name: 'District 6 (Tandang Sora / Balintawak / Culiat)', lat: 14.6750, lng: 121.0350, group: 'QC District 6' },
 
-  // Quezon City Hubs & Landmarks
-  { name: 'Quezon Memorial Circle (Elliptical Road)', lat: 14.6500, lng: 121.0400, group: 'Quezon City' },
-  { name: 'QC - Tomas Morato / Scout Area', lat: 14.6342, lng: 121.0375, group: 'Quezon City' },
-  { name: 'QC - Cubao / Araneta City', lat: 14.6200, lng: 121.0530, group: 'Quezon City' },
-  { name: 'QC - Diliman / UP Campus', lat: 14.6538, lng: 121.0685, group: 'Quezon City' },
-  { name: 'QC - Eastwood City / Libis', lat: 14.6090, lng: 121.0800, group: 'Quezon City' },
-  { name: 'QC - Fairview / Regalado', lat: 14.7000, lng: 121.0650, group: 'Quezon City' },
-  { name: 'QC - Novaliches Proper', lat: 14.7180, lng: 121.0350, group: 'Quezon City' },
-  { name: 'QC - Project 6 / Mindanao Avenue', lat: 14.6650, lng: 121.0300, group: 'Quezon City' },
-  { name: 'QC - Batasan Hills / Sandiganbayan', lat: 14.6890, lng: 121.0920, group: 'Quezon City' },
-  { name: 'QC - Loyola Heights / Katipunan Avenue', lat: 14.6390, lng: 121.0770, group: 'Quezon City' },
-  { name: 'QC - New Manila / E. Rodriguez', lat: 14.6190, lng: 121.0300, group: 'Quezon City' },
-  { name: 'QC - La Loma / Calavite', lat: 14.6310, lng: 121.0020, group: 'Quezon City' },
-  { name: 'QC - Tandang Sora / Banlat', lat: 14.6750, lng: 121.0450, group: 'Quezon City' },
-  { name: 'QC - Payatas / Litex', lat: 14.7050, lng: 121.1080, group: 'Quezon City' },
+  // District 1 - Barangays & Hubs
+  { name: 'QC - La Loma / Calavite (Lechon Capital)', lat: 14.6310, lng: 121.0020, group: 'QC District 1' },
+  { name: 'QC - San Francisco del Monte (SFDM / Frisco)', lat: 14.6430, lng: 121.0180, group: 'QC District 1' },
+  { name: 'QC - Project 6 / Mindanao Ave / Road 8', lat: 14.6650, lng: 121.0300, group: 'QC District 1' },
+  { name: 'QC - Santa Mesa Heights / Banawe', lat: 14.6280, lng: 121.0040, group: 'QC District 1' },
+  { name: 'QC - Sto. Domingo / Quezon Ave', lat: 14.6260, lng: 121.0090, group: 'QC District 1' },
+  { name: 'QC - Balingasa / Balintawak Cloverleaf', lat: 14.6570, lng: 121.0020, group: 'QC District 1' },
+  { name: 'QC - Del Monte / Siena', lat: 14.6390, lng: 121.0120, group: 'QC District 1' },
+  { name: 'QC - Veterans Village / Project 7', lat: 14.6550, lng: 121.0220, group: 'QC District 1' },
 
-  // Surrounding Metro Manila areas
-  { name: 'Manila City (City Hall / Central)', lat: 14.5995, lng: 120.9842, group: 'Metro Manila' },
-  { name: 'Makati CBD / Ayala Avenue', lat: 14.5547, lng: 121.0244, group: 'Metro Manila' },
-  { name: 'Taguig - BGC (Bonifacio Global City)', lat: 14.5500, lng: 121.0500, group: 'Metro Manila' },
-  { name: 'Pasig City (Ortigas Center)', lat: 14.5860, lng: 121.0610, group: 'Metro Manila' },
-  { name: 'Mandaluyong City (Shaw / EDSA)', lat: 14.5794, lng: 121.0359, group: 'Metro Manila' },
-  { name: 'Marikina City (Bayan / Shoe Avenue)', lat: 14.6507, lng: 121.1029, group: 'Metro Manila' },
-  { name: 'San Juan City (Greenhills)', lat: 14.6019, lng: 121.0355, group: 'Metro Manila' },
-  { name: 'Caloocan City (Monumento / South)', lat: 14.6570, lng: 120.9840, group: 'Metro Manila' },
-  { name: 'Valenzuela City (Karuhatan / McArthur)', lat: 14.7011, lng: 120.9830, group: 'Metro Manila' },
-  { name: 'Malabon City (Concepcion / Tugatog)', lat: 14.6625, lng: 120.9570, group: 'Metro Manila' },
-  { name: 'Navotas City (Fish Port / C4)', lat: 14.6667, lng: 120.9417, group: 'Metro Manila' },
-  { name: 'Antipolo City / Rizal', lat: 14.5842, lng: 121.1763, group: 'Rizal' },
-  { name: 'Cainta / Taytay, Rizal', lat: 14.5700, lng: 121.1200, group: 'Rizal' },
-  { name: 'Bacoor / Imus, Cavite', lat: 14.4624, lng: 120.9645, group: 'Cavite' }
+  // District 2 - Barangays & Hubs
+  { name: 'QC - Commonwealth Market / Don Fabian', lat: 14.6930, lng: 121.0880, group: 'QC District 2' },
+  { name: 'QC - Batasan Hills / Sandiganbayan / Congress', lat: 14.6890, lng: 121.0920, group: 'QC District 2' },
+  { name: 'QC - Payatas / Litex / Lupang Pangako', lat: 14.7050, lng: 121.1080, group: 'QC District 2' },
+  { name: 'QC - Holy Spirit / BF Homes QC', lat: 14.6780, lng: 121.0760, group: 'QC District 2' },
+  { name: 'QC - Bagong Silangan / San Mateo River', lat: 14.6990, lng: 121.1120, group: 'QC District 2' },
+
+  // District 3 - Barangays & Hubs
+  { name: 'QC - Cubao / Araneta City / Gateway', lat: 14.6200, lng: 121.0530, group: 'QC District 3' },
+  { name: 'QC - Eastwood City / Cyberpark / Libis', lat: 14.6090, lng: 121.0800, group: 'QC District 3' },
+  { name: 'QC - Loyola Heights / Katipunan / Ateneo', lat: 14.6390, lng: 121.0770, group: 'QC District 3' },
+  { name: 'QC - Project 2 & 3 / Anonas / Kamias', lat: 14.6280, lng: 121.0620, group: 'QC District 3' },
+  { name: 'QC - Project 4 / J.P. Rizal / Quirino', lat: 14.6230, lng: 121.0710, group: 'QC District 3' },
+  { name: 'QC - Matandang Balara / Old Balara', lat: 14.6620, lng: 121.0780, group: 'QC District 3' },
+  { name: 'QC - Blue Ridge / St. Ignatius', lat: 14.6150, lng: 121.0690, group: 'QC District 3' },
+  { name: 'QC - Socorro / 15th Avenue', lat: 14.6180, lng: 121.0600, group: 'QC District 3' },
+
+  // District 4 - Barangays & Hubs
+  { name: 'QC - Quezon Memorial Circle / City Hall', lat: 14.6500, lng: 121.0400, group: 'QC District 4' },
+  { name: 'QC - Diliman / UP Campus / Sunken Garden', lat: 14.6538, lng: 121.0685, group: 'QC District 4' },
+  { name: 'QC - Tomas Morato / Timog / Scout Area', lat: 14.6342, lng: 121.0375, group: 'QC District 4' },
+  { name: 'QC - South Triangle / ABS-CBN / GMA Network', lat: 14.6400, lng: 121.0370, group: 'QC District 4' },
+  { name: 'QC - New Manila / E. Rodriguez / Broadway', lat: 14.6190, lng: 121.0300, group: 'QC District 4' },
+  { name: 'QC - Kamuning / Judge Jimenez', lat: 14.6300, lng: 121.0410, group: 'QC District 4' },
+  { name: 'QC - Teachers Village / Maginhawa Food Street', lat: 14.6480, lng: 121.0610, group: 'QC District 4' },
+  { name: 'QC - Sikatuna Village / V. Luna', lat: 14.6400, lng: 121.0550, group: 'QC District 4' },
+  { name: 'QC - Phil-Am / West Avenue', lat: 14.6470, lng: 121.0280, group: 'QC District 4' },
+  { name: 'QC - Central / East Avenue / Heart Center', lat: 14.6440, lng: 121.0480, group: 'QC District 4' },
+  { name: 'QC - Krus na Ligas / C.P. Garcia', lat: 14.6490, lng: 121.0700, group: 'QC District 4' },
+
+  // District 5 - Barangays & Hubs
+  { name: 'QC - Fairview / Regalado / SM City Fairview', lat: 14.7330, lng: 121.0580, group: 'QC District 5' },
+  { name: 'QC - Novaliches Proper / Quirino Highway', lat: 14.7180, lng: 121.0350, group: 'QC District 5' },
+  { name: 'QC - Greater Lagro / Ascension Church', lat: 14.7250, lng: 121.0690, group: 'QC District 5' },
+  { name: 'QC - San Bartolome / Holy Cross', lat: 14.7080, lng: 121.0380, group: 'QC District 5' },
+  { name: 'QC - North Fairview / Commonwealth Ave', lat: 14.7150, lng: 121.0620, group: 'QC District 5' },
+  { name: 'QC - Gulod / Forest Hills', lat: 14.7120, lng: 121.0290, group: 'QC District 5' },
+  { name: 'QC - Santa Monica / Dumalay', lat: 14.7210, lng: 121.0420, group: 'QC District 5' },
+  { name: 'QC - Nagkaisang Nayon / General Luis', lat: 14.7190, lng: 121.0180, group: 'QC District 5' },
+
+  // District 6 - Barangays & Hubs
+  { name: 'QC - Tandang Sora / Banlat / Himlayang Pilipino', lat: 14.6750, lng: 121.0450, group: 'QC District 6' },
+  { name: 'QC - Culiat / Salam Mosque / Union Square', lat: 14.6650, lng: 121.0540, group: 'QC District 6' },
+  { name: 'QC - Baesa / Quirino Highway / Mendez', lat: 14.6680, lng: 121.0120, group: 'QC District 6' },
+  { name: 'QC - Sangandaan / Project 8 / Seminary', lat: 14.6720, lng: 121.0220, group: 'QC District 6' },
+  { name: 'QC - Pasong Tamo / Pingkian', lat: 14.6850, lng: 121.0550, group: 'QC District 6' },
+  { name: 'QC - Talipapa / Solville', lat: 14.6890, lng: 121.0320, group: 'QC District 6' },
+  { name: 'QC - Sauyo / Don Julio', lat: 14.6980, lng: 121.0420, group: 'QC District 6' },
+  { name: 'QC - Unang Sigaw / Balintawak MRT', lat: 14.6580, lng: 121.0050, group: 'QC District 6' }
 ];
 
 class ReportManager {
@@ -576,7 +604,44 @@ class ReportManager {
     this.marker.setIcon(this.createPinIcon());
   }
 
-  updatePinnedCoords(lat, lng) {
+  getNearestPresetName(lat, lng) {
+    let bestDist = Infinity;
+    let bestLoc = null;
+    PRESET_LOCATIONS.forEach(loc => {
+      const dLat = (loc.lat - lat) * 111;
+      const dLng = (loc.lng - lng) * 111 * Math.cos(lat * (Math.PI / 180));
+      const dist = dLat * dLat + dLng * dLng;
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestLoc = loc;
+      }
+    });
+    if (bestLoc) {
+      return bestLoc.name.includes('Quezon City') ? bestLoc.name : `${bestLoc.name}, Quezon City`;
+    }
+    return `Quezon City [${lat.toFixed(4)}, ${lng.toFixed(4)}]`;
+  }
+
+  async reverseGeocode(lat, lng) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        const road = addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '';
+        const suburb = addr.suburb || addr.village || addr.quarter || addr.city_district || '';
+        const parts = [];
+        if (road) parts.push(road);
+        if (suburb && suburb !== road) parts.push(suburb);
+        parts.push('Quezon City');
+        return parts.join(', ');
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  updatePinnedCoords(lat, lng, name = null) {
     this.pinnedLat = parseFloat(lat.toFixed(5));
     this.pinnedLng = parseFloat(lng.toFixed(5));
 
@@ -587,6 +652,57 @@ class ReportManager {
     if (latInput) latInput.value = this.pinnedLat;
     if (lngInput) lngInput.value = this.pinnedLng;
     if (badge) badge.textContent = `${this.pinnedLat.toFixed(5)}, ${this.pinnedLng.toFixed(5)}`;
+
+    const resolvedName = name || this.getNearestPresetName(this.pinnedLat, this.pinnedLng);
+
+    // 1. Put into search bar
+    const searchInput = document.getElementById('report-location-search-input');
+    const clearBtn = document.getElementById('report-search-clear-btn');
+    if (searchInput) {
+      searchInput.value = resolvedName;
+    }
+    if (clearBtn) {
+      clearBtn.style.display = 'flex';
+    }
+
+    // 2. Put into Found Pet location field
+    const foundLocInput = document.getElementById('report-found-location');
+    if (foundLocInput) {
+      foundLocInput.value = resolvedName;
+    }
+
+    // 3. Put into Missing Pet alert (last seen location)
+    const missingLocInput = document.getElementById('report-missing-location');
+    if (missingLocInput) {
+      missingLocInput.value = resolvedName;
+    }
+
+    // 4. Highlight matching quick jump chips
+    const chips = document.querySelectorAll('.report-zone-chip');
+    chips.forEach(chip => {
+      const chipText = chip.textContent.trim().toLowerCase();
+      const nLower = resolvedName.toLowerCase();
+      const distMatch = nLower.match(/district\s*(\d)/);
+      const chipDistMatch = chipText.match(/district\s*(\d)/);
+      let match = false;
+      if (distMatch && chipDistMatch && distMatch[1] === chipDistMatch[1]) {
+        match = true;
+      } else {
+        match = nLower.includes(chipText) || chipText.includes(nLower);
+      }
+      chip.classList.toggle('active', !!match);
+    });
+
+    // Background reverse geocode for exact street/building name if clicked without explicit name
+    if (!name && typeof window !== 'undefined' && window.navigator && window.navigator.onLine) {
+      this.reverseGeocode(this.pinnedLat, this.pinnedLng).then(geoName => {
+        if (geoName) {
+          if (searchInput && searchInput.value === resolvedName) searchInput.value = geoName;
+          if (foundLocInput && foundLocInput.value === resolvedName) foundLocInput.value = geoName;
+          if (missingLocInput && missingLocInput.value === resolvedName) missingLocInput.value = geoName;
+        }
+      }).catch(() => {});
+    }
   }
 
   handleLocationSearch(query) {
@@ -739,11 +855,11 @@ class ReportManager {
     if (!query) return;
 
     if (window.notifManager) {
-      window.notifManager.showToast(`Locating "${query}"...`, 'info', 2000);
+      window.notifManager.showToast(`Locating "${query}" in Quezon City...`, 'info', 2000);
     }
 
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Philippines')}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Quezon City, Philippines')}&limit=1`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
       if (data && data.length > 0) {
@@ -760,7 +876,7 @@ class ReportManager {
         if (match) {
           this.selectLocation(match.lat, match.lng, match.name);
         } else if (window.notifManager) {
-          window.notifManager.showToast(`Location "${query}" not found. Try another landmark or drag pin.`, 'warning', 3500);
+          window.notifManager.showToast(`Location "${query}" not found in Quezon City. Try another landmark or drag pin.`, 'warning', 3500);
         }
       }
     } catch (err) {
@@ -774,41 +890,11 @@ class ReportManager {
   }
 
   jumpToLocation(lat, lng, name) {
-    this.updatePinnedCoords(lat, lng);
+    this.updatePinnedCoords(lat, lng, name);
     if (this.map) {
       this.map.flyTo([lat, lng], 15, { duration: 0.8 });
       if (this.marker) {
         this.marker.setLatLng([lat, lng]);
-      }
-    }
-
-    // Highlight matching quick jump chips
-    const chips = document.querySelectorAll('.report-zone-chip');
-    chips.forEach(chip => {
-      const chipText = chip.textContent.trim().toLowerCase();
-      const nLower = name.toLowerCase();
-      const distMatch = nLower.match(/district\s*(\d)/);
-      const chipDistMatch = chipText.match(/district\s*(\d)/);
-      let match = false;
-      if (distMatch && chipDistMatch && distMatch[1] === chipDistMatch[1]) {
-        match = true;
-      } else {
-        match = nLower.includes(chipText) || chipText.includes(nLower);
-      }
-      chip.classList.toggle('active', !!match);
-    });
-
-    const formattedLoc = name.toLowerCase().includes('quezon city') ? name : `${name}, Quezon City`;
-
-    if (this.currentType === 'found') {
-      const locInput = document.getElementById('report-found-location');
-      if (locInput) {
-        locInput.value = formattedLoc;
-      }
-    } else {
-      const locInput = document.getElementById('report-missing-location');
-      if (locInput) {
-        locInput.value = formattedLoc;
       }
     }
   }
