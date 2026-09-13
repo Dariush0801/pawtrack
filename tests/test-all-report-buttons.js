@@ -249,6 +249,19 @@ verify(28, 'Report Pet Sighting modal has Maps/Upload layout, layers, search bar
   return hasModeToggle && hasLayerDock && hasSearchWrap && hasUploadContainer && hasPinIcon && hasMethods;
 });
 
+// 29. Report Pet Sighting modal has Name / Anonymous toggle button, single-line name, and same-line Date & Phone
+verify(29, 'Report Pet Sighting has Name/Anonymous toggle, 1-line name, and same-line Date & Phone', () => {
+  const hasNameToggle = indexHtml.includes('id="sighting-name-type-toggle"') &&
+                        indexHtml.includes('id="sighting-name-btn"') &&
+                        indexHtml.includes('id="sighting-anon-btn"');
+  const hasSingleLineName = indexHtml.includes('id="sighting-reporter-name-group"');
+  const hasDatePhoneInSameRow = indexHtml.includes('id="sighting-datetime-input"') &&
+                                indexHtml.includes('id="sighting-reporter-phone"');
+  const hasMethods = reportManagerJs.includes('setSightingNameMode(') &&
+                     reportManagerJs.includes('handleSightingNameInput(');
+  return hasNameToggle && hasSingleLineName && hasDatePhoneInSameRow && hasMethods;
+});
+
 console.log('\n===============================================================');
 if (allPassed) {
   console.log('  >>> VERIFICATION RESULT: ALL BUTTONS & FORM CHECKS PASSED <<<  ');
