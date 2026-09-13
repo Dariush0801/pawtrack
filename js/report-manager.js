@@ -1410,124 +1410,32 @@ class ReportManager {
   // =========================================================
 
   openSightingModal(missingReportId = null, petId = null) {
-    const modal = document.getElementById('sighting-submission-modal');
-    if (!modal) return;
+    let resolvedPetId = petId;
+    let prefill = {};
 
-    // Reset previous inputs
-    this.sightingPhotoData = null;
-    const photoInput = document.getElementById('sighting-photo-input');
-    if (photoInput) photoInput.value = '';
-    const previewWrap = document.getElementById('sighting-preview-wrap');
-    const promptWrap = document.getElementById('sighting-dropzone-prompt');
-    if (previewWrap) previewWrap.style.display = 'none';
-    if (promptWrap) promptWrap.style.display = 'block';
-
-    const hiddenReportId = document.getElementById('sighting-missing-report-id');
-    const hiddenPetId = document.getElementById('sighting-pet-id');
-    const prefillBanner = document.getElementById('sighting-prefill-banner');
-    const petPickerGroup = document.getElementById('sighting-pet-picker-group');
-    const modalTitle = document.getElementById('sighting-modal-title');
-    const locInput = document.getElementById('sighting-location-input');
-    const notesInput = document.getElementById('sighting-notes-input');
-    const dateInput = document.getElementById('sighting-datetime-input');
-    const phoneInput = document.getElementById('sighting-reporter-phone');
-    const nameInput = document.getElementById('sighting-reporter-name');
-
-    if (notesInput) notesInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-    if (nameInput)  nameInput.value  = '';
-
-    // Set default datetime to now
-    if (dateInput) {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      dateInput.value = now.toISOString().slice(0, 16);
-    }
-
-    // Determine target pet / missing report
-    let targetPet = null;
-    let targetReport = null;
-
-    if (missingReportId) {
-      targetReport = window.pawStore.getMissingReportById(missingReportId);
+    if (missingReportId && window.pawStore) {
+      const targetReport = window.pawStore.getMissingReportById(missingReportId);
       if (targetReport) {
-        targetPet = window.pawStore.getPetById(targetReport.petId);
-      }
-    }
-    if (!targetPet && petId) {
-      targetPet = window.pawStore.getPetById(petId);
-      if (targetPet) {
-        targetReport = window.pawStore.getActiveMissingReportForPet(petId);
-      }
-    }
-
-    if (targetPet || targetReport) {
-      const resolvedPetName = targetPet ? targetPet.name : (targetReport ? targetReport.petName : 'Missing Pet');
-      const resolvedReportId = targetReport ? targetReport.id : (missingReportId || 'mr-' + Date.now());
-      const resolvedPetId = targetPet ? targetPet.id : (targetReport ? targetReport.petId : petId);
-
-      if (hiddenReportId) hiddenReportId.value = resolvedReportId;
-      if (hiddenPetId) hiddenPetId.value = resolvedPetId;
-
-      if (modalTitle) modalTitle.textContent = `Report Sighting: "${resolvedPetName}"`;
-
-      if (prefillBanner) {
-        prefillBanner.style.display = 'flex';
-        const thumb = document.getElementById('sighting-prefill-pet-thumb');
-        const nameEl = document.getElementById('sighting-prefill-pet-name');
-        const metaEl = document.getElementById('sighting-prefill-pet-meta');
-        if (thumb) thumb.src = targetPet ? targetPet.photoUrl : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80';
-        if (nameEl) nameEl.textContent = resolvedPetName;
-        if (metaEl) metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area')}`;
-      }
-
-      if (petPickerGroup) petPickerGroup.style.display = 'none';
-
-      // Default pinned coords to last seen location
-      if (targetPet && targetPet.lastSeenCoords) {
-        this.sightingPinnedLat = targetPet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
-        this.sightingPinnedLng = targetPet.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
-      } else if (targetReport && targetReport.lastSeenCoords) {
-        this.sightingPinnedLat = targetReport.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
-        this.sightingPinnedLng = targetReport.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
-      }
-
-      if (locInput && (!locInput.value || locInput.value === '')) {
-        locInput.value = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
-      }
-    } else {
-      // General sighting flow: populate missing pets dropdown
-      if (hiddenReportId) hiddenReportId.value = '';
-      if (hiddenPetId) hiddenPetId.value = '';
-      if (modalTitle) modalTitle.textContent = 'Report Pet Sighting';
-      if (prefillBanner) prefillBanner.style.display = 'none';
-      if (petPickerGroup) {
-        petPickerGroup.style.display = 'block';
-        const select = document.getElementById('sighting-pet-picker-select');
-        if (select) {
-          const pets = window.pawStore.getPets().filter(p => p.status === 'lost');
-          let opts = '<option value="">-- General Unlinked Stray / Community Sighting --</option>';
-          pets.forEach(p => {
-            opts += `<option value="${p.id}">Link to Missing Alert: ${p.name} (${p.breed || 'Pet'} - RFID: ${p.rfidTag})</option>`;
-          });
-          select.innerHTML = opts;
+        resolvedPetId = resolvedPetId || targetReport.petId;
+        if (targetReport.lastSeenLocation) {
+          prefill.location = targetReport.lastSeenLocation;
         }
       }
-      this.sightingPinnedLat = 14.6375;
-      this.sightingPinnedLng = 121.0362;
     }
 
-    this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng);
+    if (resolvedPetId && window.pawStore) {
+      const targetPet = window.pawStore.getPetById(resolvedPetId);
+      if (targetPet) {
+        if (targetPet.rfidTag) prefill.rfidTag = targetPet.rfidTag;
+        if (targetPet.lastSeenLocation && !prefill.location) prefill.location = `Near ${targetPet.lastSeenLocation}`;
+      }
+    }
 
-    modal.classList.add('active');
-    modal.style.display = 'flex';
-
-    setTimeout(() => {
-      this.initSightingPinMap();
-    }, 180);
+    this.openReportModal('found', resolvedPetId, prefill);
   }
 
   closeSightingModal() {
+    this.closeModal();
     const modal = document.getElementById('sighting-submission-modal');
     if (modal) {
       modal.classList.remove('active');
