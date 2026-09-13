@@ -1609,36 +1609,6 @@ class ReportManager {
     }
   }
 
-  handleSightingPetPicker(petId) {
-    const hiddenReportId = document.getElementById('sighting-missing-report-id');
-    const hiddenPetId = document.getElementById('sighting-pet-id');
-    const locInput = document.getElementById('sighting-location-input');
-
-    if (!petId) {
-      if (hiddenReportId) hiddenReportId.value = '';
-      if (hiddenPetId) hiddenPetId.value = '';
-      return;
-    }
-
-    const pet = window.pawStore.getPetById(petId);
-    if (pet) {
-      const activeReport = window.pawStore.getActiveMissingReportForPet(petId);
-      if (hiddenPetId) hiddenPetId.value = pet.id;
-      if (hiddenReportId) hiddenReportId.value = activeReport ? activeReport.id : 'mr-' + pet.id;
-      if (locInput && pet.lastSeenLocation) {
-        locInput.value = `Near ${pet.lastSeenLocation}`;
-      }
-      if (pet.lastSeenCoords) {
-        this.sightingPinnedLat = pet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
-        this.sightingPinnedLng = pet.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
-        this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng);
-        if (this.sightingMap) {
-          this.sightingMap.setView([this.sightingPinnedLat, this.sightingPinnedLng], 14);
-          if (this.sightingMarker) this.sightingMarker.setLatLng([this.sightingPinnedLat, this.sightingPinnedLng]);
-        }
-      }
-    }
-  }
 
   initSightingPinMap() {
     const container = document.getElementById('sighting-pin-map');
