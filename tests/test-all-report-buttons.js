@@ -236,6 +236,19 @@ verify(27, 'Collar RFID Tag field removed from Found / Sighted Stray Pet form', 
          !indexHtml.includes('data-i18n="report.rfidTag"');
 });
 
+// 28. Report Pet Sighting modal has Maps/Upload toggle, layer dock, and preserves green pinpoint icon
+verify(28, 'Report Pet Sighting modal has Maps/Upload layout, layers, search bar, and preserves green pinpoint icon', () => {
+  const hasModeToggle = indexHtml.includes('id="sighting-view-mode-toggle"');
+  const hasLayerDock = indexHtml.includes('id="sighting-map-layer-dock"');
+  const hasSearchWrap = indexHtml.includes('id="sighting-location-search-wrap"');
+  const hasUploadContainer = indexHtml.includes('id="sighting-upload-view-container"');
+  const hasPinIcon = reportManagerJs.includes("className: 'sighting-pin-leaflet-icon'");
+  const hasMethods = reportManagerJs.includes('setSightingViewMode(') &&
+                     reportManagerJs.includes('setSightingMapLayer(') &&
+                     reportManagerJs.includes('handleSightingLocationSearch(');
+  return hasModeToggle && hasLayerDock && hasSearchWrap && hasUploadContainer && hasPinIcon && hasMethods;
+});
+
 console.log('\n===============================================================');
 if (allPassed) {
   console.log('  >>> VERIFICATION RESULT: ALL BUTTONS & FORM CHECKS PASSED <<<  ');
