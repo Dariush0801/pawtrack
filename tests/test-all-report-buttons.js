@@ -215,6 +215,8 @@ verify(24, 'Pinning on map syncs search bar, missing location, and presets are Q
                         reportManagerJs.includes("'QC - Commonwealth Market") &&
                         reportManagerJs.includes("'QC - Diliman / UP Campus");
   return hasSyncLogic && hasQcPlaceholder && qcOnlyPresets;
+});
+
 // 25. Pet selector has Registered and Unregistered only, with Registered as default
 verify(25, 'Report Missing Pet selector defaults to "Registered" with "Unregistered" alternate', () => {
   const hasIndexRegisteredDefault = indexHtml.includes('<option value="registered" selected data-i18n="report.registered">Registered</option>') &&
