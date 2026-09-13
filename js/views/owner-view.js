@@ -662,6 +662,11 @@ class OwnerView {
   }
 
   openReportLostModal(petId) {
+    if (window.reportManager) {
+      window.reportManager.openReportModal('missing', petId);
+      return;
+    }
+
     const pet = window.pawStore.getPetById(petId);
     if (!pet) return;
 
