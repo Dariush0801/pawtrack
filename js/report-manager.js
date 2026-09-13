@@ -1105,13 +1105,6 @@ class ReportManager {
       }
     } else {
       petName = customName || 'Beloved Pet';
-    }
-
-    const location = document.getElementById('report-missing-location')?.value || 'Metro Manila';
-    const date = document.getElementById('report-missing-date')?.value || new Date().toISOString();
-    const phone = document.getElementById('report-missing-phone')?.value || '+63 917 555 3829';
-    const notes = document.getElementById('report-missing-notes')?.value || '';
-
     const finalPhoto = this.uploadedPhotoData || (pet ? (pet.photoUrl || pet.photo) : null) || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500';
 
     if (pet) {
