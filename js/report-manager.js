@@ -351,7 +351,7 @@ class ReportManager {
       const missingDate = document.getElementById('report-missing-date');
       const missingPhone = document.getElementById('report-missing-phone');
       if (missingPet) missingPet.required = true;
-      if (missingCustom) missingCustom.required = missingPet?.value === 'custom';
+      if (missingCustom) missingCustom.required = missingPet?.value === 'custom' || missingPet?.value === 'unregistered';
       if (missingLoc) missingLoc.required = true;
       if (missingDate) missingDate.required = true;
       if (missingPhone) missingPhone.required = true;
@@ -371,6 +371,7 @@ class ReportManager {
       if (submitBtn) {
         submitBtn.className = 'btn btn-danger';
       }
+      this.populatePetsDropdown(missingPet?.value || null);
       this.updateMissingPhotoStatus();
     }
 
