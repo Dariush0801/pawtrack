@@ -109,6 +109,7 @@ class ReportManager {
     const modal = document.getElementById('report-pet-modal');
     if (!modal) return;
 
+    this.removeUploadedPhoto(false);
     this.setType(type);
     this.setViewMode('map');
     this.populatePetsDropdown(petId);
