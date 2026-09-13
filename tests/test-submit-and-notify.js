@@ -86,6 +86,7 @@ const reportManagerCode = fs.readFileSync(path.join(__dirname, '..', 'js', 'repo
 eval(reportManagerCode);
 
 console.log('--- Testing Found Pet "Submit and Notify" (No RFID match) ---');
+document.elements['report-found-pet-select'] = { value: 'unregistered' };
 document.elements['report-found-species'] = { value: 'Dog' };
 document.elements['report-found-breed'] = { value: 'Aspin' };
 document.elements['report-found-location'] = { value: 'District 2 (Commonwealth), Quezon City' };
@@ -103,7 +104,8 @@ console.log('✓ Sighting location:', sightings[0].location, 'coords:', sighting
 console.log('✓ Notification count:', notifications.length);
 
 console.log('\n--- Testing Found Pet "Submit and Notify" (With RFID match) ---');
-document.elements['report-found-rfid'] = { value: 'RFID-9901' }; // Bella
+document.elements['report-found-pet-select'] = { value: 'pet-1' }; // Bella
+document.elements['report-found-rfid'] = { value: 'RFID-9901' };
 window.reportManager.submitFoundReport();
 
 console.log('✓ Matched pet found report submitted successfully. Sighting count:', sightings.length);

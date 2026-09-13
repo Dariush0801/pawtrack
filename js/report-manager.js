@@ -1125,7 +1125,7 @@ class ReportManager {
     const notes = (document.getElementById('report-found-notes')?.value || '').trim();
 
     // Required fields validation (all except message/notes and rfid)
-    if (!petSelectValValid(selectedPetId)) {
+    if (!selectedPetId) {
       if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
       petSelect?.focus();
       return;
