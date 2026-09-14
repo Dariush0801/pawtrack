@@ -796,7 +796,7 @@ class App {
     window.addEventListener('hashchange', () => this.handleRoute());
 
     window.addEventListener('resize', () => {
-      if (this.currentView === 'map' && window.publicView && window.publicView.map) {
+      if ((this.currentView === 'owner' || this.currentView === 'map') && window.publicView && window.publicView.map) {
         window.publicView.map.invalidateSize();
       }
     });
@@ -894,6 +894,10 @@ class App {
         window.notifManager.showToast('Please sign in to access this section.', 'info');
       }
       return;
+    }
+
+    if (hash === 'map') {
+      hash = 'owner';
     }
 
     if (!hash || !this.views[hash]) {

@@ -249,7 +249,7 @@ class ImpoundedView {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                         <span>${t('impounded.btnRedeemClaim', 'Redeem & Claim')}</span>
                       </button>
-                      <a href="#map" class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.focusPetOnMap('${pet.id}') : null" title="${t('impounded.btnViewMap', 'View Facility on Map')}">
+                      <a href="#owner" class="btn btn-outline btn-sm" onclick="setTimeout(() => { if (window.publicView) window.publicView.focusPetOnMap('${pet.id}'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}); }, 150);" title="${t('impounded.btnViewMap', 'View Facility on Map')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
                       </a>
                     </div>

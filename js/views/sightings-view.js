@@ -48,7 +48,7 @@ class SightingsView {
           <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')" title="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})" aria-label="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'}">
             <i data-lucide="archive"></i>
           </button>
-          <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'" title="View on Map" aria-label="View on Map">
+          <button class="btn btn-outline btn-sm" onclick="window.location.hash='#owner'; setTimeout(() => document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}), 150);" title="View on Map" aria-label="View on Map">
             <i data-lucide="map"></i>
           </button>
         </div>
@@ -508,7 +508,7 @@ class SightingsView {
           <!-- Actions -->
           <div style="display:flex; gap:0.5rem; margin-top:0.85rem; flex-wrap:wrap; align-items:center;">
             ${actionHtml}
-            <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'" title="View on Incident Map" style="padding:6px 10px;">
+            <button class="btn btn-outline btn-sm" onclick="window.location.hash='#owner'; setTimeout(() => { if (window.publicView) window.publicView.focusPetOnMap('${s.id}'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}); }, 150);" title="View on Incident Map" style="padding:6px 10px;">
               <i data-lucide="map-pin"></i>
             </button>
           </div>

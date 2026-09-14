@@ -395,7 +395,7 @@ class OwnerView {
                 </svg>
                 <span>${t('owner.btnMarkSafe', 'Mark Safe')}</span>
               </button>
-              <button class="btn btn-outline btn-sm" style="color: #dc2626; border-color: #dc2626; flex-shrink:0; display:flex; align-items:center; gap:4px;" onclick="window.location.hash='#map'" title="View on Map">
+              <button class="btn btn-outline btn-sm" style="color: #dc2626; border-color: #dc2626; flex-shrink:0; display:flex; align-items:center; gap:4px;" onclick="document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});" title="View on Map">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>

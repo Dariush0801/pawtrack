@@ -247,7 +247,13 @@ class NotificationManager {
     } else if (notif.type === 'impound_alert' && notif.impoundData) {
       this.showSmsSimulation(notif.impoundData);
     } else if (notif.coords) {
-      window.location.hash = '#map';
+      window.location.hash = '#owner';
+      setTimeout(() => {
+        if (window.publicView && window.publicView.map) {
+          window.publicView.map.flyTo([notif.coords.lat, notif.coords.lng], 16, { duration: 0.8 });
+        }
+        document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});
+      }, 250);
     }
   }
 
@@ -377,12 +383,13 @@ class NotificationManager {
 
   jumpToFinderLocation() {
     this.closeModal('finder-info-modal');
-    window.location.hash = '#map';
+    window.location.hash = '#owner';
     if (this.lastFinderCoords && window.publicView) {
       setTimeout(() => {
         if (window.publicView && window.publicView.map) {
           window.publicView.map.flyTo(this.lastFinderCoords, 16, { duration: 0.8 });
         }
+        document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});
       }, 250);
     }
   }
