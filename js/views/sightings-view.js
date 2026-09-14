@@ -42,10 +42,7 @@ class SightingsView {
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
-            <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
+          <button class="btn btn-primary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
             <i data-lucide="eye"></i> Report Pet Sighting
           </button>
           <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')" title="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})" aria-label="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'}">
@@ -68,14 +65,6 @@ class SightingsView {
             <div style="font-size:0.82rem; color:var(--text-muted);">
               Track RFID collar statuses, report missing pets, or view pending founder matches.
             </div>
-          </div>
-          <div style="display:flex; gap:0.6rem; align-items:center;">
-            <button class="btn-help-circle" onclick="window.ownerView ? window.ownerView.openOwnerGuideModal() : window.sightingsView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
-              <i data-lucide="help-circle"></i>
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
-              <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
-            </button>
           </div>
         </div>
 
