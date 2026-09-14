@@ -14,10 +14,7 @@ class SightingsView {
 
     if (typeof window !== 'undefined' && window.pawStore) {
       window.pawStore.subscribe((event) => {
-        if (
-          ['sighting_archived', 'sighting_updated', 'sighting_deleted', 'sighting_dismissed', 'sighting_confirmed', 'sighting_added', 'sync_completed'].includes(event) &&
-          window.location.hash === '#sightings'
-        ) {
+        if (window.location.hash === '#sightings') {
           this.refresh();
         }
       });
@@ -31,7 +28,9 @@ class SightingsView {
     this.container = container || document.getElementById('app-viewport');
     if (!this.container) return;
 
-    const sightings = window.pawStore.getSightings();
+    const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
+    const pets = window.pawStore ? (window.pawStore.getPets() || []) : [];
+    const sightings = window.pawStore ? (window.pawStore.getSightings() || []) : [];
     const stats = this._buildStats(sightings);
 
     this.container.innerHTML = `
@@ -39,11 +38,14 @@ class SightingsView {
         <div class="view-title-group">
           <h1>Community Pet Sightings</h1>
           <div class="view-subtitle">
-            All community-reported pet sightings. Owners can verify matches, archive old reports, or retrieve and delete archived sightings.
+            Manage registered pets, browse community-reported sightings, verify matches, and monitor RFID protections.
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="window.reportManager.openSightingModal()">
+          <button class="btn btn-primary btn-sm" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
+            <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
             <i data-lucide="eye"></i> Report Pet Sighting
           </button>
           <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')">
@@ -52,6 +54,57 @@ class SightingsView {
           <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'">
             <i data-lucide="map"></i> View on Map
           </button>
+        </div>
+      </div>
+
+      <!-- Registered Pets Section (Moved from Home) -->
+      <div class="registered-pets-section" style="margin-bottom: 2.25rem;">
+        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <h2 id="registered-pets-heading" style="font-size:1.35rem; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.5rem;">
+              <span>${t('owner.registeredHeading', 'Registered Pets')}</span>
+              <span class="badge badge-outline" style="font-size:0.8rem; font-weight:700;">(${pets.length})</span>
+            </h2>
+            <div style="font-size:0.82rem; color:var(--text-muted);">
+              Track RFID collar statuses, report missing pets, or view pending founder matches.
+            </div>
+          </div>
+          <div style="display:flex; gap:0.6rem; align-items:center;">
+            <button class="btn-help-circle" onclick="window.ownerView ? window.ownerView.openOwnerGuideModal() : window.sightingsView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
+              <i data-lucide="help-circle"></i>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
+              <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
+            </button>
+          </div>
+        </div>
+
+        <div class="pets-grid">
+          ${pets.length === 0 ? `
+            <div class="glass-card" style="grid-column: 1 / -1; text-align:center; padding: 3rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap: 0.75rem; border: 1.5px dashed var(--border-subtle, #cbd5e1);">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-surface-elevated, #f8fafc); display:flex; align-items:center; justify-content:center; color:var(--primary);">
+                <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
+              <div style="display:flex; gap:0.6rem; align-items:center; margin-top: 0.5rem; justify-content:center;">
+                <button class="btn-help-circle" onclick="window.ownerView ? window.ownerView.openOwnerGuideModal() : window.sightingsView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
+                  <i data-lucide="help-circle"></i>
+                </button>
+                <button class="btn btn-primary" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
+                  <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
+                </button>
+              </div>
+            </div>
+          ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
+        </div>
+      </div>
+
+      <!-- Section Divider & Community Sightings Header -->
+      <div style="margin-top: 2rem; margin-bottom: 1.25rem;">
+        <h2 style="font-size:1.35rem; margin-bottom:0.25rem;">Community Sighting Reports</h2>
+        <div style="font-size:0.82rem; color:var(--text-muted);">
+          All community-reported pet sightings. Owners can verify matches, archive old reports, or retrieve and delete archived sightings.
         </div>
       </div>
 
@@ -478,6 +531,52 @@ class SightingsView {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/'/g, '&#39;');
+  }
+
+  // ─────────────────────────────────────────────────
+  // OWNER / PET MANAGEMENT DELEGATION
+  // ─────────────────────────────────────────────────
+  openRegisterModal(prefillRfid) {
+    if (window.ownerView) {
+      window.ownerView.openRegisterModal(prefillRfid);
+    }
+  }
+
+  openOwnerGuideModal() {
+    if (window.ownerView) {
+      window.ownerView.openOwnerGuideModal();
+    }
+  }
+
+  markPetSafe(petId) {
+    if (window.ownerView) {
+      window.ownerView.markPetSafe(petId);
+    }
+  }
+
+  showPendingFinderInfo(petId) {
+    if (window.ownerView) {
+      window.ownerView.showPendingFinderInfo(petId);
+    }
+  }
+
+  showDigitalTagPass(petId) {
+    if (window.ownerView) {
+      window.ownerView.showDigitalTagPass(petId);
+    }
+  }
+
+  openReportLostModal(petId) {
+    if (window.ownerView) {
+      window.ownerView.openReportLostModal(petId);
+    }
+  }
+
+  renderPetCard(pet) {
+    if (window.ownerView) {
+      return window.ownerView.renderPetCard(pet);
+    }
+    return '';
   }
 }
 

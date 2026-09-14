@@ -478,6 +478,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: Git Auto-Sync Status (GET)
+  if (parsedUrl === '/api/git/status' && req.method === 'GET') {
+    try {
+      const status = autoSync.getStatusSummary();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, status }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // API: Git Manual Sync Trigger (POST)
+  if (parsedUrl === '/api/git/sync' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = body ? JSON.parse(body) : {};
+        const result = autoSync.performSync(payload.commitMessage || payload.message);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
   // API 2: Full State Sync (GET)
   if (parsedUrl === '/api/sync' && req.method === 'GET') {
     const db = getDatabase();
@@ -786,4 +817,12 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  Git Status:   http://localhost:' + PORT + '/api/git/status');
   console.log('  Git Sync:     POST http://localhost:' + PORT + '/api/git/sync');
   console.log('==================================================\n');
+
+  try {
+    if (autoSync && typeof autoSync.startWatcher === 'function') {
+      autoSync.startWatcher();
+    }
+  } catch (e) {
+    console.warn('[Auto-Sync] Notice starting watcher:', e.message);
+  }
 });

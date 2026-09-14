@@ -149,7 +149,7 @@ class OwnerView {
 
         <!-- Right Side: 4 Stat Categories -->
         <div class="${statsGridClass}">
-          <div class="stat-card glass-card" data-label="${t('owner.statTotalPets', 'Total Registered Pets')}" title="Click to view all registered pets" style="cursor:pointer;" onclick="document.getElementById('registered-pets-heading')?.scrollIntoView({behavior:'smooth'})">
+          <div class="stat-card glass-card" data-label="${t('owner.statTotalPets', 'Total Registered Pets')}" title="Click to view all registered pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
             <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
               <i data-lucide="shield-check"></i>
             </div>
@@ -179,7 +179,7 @@ class OwnerView {
             </div>
           </div>
 
-          <div class="stat-card glass-card" data-label="${t('owner.statSafePets', 'Safe / Reunited Pets')}" title="Click to view registered safe & reunited pets" style="cursor:pointer;" onclick="document.getElementById('registered-pets-heading')?.scrollIntoView({behavior:'smooth'})">
+          <div class="stat-card glass-card" data-label="${t('owner.statSafePets', 'Safe / Reunited Pets')}" title="Click to view registered safe & reunited pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
             <div class="stat-icon" style="background:linear-gradient(135deg, #54280e, #241208); color:#ea9d1e;">
               <i data-lucide="check-circle-2"></i>
             </div>
@@ -189,31 +189,6 @@ class OwnerView {
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Pets Grid -->
-      <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center;">
-        <h2 id="registered-pets-heading" style="font-size:1.35rem;">${t('owner.registeredHeading', 'Registered Pets')} (${pets.length})</h2>
-      </div>
-
-      <div class="pets-grid">
-        ${pets.length === 0 ? `
-          <div class="glass-card" style="grid-column: 1 / -1; text-align:center; padding: 3rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap: 0.75rem; border: 1.5px dashed var(--border-subtle, #cbd5e1);">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-surface-elevated, #f8fafc); display:flex; align-items:center; justify-content:center; color:var(--primary);">
-              <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
-            </div>
-            <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
-            <div style="display:flex; gap:0.6rem; align-items:center; margin-top: 0.5rem; justify-content:center;">
-              <button class="btn-help-circle" onclick="window.ownerView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
-                <i data-lucide="help-circle"></i>
-              </button>
-              <button class="btn btn-primary" onclick="window.ownerView.openRegisterModal()">
-                <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
-              </button>
-            </div>
-          </div>
-        ` : pets.map(pet => this.renderPetCard(pet)).join('')}
       </div>
     `;
 
@@ -488,7 +463,11 @@ class OwnerView {
     if (window.notifManager) {
       window.notifManager.showToast('Pet status updated to Safe at Home', 'success');
     }
-    this.render(document.getElementById('app-viewport'));
+    if (window.location.hash === '#sightings' && window.sightingsView) {
+      window.sightingsView.refresh();
+    } else {
+      this.render(document.getElementById('app-viewport'));
+    }
   }
 
   showPendingFinderInfo(petId) {
