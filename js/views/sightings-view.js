@@ -363,11 +363,7 @@ class SightingsView {
             <button class="btn btn-outline" onclick="window.sightingsView.setFilter('all')">
               <i data-lucide="arrow-left"></i> Back to Active Sightings
             </button>
-          ` : `
-            <button class="btn btn-primary" onclick="window.reportManager.openSightingModal()">
-              <i data-lucide="plus"></i> Report Pet Sighting
-            </button>
-          `}
+          ` : ''}
         </div>
       `;
     }
