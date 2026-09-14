@@ -48,11 +48,11 @@ class SightingsView {
           <button class="btn btn-secondary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
             <i data-lucide="eye"></i> Report Pet Sighting
           </button>
-          <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')">
-            <i data-lucide="archive"></i> ${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})
+          <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')" title="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})" aria-label="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'}">
+            <i data-lucide="archive"></i>
           </button>
-          <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'">
-            <i data-lucide="map"></i> View on Map
+          <button class="btn btn-outline btn-sm" onclick="window.location.hash='#map'" title="View on Map" aria-label="View on Map">
+            <i data-lucide="map"></i>
           </button>
         </div>
       </div>
