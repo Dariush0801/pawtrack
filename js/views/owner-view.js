@@ -169,7 +169,7 @@ class OwnerView {
             </div>
           </div>
 
-          <div class="stat-card glass-card" data-label="${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}" title="Click to view active recovery alerts on Incident Map" style="cursor:pointer;" onclick="window.location.hash='#map'; window.publicView.setFilter('lost');">
+          <div class="stat-card glass-card" data-label="${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}" title="Click to view active recovery alerts on Incident Map" style="cursor:pointer;" onclick="if (window.publicView) window.publicView.setFilter('lost'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});">
             <div class="stat-icon" style="background:linear-gradient(135deg, #ba3820, #54280e); color:#ffffff;">
               <i data-lucide="alert-circle"></i>
             </div>
@@ -190,9 +190,103 @@ class OwnerView {
           </div>
         </div>
       </div>
+
+      <!-- Incident Map Section (Moved to Home) -->
+      <div id="incident-map-section" style="margin-top: 2rem;">
+        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <h2 id="incident-map-heading" style="font-size:1.35rem; margin-bottom:0.25rem;">
+              ${t('map.title', 'Community Recovery & Incident Map')}
+            </h2>
+            <div style="font-size:0.82rem; color:var(--text-muted);">
+              ${t('map.subtitle', 'Recorded landmark locations of missing pets, community sightings, verified AI matches, and shelter intake facilities.')}
+            </div>
+          </div>
+          <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openMapApiKeyModal() : null" title="Map API Key & Provider Access" style="display:flex; align-items:center; gap:0.45rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+              <span style="font-weight:600;">API Key: Active</span>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="window.publicView ? window.publicView.openFoundPetModal() : null">
+              <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Stray Pet')}
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
+              <i data-lucide="map-pin"></i> Report Pet Sighting
+            </button>
+          </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="glass-card" style="padding:1rem 1.25rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:0.5rem; flex:1; min-width:260px;">
+            <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, barangay, or RFID tag...')}" value="${window.publicView ? window.publicView.searchQuery : ''}" oninput="window.publicView ? window.publicView.handleSearch(this.value) : null" />
+          </div>
+
+          <div id="public-filter-btn-group" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+            ${window.publicView ? window.publicView.renderFilterButtons() : ''}
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem; min-width:220px;">
+            <label for="public-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap;">Community</label>
+            <select id="public-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.publicView ? window.publicView.setCommunity(this.value) : null">
+              ${window.publicView ? window.publicView.renderCommunityOptions() : '<option value="all">All communities</option>'}
+            </select>
+          </div>
+        </div>
+
+        <!-- Map & List Layout -->
+        <div class="map-layout-grid">
+          <!-- Sidebar Cards List -->
+          <div class="map-sidebar-list" id="public-pets-list">
+            ${window.publicView ? window.publicView.renderFilteredList(pets) : ''}
+          </div>
+
+          <!-- Interactive Leaflet Map with Google Maps Styled Controls & Directions HUD -->
+          <div class="glass-card" style="position:relative; overflow:hidden; min-height:520px; padding:0;">
+            <div id="public-map-container" style="min-height:520px;"></div>
+
+            <!-- Google Maps Layer Switcher Floating Dock -->
+            <div class="gmap-layer-dock" id="gmap-layer-dock">
+              <button type="button" class="gmap-layer-btn ${window.publicView && window.publicView.currentMapType === 'roadmap' ? 'active' : ''}" onclick="window.publicView ? window.publicView.setMapLayer('roadmap') : null" title="Roadmap View (Default Street Network)">
+                <span>Map</span>
+              </button>
+              <button type="button" class="gmap-layer-btn ${window.publicView && window.publicView.currentMapType === 'satellite' ? 'active' : ''}" onclick="window.publicView ? window.publicView.setMapLayer('satellite') : null" title="Satellite / Actual Photographic Aerial View">
+                <span>Satellite</span>
+              </button>
+              <button type="button" class="gmap-layer-btn ${window.publicView && window.publicView.currentMapType === 'hybrid' ? 'active' : ''}" onclick="window.publicView ? window.publicView.setMapLayer('hybrid') : null" title="Hybrid View (Satellite + Street Labels)">
+                <span>Hybrid</span>
+              </button>
+              <button type="button" class="gmap-layer-btn ${window.publicView && window.publicView.currentMapType === 'dark' ? 'active' : ''}" onclick="window.publicView ? window.publicView.setMapLayer('dark') : null" title="Dark Theme Style">
+                <span>Dark</span>
+              </button>
+            </div>
+
+            <!-- Quick Navigation & View Control Tools -->
+            <div class="gmap-quick-tools">
+              <button type="button" class="gmap-tool-btn" onclick="window.publicView ? window.publicView.locateMe() : null" title="Recenter to My Location (GPS)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                </svg>
+              </button>
+              <button type="button" class="gmap-tool-btn" onclick="window.publicView ? window.publicView.fitAllIncidents() : null" title="Fit View to All Active Incidents">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Container for Directions & Actual Place Drawer -->
+            <div id="gmap-directions-hud-container"></div>
+          </div>
+        </div>
+      </div>
     `;
 
     if (window.lucide) window.lucide.createIcons({ root: container });
+
+    if (window.publicView) {
+      const shelters = window.pawStore ? window.pawStore.getShelters() : [];
+      setTimeout(() => window.publicView.initMap(pets, shelters), 100);
+    }
 
     if (activeImpoundment) {
       this.startCountdownTimer(activeImpoundment.claimDeadline);

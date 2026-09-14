@@ -176,7 +176,13 @@ class PublicView {
 
   setCommunity(community) {
     this.selectedCommunity = community || 'all';
-    this.render(document.getElementById('app-viewport'));
+    if (window.location.hash === '#owner' || !window.location.hash || window.location.hash === '') {
+      if (window.ownerView) {
+        window.ownerView.render(document.getElementById('app-viewport'));
+      }
+    } else {
+      this.render(document.getElementById('app-viewport'));
+    }
   }
 
   isInSelectedCommunity(item) {
