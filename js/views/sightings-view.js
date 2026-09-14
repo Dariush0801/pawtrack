@@ -36,9 +36,9 @@ class SightingsView {
     this.container.innerHTML = `
       <div class="view-header">
         <div class="view-title-group">
-          <h1>Community Pet Sightings</h1>
+          <h1>Community Sighting Reports</h1>
           <div class="view-subtitle">
-            Manage registered pets, browse community-reported sightings, verify matches, and monitor RFID protections.
+            All community-reported pet sightings. Owners can verify matches, archive old reports, or retrieve and delete archived sightings.
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
@@ -51,41 +51,6 @@ class SightingsView {
           <button class="btn btn-outline btn-sm" onclick="window.location.hash='#owner'; setTimeout(() => document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}), 150);" title="View on Map" aria-label="View on Map">
             <i data-lucide="map"></i>
           </button>
-        </div>
-      </div>
-
-      <!-- Registered Pets Section (Moved from Home) -->
-      <div class="registered-pets-section" style="margin-bottom: 2.25rem;">
-        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
-          <div>
-            <h2 id="registered-pets-heading" style="font-size:1.35rem; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.5rem;">
-              <span>${t('owner.registeredHeading', 'Registered Pets')}</span>
-              <span class="badge badge-outline" style="font-size:0.8rem; font-weight:700;">(${pets.length})</span>
-            </h2>
-            <div style="font-size:0.82rem; color:var(--text-muted);">
-              Track RFID collar statuses, report missing pets, or view pending founder matches.
-            </div>
-          </div>
-        </div>
-
-        <div class="pets-grid">
-          ${pets.length === 0 ? `
-            <div class="glass-card" style="grid-column: 1 / -1; text-align:center; padding: 3rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap: 0.75rem; border: 1.5px dashed var(--border-subtle, #cbd5e1);">
-              <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-surface-elevated, #f8fafc); display:flex; align-items:center; justify-content:center; color:var(--primary);">
-                <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
-              </div>
-              <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
-            </div>
-          ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
-        </div>
-      </div>
-
-      <!-- Section Divider & Community Sightings Header -->
-      <div style="margin-top: 2rem; margin-bottom: 1.25rem;">
-        <h2 style="font-size:1.35rem; margin-bottom:0.25rem;">Community Sighting Reports</h2>
-        <div style="font-size:0.82rem; color:var(--text-muted);">
-          All community-reported pet sightings. Owners can verify matches, archive old reports, or retrieve and delete archived sightings.
         </div>
       </div>
 
@@ -132,8 +97,35 @@ class SightingsView {
       </div>
 
       <!-- Sighting Cards Grid -->
-      <div id="sightings-grid">
+      <div id="sightings-grid" style="margin-bottom: 2.5rem;">
         ${this._renderGrid(sightings)}
+      </div>
+
+      <!-- Registered Pets Section (Placed Below Sightings) -->
+      <div class="registered-pets-section" style="margin-top: 2rem; margin-bottom: 2.25rem;">
+        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <h2 id="registered-pets-heading" style="font-size:1.35rem; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.5rem;">
+              <span>${t('owner.registeredHeading', 'Registered Pets')}</span>
+              <span class="badge badge-outline" style="font-size:0.8rem; font-weight:700;">(${pets.length})</span>
+            </h2>
+            <div style="font-size:0.82rem; color:var(--text-muted);">
+              Track RFID collar statuses, report missing pets, or view pending founder matches.
+            </div>
+          </div>
+        </div>
+
+        <div class="pets-grid">
+          ${pets.length === 0 ? `
+            <div class="glass-card" style="grid-column: 1 / -1; text-align:center; padding: 3rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap: 0.75rem; border: 1.5px dashed var(--border-subtle, #cbd5e1);">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-surface-elevated, #f8fafc); display:flex; align-items:center; justify-content:center; color:var(--primary);">
+                <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
+              </div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
+            </div>
+          ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
+        </div>
       </div>
     `;
 
