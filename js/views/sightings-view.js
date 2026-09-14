@@ -87,14 +87,6 @@ class SightingsView {
               </div>
               <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
               <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
-              <div style="display:flex; gap:0.6rem; align-items:center; margin-top: 0.5rem; justify-content:center;">
-                <button class="btn-help-circle" onclick="window.ownerView ? window.ownerView.openOwnerGuideModal() : window.sightingsView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
-                  <i data-lucide="help-circle"></i>
-                </button>
-                <button class="btn btn-primary" onclick="window.ownerView ? window.ownerView.openRegisterModal() : window.sightingsView.openRegisterModal()">
-                  <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
-                </button>
-              </div>
             </div>
           ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
         </div>
