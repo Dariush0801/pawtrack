@@ -63,12 +63,6 @@ class PublicView {
         <div id="public-filter-btn-group" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
           ${this.renderFilterButtons()}
         </div>
-        <div style="display:flex; align-items:center; gap:0.5rem; min-width:220px;">
-          <label for="public-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap;">QC District</label>
-          <select id="public-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.publicView.setCommunity(this.value)">
-            ${this.renderCommunityOptions()}
-          </select>
-        </div>
       </div>
 
       <!-- Map & List Layout -->

@@ -120,14 +120,6 @@ class SightingsView {
           ${this._filterPill('archived',  'Archived',   stats.archived,  this.currentFilter === 'archived')}
         </div>
 
-        <!-- Community selector -->
-        <div style="display:flex; align-items:center; gap:0.5rem; min-width:200px;">
-          <label for="sightings-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">QC District</label>
-          <select id="sightings-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.sightingsView.setCommunity(this.value)">
-            ${this._communityOptions(sightings)}
-          </select>
-        </div>
-
         <!-- Sort -->
         <div style="display:flex; align-items:center; gap:0.5rem; min-width:160px;">
           <label for="sightings-sort-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Sort</label>
