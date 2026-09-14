@@ -64,7 +64,7 @@ class PublicView {
           ${this.renderFilterButtons()}
         </div>
         <div style="display:flex; align-items:center; gap:0.5rem; min-width:220px;">
-          <label for="public-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap;">Community</label>
+          <label for="public-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap;">QC District</label>
           <select id="public-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.publicView.setCommunity(this.value)">
             ${this.renderCommunityOptions()}
           </select>
@@ -159,18 +159,30 @@ class PublicView {
   }
 
   renderCommunityOptions() {
-    const communities = new Set();
+    const qcDistricts = [
+      'District 1 (La Loma / SFDM / Project 6)',
+      'District 2 (Commonwealth / Batasan / Payatas)',
+      'District 3 (Cubao / Katipunan / Loyola / Eastwood)',
+      'District 4 (Diliman / Tomas Morato / UP / New Manila)',
+      'District 5 (Novaliches / Fairview / Lagro)',
+      'District 6 (Tandang Sora / Balintawak / Culiat)'
+    ];
+
+    const communities = new Set(qcDistricts);
     const user = window.pawStore && window.pawStore.getGoogleUser ? window.pawStore.getGoogleUser() : null;
-    if (user && user.area) communities.add(user.area);
+    if (user && user.area && !user.area.includes('National Capital Region')) {
+      communities.add(user.area);
+    }
     window.pawStore.getPets().forEach(p => {
-      if (p.community) communities.add(p.community);
-      else if (p.owner && p.owner.community) communities.add(p.owner.community);
+      if (p.community && !p.community.includes('National Capital Region')) communities.add(p.community);
+      else if (p.owner && p.owner.community && !p.owner.community.includes('National Capital Region')) communities.add(p.owner.community);
     });
     window.pawStore.getSightings().forEach(s => {
-      if (s.community) communities.add(s.community);
+      if (s.community && !s.community.includes('National Capital Region')) communities.add(s.community);
     });
-    return ['<option value="all">All communities</option>']
-      .concat(Array.from(communities).sort().map(c => `<option value="${c.replace(/"/g, '&quot;')}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`))
+
+    return ['<option value="all">All QC Districts</option>']
+      .concat(Array.from(communities).map(c => `<option value="${c.replace(/"/g, '&quot;')}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`))
       .join('');
   }
 
@@ -186,13 +198,31 @@ class PublicView {
   }
 
   isInSelectedCommunity(item) {
-    if (this.selectedCommunity === 'all') return true;
-    let community = item.community || (item.owner && item.owner.community) || '';
-    if (!community && item.petId && window.pawStore) {
-      const pet = window.pawStore.getPetById(item.petId);
-      community = pet ? (pet.community || (pet.owner && pet.owner.community) || '') : '';
+    if (!this.selectedCommunity || this.selectedCommunity === 'all') return true;
+    
+    const sel = this.selectedCommunity.toLowerCase();
+    const itemCommunity = (item.community || (item.owner && item.owner.community) || '').toLowerCase();
+    const itemLocation = (item.location || item.lastSeenLocation || '').toLowerCase();
+    const combined = `${itemCommunity} ${itemLocation}`;
+
+    if (itemCommunity === sel || combined.includes(sel)) return true;
+
+    const districtKeywords = {
+      'district 1': ['district 1', 'd1', 'la loma', 'sfdm', 'san francisco del monte', 'project 6', 'banawe', 'sto. domingo', 'project 7', 'balingasa', 'veterans village', 'del monte', 'siena', 'calavite'],
+      'district 2': ['district 2', 'd2', 'commonwealth', 'batasan', 'payatas', 'holy spirit', 'bagong silangan', 'litex', 'lupang pangako', 'bf homes qc'],
+      'district 3': ['district 3', 'd3', 'cubao', 'katipunan', 'loyola', 'eastwood', 'anonas', 'kamias', 'project 2', 'project 3', 'project 4', 'matandang balara', 'old balara', 'blue ridge', 'socorro', 'quirino', 'libis'],
+      'district 4': ['district 4', 'd4', 'diliman', 'tomas morato', 'timog', 'south triangle', 'new manila', 'kamuning', 'teachers village', 'maginhawa', 'sikatuna', 'phil-am', 'west avenue', 'central', 'krus na ligas', 'up campus', 'quezon memorial circle', 'city hall', 'scout'],
+      'district 5': ['district 5', 'd5', 'novaliches', 'fairview', 'lagro', 'gulod', 'san bartolome', 'bagbag', 'sta. lucia', 'greater lagro', 'regalado'],
+      'district 6': ['district 6', 'd6', 'tandang sora', 'balintawak', 'culiat', 'talipapa', 'sangandaan', 'pasong tamo', 'baesa', 'sauyo']
+    };
+
+    for (const [dKey, keywords] of Object.entries(districtKeywords)) {
+      if (sel.includes(dKey)) {
+        return keywords.some(kw => combined.includes(kw));
+      }
     }
-    return community.toLowerCase() === this.selectedCommunity.toLowerCase();
+
+    return combined.includes(sel);
   }
 
   renderFilteredList(pets) {

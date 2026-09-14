@@ -122,7 +122,7 @@ class SightingsView {
 
         <!-- Community selector -->
         <div style="display:flex; align-items:center; gap:0.5rem; min-width:200px;">
-          <label for="sightings-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Community</label>
+          <label for="sightings-community-select" style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">QC District</label>
           <select id="sightings-community-select" class="form-control" style="padding:7px 10px; font-size:0.8rem;" onchange="window.sightingsView.setCommunity(this.value)">
             ${this._communityOptions(sightings)}
           </select>
@@ -256,9 +256,29 @@ class SightingsView {
 
     // Community filter
     if (this.selectedCommunity !== 'all') {
-      list = list.filter(s =>
-        (s.community || '').toLowerCase() === this.selectedCommunity.toLowerCase()
-      );
+      const sel = this.selectedCommunity.toLowerCase();
+      const districtKeywords = {
+        'district 1': ['district 1', 'd1', 'la loma', 'sfdm', 'san francisco del monte', 'project 6', 'banawe', 'sto. domingo', 'project 7', 'balingasa', 'veterans village', 'del monte', 'siena', 'calavite'],
+        'district 2': ['district 2', 'd2', 'commonwealth', 'batasan', 'payatas', 'holy spirit', 'bagong silangan', 'litex', 'lupang pangako', 'bf homes qc'],
+        'district 3': ['district 3', 'd3', 'cubao', 'katipunan', 'loyola', 'eastwood', 'anonas', 'kamias', 'project 2', 'project 3', 'project 4', 'matandang balara', 'old balara', 'blue ridge', 'socorro', 'quirino', 'libis'],
+        'district 4': ['district 4', 'd4', 'diliman', 'tomas morato', 'timog', 'south triangle', 'new manila', 'kamuning', 'teachers village', 'maginhawa', 'sikatuna', 'phil-am', 'west avenue', 'central', 'krus na ligas', 'up campus', 'quezon memorial circle', 'city hall', 'scout'],
+        'district 5': ['district 5', 'd5', 'novaliches', 'fairview', 'lagro', 'gulod', 'san bartolome', 'bagbag', 'sta. lucia', 'greater lagro', 'regalado'],
+        'district 6': ['district 6', 'd6', 'tandang sora', 'balintawak', 'culiat', 'talipapa', 'sangandaan', 'pasong tamo', 'baesa', 'sauyo']
+      };
+
+      list = list.filter(s => {
+        const itemCommunity = (s.community || '').toLowerCase();
+        const itemLocation = (s.location || '').toLowerCase();
+        const combined = `${itemCommunity} ${itemLocation}`;
+        if (itemCommunity === sel || combined.includes(sel)) return true;
+
+        for (const [dKey, keywords] of Object.entries(districtKeywords)) {
+          if (sel.includes(dKey)) {
+            return keywords.some(kw => combined.includes(kw));
+          }
+        }
+        return combined.includes(sel);
+      });
     }
 
     // Search
@@ -315,13 +335,26 @@ class SightingsView {
   }
 
   _communityOptions(sightings) {
-    const set = new Set();
-    sightings.forEach(s => { if (s.community) set.add(s.community); });
+    const qcDistricts = [
+      'District 1 (La Loma / SFDM / Project 6)',
+      'District 2 (Commonwealth / Batasan / Payatas)',
+      'District 3 (Cubao / Katipunan / Loyola / Eastwood)',
+      'District 4 (Diliman / Tomas Morato / UP / New Manila)',
+      'District 5 (Novaliches / Fairview / Lagro)',
+      'District 6 (Tandang Sora / Balintawak / Culiat)'
+    ];
+
+    const set = new Set(qcDistricts);
+    sightings.forEach(s => { 
+      if (s.community && !s.community.includes('National Capital Region')) set.add(s.community); 
+    });
     if (window.pawStore) {
-      window.pawStore.getPets().forEach(p => { if (p.community) set.add(p.community); });
+      window.pawStore.getPets().forEach(p => { 
+        if (p.community && !p.community.includes('National Capital Region')) set.add(p.community); 
+      });
     }
-    const opts = ['<option value="all">All communities</option>'];
-    Array.from(set).sort().forEach(c => {
+    const opts = ['<option value="all">All QC Districts</option>'];
+    Array.from(set).forEach(c => {
       opts.push(`<option value="${this._esc(c)}" ${this.selectedCommunity === c ? 'selected' : ''}>${c}</option>`);
     });
     return opts.join('');
