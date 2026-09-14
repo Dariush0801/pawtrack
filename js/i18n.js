@@ -36,7 +36,7 @@
       'owner.title': 'Pet Owner Portal',
       'owner.subtitle': 'Monitor registered pets, manage RFID tags, and receive immediate impoundment notifications.',
       'owner.guideBtnTitle': 'Owner System Guide: What to do Before, During & After',
-      'owner.regBtn': 'Register Pet with RFID',
+      'owner.regBtn': 'Register Pet',
       'owner.regBtnShort': '+ Register Pet',
       'owner.heroProtectedTitle': 'PawTrack Protection Active',
       'owner.heroProtectedDesc': 'All registered pets are currently safe at home or monitored under the NCR Municipal RFID grid.',
@@ -262,7 +262,7 @@
       'hardware.scanCollarBtn': 'Simulate Phone NFC Tap',
 
       // Modals
-      'modal.regTitle': 'Register Pet with RFID',
+      'modal.regTitle': 'Register Pet',
       'modal.regPetName': 'Pet Name *',
       'modal.regPetNamePh': 'e.g. Buddy',
       'modal.regSpecies': 'Species *',
@@ -427,7 +427,7 @@
       'owner.title': 'Portal ng May-ari ng Alaga',
       'owner.subtitle': 'Subaybayan ang iyong mga alaga, pamahalaan ang RFID tags, at makatanggap agad ng abiso kapag nasa pound.',
       'owner.guideBtnTitle': 'Gabay para sa May-ari: Bago, Habang, at Pagkatapos',
-      'owner.regBtn': 'Magrehistro ng Alaga gamit ang RFID',
+      'owner.regBtn': 'Magrehistro ng Alaga',
       'owner.regBtnShort': '+ Magrehistro ng Alaga',
       'owner.heroProtectedTitle': 'Aktibo ang Proteksyon ng PawTrack',
       'owner.heroProtectedDesc': 'Lahat ng iyong rehistradong alaga ay ligtas sa bahay at nakakonekta sa NCR Municipal RFID network.',
@@ -653,7 +653,7 @@
       'hardware.scanCollarBtn': 'Subukan ang NFC Tap',
 
       // Modals
-      'modal.regTitle': 'Magrehistro ng Alaga gamit ang RFID',
+      'modal.regTitle': 'Magrehistro ng Alaga',
       'modal.regPetName': 'Pangalan ng Alaga *',
       'modal.regPetNamePh': 'hal. Bantay / Muning',
       'modal.regSpecies': 'Uri ng Hayop *',

@@ -135,7 +135,7 @@ class OwnerView {
             <i data-lucide="help-circle"></i>
           </button>
           <button class="btn btn-primary" onclick="window.ownerView.openRegisterModal()">
-            <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet with RFID')}
+            <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet')}
           </button>
         </div>
       </div>
