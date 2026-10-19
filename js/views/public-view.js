@@ -58,6 +58,9 @@ class PublicView {
       <div class="glass-card" style="padding:1rem 1.25rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between;">
         <div style="display:flex; gap:0.5rem; flex:1; min-width:260px;">
           <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, barangay, or RFID tag...')}" value="${this.searchQuery}" oninput="window.publicView.handleSearch(this.value)" />
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.openPhotoMatchModal()" title="Upload a photo and let AI compare it with all missing pets" style="display:flex; align-items:center; gap:0.4rem; white-space:nowrap;">
+            <i data-lucide="camera"></i> Search by Photo
+          </button>
         </div>
 
         <div id="public-filter-btn-group" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
@@ -1070,6 +1073,140 @@ class PublicView {
         this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       } catch (e) {}
     }
+  }
+
+  // =========================================================
+  // AI PHOTO SEARCH (one Gemini call per search, local ranking)
+  // =========================================================
+  openPhotoMatchModal() {
+    this.photoMatchImage = null;
+    const preview = document.getElementById('photo-match-preview');
+    const placeholder = document.getElementById('photo-match-placeholder');
+    const results = document.getElementById('photo-match-results');
+    const input = document.getElementById('photo-match-input');
+    const runBtn = document.getElementById('photo-match-run-btn');
+    if (preview) { preview.style.display = 'none'; preview.removeAttribute('src'); }
+    if (placeholder) placeholder.style.display = '';
+    if (results) results.innerHTML = '';
+    if (input) input.value = '';
+    if (runBtn) runBtn.disabled = true;
+    window.notifManager.openModal('photo-match-modal');
+  }
+
+  handlePhotoMatchFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // Downscale before upload: smaller payload and fewer AI tokens per search
+        const maxSide = 768;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        this.photoMatchImage = canvas.toDataURL('image/jpeg', 0.85);
+
+        const preview = document.getElementById('photo-match-preview');
+        const placeholder = document.getElementById('photo-match-placeholder');
+        const results = document.getElementById('photo-match-results');
+        const runBtn = document.getElementById('photo-match-run-btn');
+        if (preview) { preview.src = this.photoMatchImage; preview.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        if (results) results.innerHTML = '';
+        if (runBtn) runBtn.disabled = false;
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async runPhotoMatch() {
+    const results = document.getElementById('photo-match-results');
+    const runBtn = document.getElementById('photo-match-run-btn');
+    if (!this.photoMatchImage || !results) return;
+
+    if (runBtn) runBtn.disabled = true;
+    results.innerHTML = `<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:12px;">Analyzing photo...</div>`;
+
+    try {
+      const response = await fetch('/api/photo-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: this.photoMatchImage })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+
+      results.innerHTML = this.renderPhotoMatchResults(data.traits || {});
+      if (window.lucide) window.lucide.createIcons({ root: results });
+    } catch (err) {
+      results.innerHTML = `<div style="font-size:13px; color:#ba3820; text-align:center; padding:12px;">Photo search failed: ${this.escapeHtml(err.message)}</div>`;
+    } finally {
+      if (runBtn) runBtn.disabled = false;
+    }
+  }
+
+  renderPhotoMatchResults(traits) {
+    if (traits.isPet === false) {
+      return `<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:12px;">No pet was detected in this photo. Try a clearer photo of the animal.</div>`;
+    }
+
+    // Map the AI traits onto the sighting shape that runAiPetMatch() already scores
+    const colors = (traits.colors || []).join(' ');
+    const sighting = {
+      species: traits.species && traits.species !== 'Unknown' ? traits.species : '',
+      breed: traits.breed && traits.breed !== 'Unknown' ? traits.breed : '',
+      color: [colors, traits.coatPattern || ''].join(' ').trim(),
+      distinctMarkings: traits.distinctMarkings || '',
+      comments: `${colors} ${traits.distinctMarkings || ''}`.trim()
+    };
+    const missingPets = window.pawStore.getPets().filter(p => p.status === 'lost');
+    const matches = window.pawStore.runAiPetMatch(sighting, missingPets).slice(0, 5);
+    const checkedLabel = `${missingPets.length} missing pet${missingPets.length === 1 ? '' : 's'}`;
+
+    const summary = `
+      <div style="background:var(--bg-surface, #23130a); border:1px solid var(--border-subtle, rgba(234, 157, 30, 0.2)); border-radius:10px; padding:10px 12px; font-size:12px; margin-bottom:10px;">
+        <div style="font-weight:700; color:var(--text-main); margin-bottom:4px;">AI reading of your photo</div>
+        <div style="color:var(--text-muted);">${this.escapeHtml(traits.summary || '')}</div>
+        <div style="color:var(--text-muted); margin-top:4px;">
+          <strong>${this.escapeHtml(traits.species || 'Unknown')}</strong> · ${this.escapeHtml(traits.breed || 'Unknown breed')} · ${this.escapeHtml((traits.colors || []).join(', ') || 'unknown colors')}
+        </div>
+      </div>
+    `;
+
+    if (matches.length === 0) {
+      return summary + `<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:12px;">No missing pets look similar to this photo right now (${checkedLabel} checked).</div>`;
+    }
+
+    return summary + `
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Top matches out of ${checkedLabel}:</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${matches.map(m => {
+          const pet = m.pet;
+          const scoreColor = m.confidenceScore >= 75 ? '#16a34a' : m.confidenceScore >= 55 ? '#ea9d1e' : '#ba3820';
+          return `
+            <div class="glass-card" style="padding:0.7rem; display:flex; gap:0.75rem; align-items:center; cursor:pointer;" onclick="window.notifManager.closeModal('photo-match-modal'); window.publicView.focusPetOnMap('${pet.id}')">
+              <img src="${pet.photoUrl}" style="width:52px; height:52px; border-radius:var(--radius-md); object-fit:cover; flex-shrink:0;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:0.92rem;">${this.escapeHtml(pet.name || 'Unnamed pet')}</div>
+                <div style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(pet.breed || '')} · ${this.escapeHtml(pet.color || '')}</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">Last seen: ${this.escapeHtml(pet.lastSeenLocation || 'Unknown')}</div>
+              </div>
+              <div style="font-weight:800; font-size:1.05rem; color:${scoreColor}; flex-shrink:0;">${m.confidenceScore}%</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Tap a match to view it on the map. Scores are estimates; always confirm with the owner.</div>
+    `;
+  }
+
+  escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   openFoundPetModal() {
