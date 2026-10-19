@@ -33,6 +33,7 @@ class App {
     this.initGoogleAuth();
     this.initEventListeners();
     this.initModals();
+    this.initSidebar();
     this.initPhotoUpload();
     this.updateGoogleAuthUI();
     this.handleRoute();
@@ -945,6 +946,28 @@ class App {
       dropdownCount.innerText = unread;
       dropdownCount.style.display = unread > 0 ? 'inline-block' : 'none';
     }
+  }
+
+  // Sidebar drawer (mobile/tablet): hamburger opens it; backdrop, Escape, or navigating closes it
+  initSidebar() {
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const sidebar = document.getElementById('app-sidebar');
+
+    const setOpen = (open) => {
+      document.body.classList.toggle('sidebar-open', open);
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    toggleBtn?.addEventListener('click', () => setOpen(!document.body.classList.contains('sidebar-open')));
+    backdrop?.addEventListener('click', () => setOpen(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    });
+    window.addEventListener('hashchange', () => setOpen(false));
+    sidebar?.querySelectorAll('.role-tab-btn, .brand-logo').forEach(link => {
+      link.addEventListener('click', () => setOpen(false));
+    });
   }
 
   initModals() {

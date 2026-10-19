@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const autoSync = require('./scripts/auto-sync');
 
+// Load local secrets (e.g. GEMINI_API_KEY) from .env when present
+if (fs.existsSync(path.join(__dirname, '.env'))) {
+  process.loadEnvFile(path.join(__dirname, '.env'));
+}
+const photoMatch = require('./api/photo-match');
+
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
 const SHARED_DB_PATH = path.resolve(__dirname, '..', 'pawtrack-shared-db.json');
@@ -216,13 +222,6 @@ if (!fs.existsSync(SHARED_DB_PATH)) {
 }
 setupWatcher();
 
-// Initialize Git Auto-Sync Watcher
-try {
-  autoSync.startWatcher();
-} catch (e) {
-  console.warn('Could not start Git Auto-Sync watcher:', e.message);
-}
-
 const server = http.createServer((req, res) => {
   // Global CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -281,6 +280,31 @@ const server = http.createServer((req, res) => {
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: AI Photo Match (Google AI Studio / Gemini trait extraction)
+  if (parsedUrl === '/api/photo-match' && req.method === 'POST') {
+    const ip = req.socket.remoteAddress || 'unknown';
+    if (photoMatch.isRateLimited(ip)) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Too many photo searches. Please wait a minute and try again.' }));
+      return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const traits = await photoMatch.analyzePetPhoto(payload.image);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, traits }));
+      } catch (err) {
+        console.error('[Photo Match Error]:', err.message);
+        res.writeHead(err.status || 500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message || 'Photo analysis failed' }));
       }
     });
     return;
@@ -817,12 +841,4 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  Git Status:   http://localhost:' + PORT + '/api/git/status');
   console.log('  Git Sync:     POST http://localhost:' + PORT + '/api/git/sync');
   console.log('==================================================\n');
-
-  try {
-    if (autoSync && typeof autoSync.startWatcher === 'function') {
-      autoSync.startWatcher();
-    }
-  } catch (e) {
-    console.warn('[Auto-Sync] Notice starting watcher:', e.message);
-  }
 });
