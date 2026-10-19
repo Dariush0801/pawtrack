@@ -14,8 +14,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'pawtrack_system_settings',
   SIGHTINGS: 'pawtrack_sightings',
   CASES: 'pawtrack_cases',
-  MISSING_REPORTS: 'pawtrack_missing_reports',
-  MAP_API_KEY: 'pawtrack_map_api_key'
+  MISSING_REPORTS: 'pawtrack_missing_reports'
 };
 
 const SEED_SHELTERS = [
@@ -1162,20 +1161,6 @@ class Store {
       { name: 'Kapitolyo & San Nicolas, Pasig City', count: 3, risk: 'Moderate Sighting Zone', coords: [14.5750, 121.0620], percent: 45 },
       { name: 'Tondo & Vitas Compound, Manila City', count: 3, risk: 'Municipal Holding Area', coords: [14.6231, 120.9634], percent: 40 }
     ];
-  }
-
-  getMapApiKey() {
-    return localStorage.getItem(STORAGE_KEYS.MAP_API_KEY) || 'pk.eyJ1IjoicGF3dHJhY2stYWRtaW4iLCJhIjoiY2x6cGF3dHJhY2swMDAxIn0.PawTrack_NCR_GeoTile_2026_LiveKey';
-  }
-
-  setMapApiKey(key) {
-    const trimmed = (key || '').trim();
-    if (trimmed) {
-      localStorage.setItem(STORAGE_KEYS.MAP_API_KEY, trimmed);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.MAP_API_KEY);
-    }
-    this.notify('map_key_changed');
   }
 
   subscribe(fn) {
