@@ -34,7 +34,13 @@
 
       // Owner Portal
       'owner.title': 'Pet Owner Portal',
-      'owner.subtitle': 'Monitor registered pets, manage RFID tags, and receive immediate impoundment notifications.',
+      'owner.subtitle': 'Your pets at a glance, plus missing and found pets near you.',
+      'owner.summarySafe': 'All your pets are safe',
+      'owner.summaryAlertOne': 'pet needs attention',
+      'owner.summaryAlertMany': 'pets need attention',
+      'owner.summaryPets': 'Pets',
+      'owner.summaryAlerts': 'Missing / Impounded',
+      'owner.summaryTags': 'RFID Tags',
       'owner.guideBtnTitle': 'Owner System Guide: What to do Before, During & After',
       'owner.regBtn': 'Register Pet',
       'owner.regBtnShort': '+ Register Pet',
@@ -153,14 +159,14 @@
       'shelter.releasePet': 'Authorize Release',
 
       // Incident Map
-      'map.title': 'Community Pet Incident & Stray Sighting Radar',
-      'map.subtitle': 'Real-time geospatial map tracking missing pets, shelter impoundments, and citizen stray reports.',
+      'map.title': 'Missing & Found Pets Near You',
+      'map.subtitle': 'Tap a pet to see where it was last seen.',
       'map.filterAll': 'All Incidents',
       'map.filterLost': 'Missing Pets',
       'map.filterImpounded': 'Impounded',
       'map.filterSightings': 'Community Sightings',
       'map.filterReunited': 'Reunited',
-      'map.reportStrayBtn': 'Report Found Stray Pet',
+      'map.reportStrayBtn': 'Report Found Pet',
 
       // Cases View
       'cases.title': 'Pet Recovery Cases & Analytics Dashboard',
@@ -425,7 +431,13 @@
 
       // Owner Portal
       'owner.title': 'Portal ng May-ari ng Alaga',
-      'owner.subtitle': 'Subaybayan ang iyong mga alaga, pamahalaan ang RFID tags, at makatanggap agad ng abiso kapag nasa pound.',
+      'owner.subtitle': 'Isang tingin sa iyong mga alaga, at sa mga nawawala at nakitang alaga sa paligid mo.',
+      'owner.summarySafe': 'Ligtas ang lahat ng iyong alaga',
+      'owner.summaryAlertOne': 'alagang kailangan ng atensyon',
+      'owner.summaryAlertMany': 'alagang kailangan ng atensyon',
+      'owner.summaryPets': 'Alaga',
+      'owner.summaryAlerts': 'Nawawala / Nasa Pound',
+      'owner.summaryTags': 'RFID Tags',
       'owner.guideBtnTitle': 'Gabay para sa May-ari: Bago, Habang, at Pagkatapos',
       'owner.regBtn': 'Magrehistro ng Alaga',
       'owner.regBtnShort': '+ Magrehistro ng Alaga',
@@ -544,14 +556,14 @@
       'shelter.releasePet': 'Pahintulutan ang Pag-release',
 
       // Incident Map
-      'map.title': 'Radar ng mga Nawawala at Nakitang Alaga sa Komunidad',
-      'map.subtitle': 'Real-time na mapa para sa mga nawawalang alaga, nasa pound, at ulat ng mga nakitang gala.',
+      'map.title': 'Mga Nawawala at Nakitang Alaga sa Paligid Mo',
+      'map.subtitle': 'Pindutin ang alaga para makita kung saan ito huling nakita.',
       'map.filterAll': 'Lahat',
       'map.filterLost': 'Nawawala',
       'map.filterImpounded': 'Nasa Pound',
       'map.filterSightings': 'May Nakakita',
       'map.filterReunited': 'Nabalik Na',
-      'map.reportStrayBtn': '+ Mag-report ng Nakitang Alaga',
+      'map.reportStrayBtn': 'Mag-report ng Nakitang Alaga',
 
       // Cases View (Filipino)
       'cases.title': 'Mga Kaso ng Nawawalang Alaga at Ulat ng Datos',

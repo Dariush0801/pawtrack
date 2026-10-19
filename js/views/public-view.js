@@ -41,10 +41,6 @@ class PublicView {
           <div class="view-subtitle">${t('map.subtitle', 'Recorded landmark locations of missing pets, community sightings, verified AI matches, and shelter intake facilities.')}</div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-outline btn-sm" onclick="window.publicView.openMapApiKeyModal()" title="Map API Key & Provider Access" style="display:flex; align-items:center; gap:0.45rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
-            <span style="font-weight:600;">API Key: Active</span>
-          </button>
           <button class="btn btn-primary btn-sm" onclick="window.publicView.openFoundPetModal()">
             <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Stray Pet')}
           </button>
@@ -288,7 +284,7 @@ class PublicView {
                 <div style="font-size:0.72rem; color:var(--primary); font-weight:700;">Seen: ${this.formatSightingDate(s.dateTimeSeen || s.createdAt)}</div>
               </div>
             </div>
-            <div style="font-size:0.76rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:6px;">
+            <div class="sighting-comment-clamp" style="font-size:0.76rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:6px;">
               <strong>Comments:</strong> ${s.comments || s.notes || 'No comments provided.'}
             </div>
             <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
@@ -631,8 +627,8 @@ class PublicView {
       tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
       tileOptions.attribution = '&copy; CARTO & OpenStreetMap';
     } else {
-      // Default: Google Roadmap Vector Tiles
-      tileUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+      // Default: Google Roadmap with business/landmark labels hidden (apistyle s.t:2 = POI) for a calmer map
+      tileUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.t%3A2%7Cp.v%3Aoff';
       tileOptions.attribution = '&copy; Google Maps';
     }
 
@@ -1215,41 +1211,6 @@ class PublicView {
     } else {
       const modal = document.getElementById('found-pet-modal');
       if (modal) modal.classList.add('active');
-    }
-  }
-
-  openMapApiKeyModal() {
-    const modal = document.getElementById('map-api-key-modal');
-    const input = document.getElementById('map-api-key-input');
-    const statusText = document.getElementById('map-key-status-text');
-    if (input && window.pawStore) {
-      input.value = window.pawStore.getMapApiKey();
-    }
-    if (statusText) {
-      statusText.textContent = 'Active & Connected';
-      statusText.style.color = '#22c55e';
-    }
-    if (modal) modal.classList.add('active');
-  }
-
-  saveMapApiKey() {
-    const input = document.getElementById('map-api-key-input');
-    if (input && window.pawStore) {
-      window.pawStore.setMapApiKey(input.value);
-      if (window.notifManager) {
-        window.notifManager.closeModal('map-api-key-modal');
-        window.notifManager.showToast('Map API Key updated successfully. Map re-initialized.', 'success');
-      }
-      const pets = window.pawStore.getPets();
-      const shelters = window.pawStore.getShelters();
-      this.initMap(pets, shelters);
-    }
-  }
-
-  resetDefaultApiKey() {
-    const input = document.getElementById('map-api-key-input');
-    if (input) {
-      input.value = 'pk.eyJ1IjoicGF3dHJhY2stYWRtaW4iLCJhIjoiY2x6cGF3dHJhY2swMDAxIn0.PawTrack_NCR_GeoTile_2026_LiveKey';
     }
   }
 }

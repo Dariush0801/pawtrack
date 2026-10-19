@@ -38,10 +38,9 @@
 </head>
 
 <body>
-  <!-- Header Bar -->
-  <header class="app-header">
-    <div class="header-container">
-      <!-- Brand Logo -->
+  <!-- Sidebar: logo (home), navigation, account -->
+  <aside class="app-sidebar" id="app-sidebar" aria-label="Sidebar">
+    <div class="sidebar-brand">
       <a href="#owner" class="brand-logo" title="PawTrack Home">
         <div class="logo-icon-box">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -54,58 +53,171 @@
           <span class="brand-tagline">RFID RECOVERY</span>
         </div>
       </a>
+    </div>
 
-      <!-- Primary Navigation Role Tabs (Always English) -->
-      <nav class="role-tabs" aria-label="Role Navigation">
-        <a href="#owner" class="role-tab-btn active" data-view="owner" title="Home" aria-label="Home">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-          <span>Home</span>
-        </a>
-        <a href="http://localhost:8080" target="_blank" class="badge" style="display: none; background:rgba(194,65,12,0.15); color:#ea580c; text-decoration:none; padding:4px 8px; border-radius:6px; font-weight:600; font-size:11px; margin-left:8px; border:1px solid rgba(194,65,12,0.3);" hidden>Admin Console ↗</a>
-        <a href="#shelter" class="role-tab-btn" data-view="shelter" title="Shelter Terminal" aria-label="Shelter Terminal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 21h18"/>
-            <path d="M5 21V7l8-4 8 4v14"/>
-            <path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9z"/>
-          </svg>
-          <span>Shelter Terminal</span>
-        </a>
+    <nav class="role-tabs sidebar-nav" aria-label="Main Navigation">
+      <a href="#owner" class="role-tab-btn active" data-view="owner" title="Home" aria-label="Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Home</span>
+      </a>
+      <a href="http://localhost:8080" target="_blank" class="badge" style="display: none; background:rgba(194,65,12,0.15); color:#ea580c; text-decoration:none; padding:4px 8px; border-radius:6px; font-weight:600; font-size:11px; margin-left:8px; border:1px solid rgba(194,65,12,0.3);" hidden>Admin Console ↗</a>
+      <a href="#shelter" class="role-tab-btn" data-view="shelter" title="Shelter Terminal" aria-label="Shelter Terminal">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/>
+          <path d="M5 21V7l8-4 8 4v14"/>
+          <path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9z"/>
+        </svg>
+        <span>Shelter Terminal</span>
+      </a>
 
-        <a href="#cases" class="role-tab-btn" data-view="cases" title="Cases & Analytics" aria-label="Cases & Analytics">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"/>
-            <line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-          <span>Cases & Analytics</span>
+      <a href="#cases" class="role-tab-btn" data-view="cases" title="Cases & Analytics" aria-label="Cases & Analytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span>Cases & Analytics</span>
+      </a>
+      <a href="#impounded" class="role-tab-btn" data-view="impounded" title="Impounded Pets" aria-label="Impounded Pets">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M12 8v4"/>
+          <path d="M12 16h.01"/>
+        </svg>
+        <span data-i18n="nav.impounded">Impounded</span>
+      </a>
+      <a href="#sightings" class="role-tab-btn" data-view="sightings" title="Community Pet Sightings" aria-label="Community Pet Sightings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span>Sightings</span>
+      </a>
+      <a href="javascript:void(0)" class="role-tab-btn nav-report-btn" data-view="report" title="Report Missing or Found Pet" aria-label="Report Missing or Found Pet" onclick="window.reportManager ? window.reportManager.openReportModal('found') : null" data-i18n-title="nav.reportTitle" data-i18n-aria="nav.reportTitle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v4"/>
+          <path d="M12 17h.01"/>
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        </svg>
+        <span data-i18n="nav.report">Report Pet</span>
+      </a>
+    </nav>
+
+    <!-- Account (Log In / profile menu with Log Out) -->
+    <div class="sidebar-account">
+      <div id="auth-right-container" style="position: relative;">
+        <!-- Logged Out Button: "Log In" Only -->
+        <button id="header-login-btn" class="header-login-clean-btn" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Log In</span>
+        </button>
+
+        <!-- Logged In Button: Profile Avatar Icon Only -->
+        <button id="header-user-btn" class="header-user-pill-btn" type="button" style="display: none;" title="Account Menu" aria-label="Account Menu">
+          <div id="header-avatar-circle" class="header-avatar-circle">G</div>
+          <span class="sidebar-account-meta">
+            <span id="header-user-name" class="header-user-name">Google User</span>
+            <span class="sidebar-account-sub">Account &amp; Log Out</span>
+          </span>
+          <svg class="sidebar-account-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+
+        <!-- Logged In User Dropdown Menu -->
+        <div id="user-account-dropdown" class="user-account-dropdown-panel" style="display: none;">
+          <div class="user-dropdown-header">
+            <div class="user-dropdown-avatar" id="dropdown-avatar-circle">G</div>
+            <div class="user-dropdown-meta">
+              <div class="user-dropdown-name" id="dropdown-user-name">Google User</div>
+              <div class="user-dropdown-email" id="dropdown-user-email">user@gmail.com</div>
+              <div class="user-dropdown-role">Verified Pet Guardian</div>
+            </div>
+          </div>
+
+          <div class="user-dropdown-divider"></div>
+
+          <div class="user-dropdown-menu">
+            <button type="button" class="user-dropdown-item" id="dropdown-profile-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Guardian Profile</span>
+            </button>
+
+            <button type="button" class="user-dropdown-item" id="dropdown-hardware-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="16" height="16" x="4" y="4" rx="2"/>
+                <rect width="6" height="6" x="9" y="9" rx="1"/>
+                <path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
+              </svg>
+              <span>Hardware Specs</span>
+            </button>
+
+            <button type="button" class="user-dropdown-item" id="dropdown-settings-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>Portal Settings</span>
+            </button>
+          </div>
+
+          <div class="user-dropdown-divider"></div>
+
+          <button type="button" class="user-dropdown-item user-dropdown-logout" id="dropdown-logout-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Log Out</span>
+          </button>
+        </div>
+
+        <!-- Google One Tap Prompt Box -->
+        <div id="google-onetap-prompt" style="display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 320px; background: #131314; color: #e3e3e3; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.55); border: 1px solid #2d2f31; z-index: 2500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; padding: 14px 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #2d2f31;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+              </svg>
+              <span style="font-size: 13px; font-weight: 500; color: #e3e3e3;">Sign in to pawtrack.com with google.com</span>
+            </div>
+            <button id="onetap-close-btn" style="background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 16px; padding: 2px 4px; display: grid; place-items: center;">&times;</button>
+          </div>
+
+          <button id="onetap-continue-btn" style="width: 100%; background: #8ab4f8; color: #1f1f1f; border: none; border-radius: 20px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: background 0.15s ease;">
+            Sign in with Google
+          </button>
+
+          <button id="onetap-guest-btn" style="width: 100%; background: transparent; color: #8ab4f8; border: 1px solid #3c4043; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer;">
+            Continue as Guest (Read-Only)
+          </button>
+
+          <div style="font-size: 11px; color: #9aa0a6; margin-top: 10px; line-height: 1.4; text-align: center; border-top: 1px solid #2d2f31; padding-top: 8px;">
+            By signing in, you agree to PawTrack's
+            <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: #8ab4f8; text-decoration: underline;">Privacy Policy</a> &amp;
+            <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: #8ab4f8; text-decoration: underline;">Terms of Service</a>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <!-- Mobile: open sidebar drawer + compact logo -->
+      <div class="header-mobile-left">
+        <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Open menu" aria-controls="app-sidebar" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <a href="#owner" class="brand-logo header-mobile-brand" title="PawTrack Home">
+          <div class="logo-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z" />
+            </svg>
+          </div>
+          <div class="brand-name"><span>PawTrack</span></div>
         </a>
-        <a href="#impounded" class="role-tab-btn" data-view="impounded" title="Impounded Pets" aria-label="Impounded Pets">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <path d="M12 8v4"/>
-            <path d="M12 16h.01"/>
-          </svg>
-          <span data-i18n="nav.impounded">Impounded</span>
-        </a>
-        <a href="#sightings" class="role-tab-btn" data-view="sightings" title="Community Pet Sightings" aria-label="Community Pet Sightings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span>Sightings</span>
-        </a>
-        <a href="javascript:void(0)" class="role-tab-btn nav-report-btn" data-view="report" title="Report Missing or Found Pet" aria-label="Report Missing or Found Pet" onclick="window.reportManager ? window.reportManager.openReportModal('found') : null" data-i18n-title="nav.reportTitle" data-i18n-aria="nav.reportTitle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 9v4"/>
-            <path d="M12 17h.01"/>
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-          </svg>
-          <span data-i18n="nav.report">Report Pet</span>
-        </a>
-      </nav>
+      </div>
 
       <!-- Quick Action Controls -->
       <div class="header-actions" style="position: relative;">
@@ -165,92 +277,6 @@
             </div>
             <div class="fb-dropdown-body" id="notif-dropdown-list">
               <!-- Rendered dynamically -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Auth / User Account Container -->
-        <div id="auth-right-container" style="position: relative;">
-          <!-- Logged Out Button: "Log In" Only -->
-          <button id="header-login-btn" class="header-login-clean-btn" type="button">
-            <span>Log In</span>
-          </button>
-
-          <!-- Logged In Button: Profile Avatar Icon Only -->
-          <button id="header-user-btn" class="header-user-pill-btn" type="button" style="display: none;" title="Account Menu" aria-label="Account Menu">
-            <div id="header-avatar-circle" class="header-avatar-circle">G</div>
-            <span id="header-user-name" class="header-user-name" style="display: none;">Google User</span>
-          </button>
-
-          <!-- Logged In User Dropdown Menu -->
-          <div id="user-account-dropdown" class="user-account-dropdown-panel" style="display: none;">
-            <div class="user-dropdown-header">
-              <div class="user-dropdown-avatar" id="dropdown-avatar-circle">G</div>
-              <div class="user-dropdown-meta">
-                <div class="user-dropdown-name" id="dropdown-user-name">Google User</div>
-                <div class="user-dropdown-email" id="dropdown-user-email">user@gmail.com</div>
-                <div class="user-dropdown-role">Verified Pet Guardian</div>
-              </div>
-            </div>
-
-            <div class="user-dropdown-divider"></div>
-
-            <div class="user-dropdown-menu">
-              <button type="button" class="user-dropdown-item" id="dropdown-profile-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Guardian Profile</span>
-              </button>
-
-              <button type="button" class="user-dropdown-item" id="dropdown-hardware-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="16" height="16" x="4" y="4" rx="2"/>
-                  <rect width="6" height="6" x="9" y="9" rx="1"/>
-                  <path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
-                </svg>
-                <span>Hardware Specs</span>
-              </button>
-
-              <button type="button" class="user-dropdown-item" id="dropdown-settings-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                <span>Portal Settings</span>
-              </button>
-            </div>
-
-            <div class="user-dropdown-divider"></div>
-
-            <button type="button" class="user-dropdown-item user-dropdown-logout" id="dropdown-logout-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              <span>Log Out</span>
-            </button>
-          </div>
-
-          <!-- Google One Tap Prompt Box -->
-          <div id="google-onetap-prompt" style="display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 320px; background: #131314; color: #e3e3e3; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.55); border: 1px solid #2d2f31; z-index: 2500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; padding: 14px 16px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #2d2f31;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
-                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-                </svg>
-                <span style="font-size: 13px; font-weight: 500; color: #e3e3e3;">Sign in to pawtrack.com with google.com</span>
-              </div>
-              <button id="onetap-close-btn" style="background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 16px; padding: 2px 4px; display: grid; place-items: center;">&times;</button>
-            </div>
-
-            <button id="onetap-continue-btn" style="width: 100%; background: #8ab4f8; color: #1f1f1f; border: none; border-radius: 20px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: background 0.15s ease;">
-              Sign in with Google
-            </button>
-
-            <button id="onetap-guest-btn" style="width: 100%; background: transparent; color: #8ab4f8; border: 1px solid #3c4043; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer;">
-              Continue as Guest (Read-Only)
-            </button>
-
-            <div style="font-size: 11px; color: #9aa0a6; margin-top: 10px; line-height: 1.4; text-align: center; border-top: 1px solid #2d2f31; padding-top: 8px;">
-              By signing in, you agree to PawTrack's
-              <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: #8ab4f8; text-decoration: underline;">Privacy Policy</a> &amp;
-              <a href="#" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: #8ab4f8; text-decoration: underline;">Terms of Service</a>.
             </div>
           </div>
         </div>
@@ -746,43 +772,6 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('portal-settings-modal'); window.notifManager.showToast('Settings saved successfully.', 'success');">Save Preferences</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Map API Key & Provider Access Modal -->
-  <div class="modal-overlay" id="map-api-key-modal">
-    <div class="modal-box" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3 style="display:flex; align-items:center; gap:0.5rem;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #ea9d1e)" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
-          Incident Map API Key & Provider
-        </h3>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('map-api-key-modal')" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal-body" style="padding: 1.25rem 1.4rem; display:flex; flex-direction:column; gap:14px;">
-        <div style="background:var(--bg-surface, #23130a); border:1px solid var(--border-subtle, rgba(234, 157, 30, 0.2)); border-radius:10px; padding:12px 14px;">
-          <div style="font-weight:700; font-size:13px; color:var(--text-main); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e;"></span>
-            API Key Status: <span id="map-key-status-text" style="color:#22c55e;">Active & Connected</span>
-          </div>
-          <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
-            Map tiles, geospatial landmark recovery markers, and community sightings are authenticated via Map API.
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:0;">
-          <label style="font-weight:600; font-size:12px; color:var(--text-main); margin-bottom:6px; display:block;">Map Access Token / API Key</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="map-api-key-input" placeholder="pk.eyJ1IjoicGF3dHJhY2stYWRtaW4iLCJhIjoiY2x6..." style="flex:1; font-family:monospace; font-size:12px;" />
-            <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.resetDefaultApiKey()" title="Reset to default key">Reset</button>
-          </div>
-          <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Supports Mapbox Access Tokens (pk.*), MapTiler Keys, Geoapify, and CARTO Basemap API keys.</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('map-api-key-modal')">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="window.publicView.saveMapApiKey()">Apply API Key</button>
       </div>
     </div>
   </div>

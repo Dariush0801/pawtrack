@@ -91,38 +91,60 @@ class OwnerView {
           </div>
         </div>
       `;
-    } else {
-      heroLeftHtml = `
-        <div class="owner-status-card glass-card">
-          <div>
-            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center;">
-                <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
-              </div>
-              <div>
-                <h3 style="font-size:1.15rem; font-weight:700;">${t('owner.heroProtectedTitle', 'PawTrack Protection Active')}</h3>
-                <div style="font-size:0.8rem; color:var(--text-muted);">${t('owner.heroProtectedDesc', 'All registered pets are currently safe at home or monitored under the NCR Municipal RFID grid.')}</div>
-              </div>
-            </div>
-            <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.45; margin-bottom:1rem;">
-              ${t('owner.heroProtectedDesc', 'All registered pets are currently safe at home or monitored under the NCR Municipal RFID grid.')}
-            </p>
-          </div>
-          <div style="display:flex; gap:0.65rem; flex-wrap:wrap; padding-top:0.75rem; border-top:1px solid var(--border-subtle);">
-            <span class="badge badge-safe">
-              <span class="badge-dot"></span> System Online
-            </span>
-            <span class="badge badge-safe">
-              <span class="badge-dot"></span> ${t('owner.heroSheltersConnected', '3 Municipal Shelters Connected')}
-            </span>
-          </div>
-        </div>
-      `;
     }
 
     const hasImpound = Boolean(impoundedPet && activeImpoundment);
     const layoutClass = hasImpound ? 'owner-hero-layout impound-active' : 'owner-hero-layout status-active';
     const statsGridClass = hasImpound ? 'stats-sidebar-col-1' : 'stats-sidebar-grid-2x2';
+
+    const alertCount = pets.filter(p => p.status === 'lost' || p.status === 'impounded').length;
+    const safeCount = pets.filter(p => p.status === 'safe' || p.status === 'reunited').length;
+    const showAlerts = "if (window.publicView) window.publicView.setFilter('lost'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});";
+
+    // Compact summary strip (shown when no impoundment notice needs the hero space)
+    const summaryHtml = `
+      <div class="owner-summary glass-card">
+        <div class="owner-summary-status ${alertCount > 0 ? 'is-alert' : ''}">
+          <span class="owner-summary-dot"></span>
+          <div>
+            <div class="owner-summary-title">${alertCount > 0
+              ? `${alertCount} ${alertCount === 1 ? t('owner.summaryAlertOne', 'pet needs attention') : t('owner.summaryAlertMany', 'pets need attention')}`
+              : t('owner.summarySafe', 'All your pets are safe')}</div>
+            <div class="owner-summary-sub">${t('owner.heroSheltersConnected', '3 Municipal Shelters Connected')}</div>
+          </div>
+        </div>
+        <div class="owner-summary-stats">
+          <button type="button" class="owner-summary-stat" onclick="window.location.hash='#sightings';" title="${t('owner.statTotalPets', 'Total Registered Pets')}">
+            <span class="owner-summary-value">${pets.length}</span>
+            <span class="owner-summary-label">${t('owner.summaryPets', 'Pets')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat ${alertCount > 0 ? 'is-alert' : ''}" onclick="${showAlerts}" title="${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}">
+            <span class="owner-summary-value">${alertCount}</span>
+            <span class="owner-summary-label">${t('owner.summaryAlerts', 'Missing / Impounded')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.location.hash='#sightings';" title="${t('owner.statSafePets', 'Safe / Reunited')}">
+            <span class="owner-summary-value">${safeCount}</span>
+            <span class="owner-summary-label">${t('owner.statSafePets', 'Safe / Reunited')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.location.hash='#hardware'" title="${t('owner.statActiveRfid', 'Active RFID Transponders')}">
+            <span class="owner-summary-value">${pets.filter(p => p.rfidTag).length}</span>
+            <span class="owner-summary-label">${t('owner.summaryTags', 'RFID Tags')}</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    const heroHtml = hasImpound ? `
+      <!-- Hero Layout: Impoundment Notice on Left, Stat Categories on Right -->
+      <div class="${layoutClass}">
+        <div style="height:100%;">
+          ${heroLeftHtml}
+        </div>
+        <div class="${statsGridClass}">
+          ${this.renderHeroStatCards(pets, t, showAlerts)}
+        </div>
+      </div>
+    ` : summaryHtml;
 
     container.innerHTML = `
       <div class="view-header">
@@ -140,89 +162,34 @@ class OwnerView {
         </div>
       </div>
 
-      <!-- Hero Layout: Impoundment Notice / Status Card on Left, 4 Categories on Right -->
-      <div class="${layoutClass}">
-        <!-- Left Side: Impoundment Notice or Status Card -->
-        <div style="height:100%;">
-          ${heroLeftHtml}
-        </div>
-
-        <!-- Right Side: 4 Stat Categories -->
-        <div class="${statsGridClass}">
-          <div class="stat-card glass-card" data-label="${t('owner.statTotalPets', 'Total Registered Pets')}" title="Click to view all registered pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
-            <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
-              <i data-lucide="shield-check"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">${pets.length}</div>
-              <div class="stat-label">${t('owner.statTotalPets', 'Total Registered Pets')}</div>
-            </div>
-          </div>
-
-          <div class="stat-card glass-card" data-label="${t('owner.statActiveRfid', 'Active RFID Transponders')}" title="Click to view hardware transponder specs" style="cursor:pointer;" onclick="window.location.hash='#hardware'">
-            <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#ffffff;">
-              <i data-lucide="radio"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">${pets.filter(p => p.rfidTag).length}</div>
-              <div class="stat-label">${t('owner.statActiveRfid', 'Active RFID Transponders')}</div>
-            </div>
-          </div>
-
-          <div class="stat-card glass-card" data-label="${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}" title="Click to view active recovery alerts on Incident Map" style="cursor:pointer;" onclick="if (window.publicView) window.publicView.setFilter('lost'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});">
-            <div class="stat-icon" style="background:linear-gradient(135deg, #ba3820, #54280e); color:#ffffff;">
-              <i data-lucide="alert-circle"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">${pets.filter(p => p.status === 'lost' || p.status === 'impounded').length}</div>
-              <div class="stat-label">${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}</div>
-            </div>
-          </div>
-
-          <div class="stat-card glass-card" data-label="${t('owner.statSafePets', 'Safe / Reunited Pets')}" title="Click to view registered safe & reunited pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
-            <div class="stat-icon" style="background:linear-gradient(135deg, #54280e, #241208); color:#ea9d1e;">
-              <i data-lucide="check-circle-2"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">${pets.filter(p => p.status === 'safe' || p.status === 'reunited').length}</div>
-              <div class="stat-label">${t('owner.statSafePets', 'Safe / Reunited')}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      ${heroHtml}
 
       <!-- Incident Map Section (Moved to Home) -->
-      <div id="incident-map-section" style="margin-top: 2rem;">
-        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+      <div id="incident-map-section" class="home-map-section">
+        <div class="home-section-header">
           <div>
-            <h2 id="incident-map-heading" style="font-size:1.35rem; margin-bottom:0.25rem;">
-              ${t('map.title', 'Community Recovery & Incident Map')}
-            </h2>
-            <div style="font-size:0.82rem; color:var(--text-muted);">
-              ${t('map.subtitle', 'Recorded landmark locations of missing pets, community sightings, verified AI matches, and shelter intake facilities.')}
-            </div>
+            <h2 id="incident-map-heading">${t('map.title', 'Missing & Found Pets Near You')}</h2>
+            <div class="home-section-sub">${t('map.subtitle', 'Tap a pet to see where it was last seen.')}</div>
           </div>
-          <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-            <button class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openMapApiKeyModal() : null" title="Map API Key & Provider Access" style="display:flex; align-items:center; gap:0.45rem;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
-              <span style="font-weight:600;">API Key: Active</span>
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="window.publicView ? window.publicView.openFoundPetModal() : null">
-              <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Stray Pet')}
+          <div class="home-section-actions">
+            <button class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openFoundPetModal() : null">
+              <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Pet')}
             </button>
             <button class="btn btn-outline btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
-              <i data-lucide="map-pin"></i> Report Pet Sighting
+              <i data-lucide="map-pin"></i> Report Sighting
             </button>
           </div>
         </div>
 
         <!-- Search & Filters -->
-        <div class="glass-card" style="padding:1rem 1.25rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between;">
-          <div style="display:flex; gap:0.5rem; flex:1; min-width:260px;">
+        <div class="home-search-panel glass-card">
+          <div class="home-search-row">
             <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, barangay, or RFID tag...')}" value="${window.publicView ? window.publicView.searchQuery : ''}" oninput="window.publicView ? window.publicView.handleSearch(this.value) : null" />
+            <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openPhotoMatchModal() : null" title="Upload a photo and let AI compare it with all missing pets">
+              <i data-lucide="camera"></i> <span>Search by Photo</span>
+            </button>
           </div>
-
-          <div id="public-filter-btn-group" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+          <div id="public-filter-btn-group" class="home-filter-chips">
             ${window.publicView ? window.publicView.renderFilterButtons() : ''}
           </div>
         </div>
@@ -285,6 +252,51 @@ class OwnerView {
     if (activeImpoundment) {
       this.startCountdownTimer(activeImpoundment.claimDeadline);
     }
+  }
+
+  // Stat cards shown beside the impoundment notice
+  renderHeroStatCards(pets, t, showAlerts) {
+    return `
+          <div class="stat-card glass-card" data-label="${t('owner.statTotalPets', 'Total Registered Pets')}" title="Click to view all registered pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
+            <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">${pets.length}</div>
+              <div class="stat-label">${t('owner.statTotalPets', 'Total Registered Pets')}</div>
+            </div>
+          </div>
+
+          <div class="stat-card glass-card" data-label="${t('owner.statActiveRfid', 'Active RFID Transponders')}" title="Click to view hardware transponder specs" style="cursor:pointer;" onclick="window.location.hash='#hardware'">
+            <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#ffffff;">
+              <i data-lucide="radio"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">${pets.filter(p => p.rfidTag).length}</div>
+              <div class="stat-label">${t('owner.statActiveRfid', 'Active RFID Transponders')}</div>
+            </div>
+          </div>
+
+          <div class="stat-card glass-card" data-label="${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}" title="Click to view active recovery alerts on Incident Map" style="cursor:pointer;" onclick="${showAlerts}">
+            <div class="stat-icon" style="background:linear-gradient(135deg, #ba3820, #54280e); color:#ffffff;">
+              <i data-lucide="alert-circle"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">${pets.filter(p => p.status === 'lost' || p.status === 'impounded').length}</div>
+              <div class="stat-label">${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}</div>
+            </div>
+          </div>
+
+          <div class="stat-card glass-card" data-label="${t('owner.statSafePets', 'Safe / Reunited Pets')}" title="Click to view registered safe & reunited pets in Sightings" style="cursor:pointer;" onclick="window.location.hash='#sightings';">
+            <div class="stat-icon" style="background:linear-gradient(135deg, #54280e, #241208); color:#ea9d1e;">
+              <i data-lucide="check-circle-2"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">${pets.filter(p => p.status === 'safe' || p.status === 'reunited').length}</div>
+              <div class="stat-label">${t('owner.statSafePets', 'Safe / Reunited')}</div>
+            </div>
+          </div>
+    `;
   }
 
   renderPetCard(pet) {
