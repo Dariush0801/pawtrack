@@ -222,13 +222,6 @@ if (!fs.existsSync(SHARED_DB_PATH)) {
 }
 setupWatcher();
 
-// Initialize Git Auto-Sync Watcher
-try {
-  autoSync.startWatcher();
-} catch (e) {
-  console.warn('Could not start Git Auto-Sync watcher:', e.message);
-}
-
 const server = http.createServer((req, res) => {
   // Global CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -848,12 +841,4 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  Git Status:   http://localhost:' + PORT + '/api/git/status');
   console.log('  Git Sync:     POST http://localhost:' + PORT + '/api/git/sync');
   console.log('==================================================\n');
-
-  try {
-    if (autoSync && typeof autoSync.startWatcher === 'function') {
-      autoSync.startWatcher();
-    }
-  } catch (e) {
-    console.warn('[Auto-Sync] Notice starting watcher:', e.message);
-  }
 });
