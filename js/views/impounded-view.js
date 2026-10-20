@@ -15,10 +15,13 @@ class ImpoundedView {
     if (container) this.render(container);
   }
 
+  // Refresh only the card list so the search box keeps focus while typing
   handleSearch(e) {
     this.searchQuery = (e.target.value || '').toLowerCase().trim();
-    const container = document.getElementById('app-viewport');
-    if (container) this.render(container);
+    const list = document.getElementById('impounded-list');
+    if (!list) return;
+    const active = window.pawStore.getImpoundments().filter(i => i.status === 'active_impounded' || i.status === 'active');
+    list.innerHTML = this.renderList(active, window.pawStore.getPets());
   }
 
   toggleShelterExpand(shelterId, e) {
@@ -55,21 +58,7 @@ class ImpoundedView {
     // Calculate metrics
     const activeImpoundments = impoundments.filter(i => i.status === 'active_impounded' || i.status === 'active');
     const claimedImpoundments = impoundments.filter(i => i.status === 'claimed');
-
-    // Filter by shelter and search
-    let filteredList = activeImpoundments;
-    if (this.filterShelter !== 'all') {
-      filteredList = filteredList.filter(i => i.shelterId === this.filterShelter || i.shelterName?.toLowerCase().includes(this.filterShelter.toLowerCase()));
-    }
-    if (this.searchQuery) {
-      filteredList = filteredList.filter(i => {
-        const pet = pets.find(p => p.id === i.petId);
-        const name = (pet?.name || i.petName || '').toLowerCase();
-        const tag = (i.rfidTag || pet?.rfidTag || '').toLowerCase();
-        const shelter = (i.shelterName || '').toLowerCase();
-        return name.includes(this.searchQuery) || tag.includes(this.searchQuery) || shelter.includes(this.searchQuery);
-      });
-    }
+    const urgentCount = activeImpoundments.filter(i => this.getHoursLeft(i).hoursLeft <= 24).length;
 
     container.innerHTML = `
       <div class="view-header">
@@ -87,35 +76,29 @@ class ImpoundedView {
         </div>
       </div>
 
-      <!-- Quick Metrics Grid -->
-      <div class="stats-grid">
-        <div class="stat-card glass-card" data-label="${t('impounded.statActiveTitle', 'Active Impounded Animals')}" title="${t('impounded.statActiveTitle', 'Active Impounded Animals')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#ffffff;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#ffd085;">${activeImpoundments.length}</div>
-            <div class="stat-label" data-i18n="impounded.statActive">${t('impounded.statActive', 'Animals in Holding Bay')}</div>
-          </div>
-        </div>
-
-        <div class="stat-card glass-card" data-label="${t('impounded.statClaimedTitle', 'Successfully Redeemed')}" title="${t('impounded.statClaimedTitle', 'Successfully Redeemed')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #16a34a, #14532d); color:#ffffff;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#86efac;">${claimedImpoundments.length}</div>
-            <div class="stat-label" data-i18n="impounded.statClaimed">${t('impounded.statClaimed', 'Reunited via RFID Verification')}</div>
+      <!-- Compact Summary Strip -->
+      <div class="owner-summary glass-card">
+        <div class="owner-summary-status ${urgentCount > 0 ? 'is-alert' : ''}">
+          <span class="owner-summary-dot"></span>
+          <div>
+            <div class="owner-summary-title">${urgentCount > 0
+              ? `${urgentCount} with under 24h left to claim`
+              : `${activeImpoundments.length} ${t('impounded.statActive', 'Animals in Holding Bay')}`}</div>
+            <div class="owner-summary-sub">${shelters.length} ${t('impounded.statShelters', 'NCR Municipal Shelters Active')}</div>
           </div>
         </div>
-
-        <div class="stat-card glass-card" data-label="${t('impounded.statSheltersTitle', 'Connected Municipal Pounds')}" title="${t('impounded.statSheltersTitle', 'Connected Municipal Pounds')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9z"/></svg>
+        <div class="owner-summary-stats">
+          <div class="owner-summary-stat" title="${t('impounded.statActiveTitle', 'Active Impounded Animals')}">
+            <span class="owner-summary-value">${activeImpoundments.length}</span>
+            <span class="owner-summary-label">${t('impounded.statActive', 'Animals in Holding Bay')}</span>
           </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#ea9d1e;">${shelters.length}</div>
-            <div class="stat-label" data-i18n="impounded.statShelters">${t('impounded.statShelters', 'NCR Municipal Shelters Active')}</div>
+          <div class="owner-summary-stat ${urgentCount > 0 ? 'is-alert' : ''}" title="Under 24 hours left">
+            <span class="owner-summary-value">${urgentCount}</span>
+            <span class="owner-summary-label">Urgent (&lt;24h)</span>
+          </div>
+          <div class="owner-summary-stat" title="${t('impounded.statClaimedTitle', 'Successfully Redeemed')}">
+            <span class="owner-summary-value">${claimedImpoundments.length}</span>
+            <span class="owner-summary-label">${t('impounded.statClaimedTitle', 'Successfully Redeemed')}</span>
           </div>
         </div>
       </div>
@@ -171,98 +154,127 @@ class ImpoundedView {
           </div>
         </aside>
 
-        <!-- Right Side: Search, Filter Tabs & Impounded Animals Cards -->
+        <!-- Right Side: Search & Impounded Animals Cards (facility filtering lives in the sidebar) -->
         <section class="impounded-main-content" style="display:flex; flex-direction:column; gap:1.25rem;">
-          <!-- Search & Filter Controls -->
           <div class="glass-card" style="padding:14px 18px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
             <div style="position:relative; flex:1; min-width:220px;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" placeholder="${t('impounded.searchPlaceholder', 'Search by pet name, RFID UID, or shelter...')}" value="${this.searchQuery}" oninput="window.impoundedView.handleSearch(event)" style="width:100%; padding-left:36px; height:38px; border-radius:var(--radius-full); font-size:0.85rem;" />
             </div>
 
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button type="button" class="btn btn-sm ${this.filterShelter === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="window.impoundedView.setFilterShelter('all')">
-                ${t('impounded.filterAllFacilities', 'All Facilities')} (${activeImpoundments.length})
+            ${this.filterShelter !== 'all' ? `
+              <button type="button" class="btn btn-sm btn-outline" onclick="window.impoundedView.setFilterShelter('all')" title="${t('impounded.filterAllFacilities', 'All Facilities')}">
+                ${(shelters.find(s => s.id === this.filterShelter) || {}).name || this.filterShelter} &times;
               </button>
-              ${shelters.map(s => `
-                <button type="button" class="btn btn-sm ${this.filterShelter === s.id ? 'btn-primary' : 'btn-outline'}" onclick="window.impoundedView.setFilterShelter('${s.id}')">
-                  ${s.name.split(' ')[0]}
-                </button>
-              `).join('')}
-            </div>
+            ` : ''}
           </div>
 
-          <!-- Impounded Animals Cards List -->
-          ${filteredList.length === 0 ? `
-            <div class="glass-card" style="padding:48px 24px; text-align:center; color:var(--text-muted);">
-              <div style="width:56px; height:56px; border-radius:50%; background:rgba(22,163,74,0.12); color:#16a34a; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-              </div>
-              <h3 style="font-size:1.15rem; margin-bottom:6px; color:var(--text-main);" data-i18n="impounded.emptyTitle">${t('impounded.emptyTitle', 'No Impounded Animals in Selected Facility')}</h3>
-              <p style="font-size:0.85rem; max-width:420px; margin:0 auto;" data-i18n="impounded.emptyDesc">${t('impounded.emptyDesc', 'All registered pets are currently safe at home or monitored under the municipal RFID grid.')}</p>
-            </div>
-          ` : `
-            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:1.25rem;">
-              ${filteredList.map(imp => {
-                const pet = pets.find(p => p.id === imp.petId) || { name: imp.petName || 'Unknown Pet', breed: 'Domestic Companion', photoUrl: 'images/sample-pets/max.jpg' };
-                const timeData = window.pawStore.getImpoundCountdownData ? window.pawStore.getImpoundCountdownData(imp.id) : null;
-                const hoursLeft = timeData ? timeData.hoursLeft : 58;
-                const percent = timeData ? timeData.percentElapsed : 20;
-                const isUrgent = hoursLeft <= 24;
-
-                return `
-                  <div class="glass-card" style="padding:20px; border:1px solid ${isUrgent ? 'rgba(239,68,68,0.35)' : 'var(--border-subtle)'}; display:flex; flex-direction:column; gap:14px; position:relative;">
-                    <div style="display:flex; gap:14px; align-items:flex-start;">
-                      <img src="${pet.photoUrl || 'images/sample-pets/max.jpg'}" alt="${pet.name}" style="width:68px; height:68px; border-radius:12px; object-fit:cover; border:2px solid var(--border-subtle);" />
-                      <div style="flex:1; min-width:0;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                          <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-main);">${pet.name}</h3>
-                          <span class="badge badge-impounded" style="font-size:10.5px;">${t('impounded.badgeImpounded', 'IMPOUNDED')}</span>
-                        </div>
-                        <div style="font-size:0.8rem; font-family:var(--font-mono); color:var(--primary); margin:2px 0;">RFID: ${imp.rfidTag}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">${pet.breed || t('impounded.defaultBreed', 'Companion Pet')}</div>
-                      </div>
-                    </div>
-
-                    <!-- 72-Hour Holding Window Progress -->
-                    <div style="background:var(--bg-surface-elevated); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-                      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; margin-bottom:6px;">
-                        <span style="color:var(--text-muted); font-weight:600;">${t('impounded.holdingWindowHeader', '72-Hour Legal Holding Window:')}</span>
-                        <strong style="color:${isUrgent ? '#ef4444' : '#ffd085'};">${hoursLeft} ${t('impounded.hoursRemaining', 'Hours Remaining')}</strong>
-                      </div>
-                      <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:99px; overflow:hidden;">
-                        <div style="width:${percent}%; height:100%; background:${isUrgent ? '#ef4444' : 'var(--primary)'}; border-radius:99px; transition:width 0.3s ease;"></div>
-                      </div>
-                    </div>
-
-                    <!-- Intake Details -->
-                    <div style="font-size:0.82rem; line-height:1.6; color:var(--text-muted);">
-                      <div><strong>${t('impounded.detailFacility', 'Facility:')}</strong> ${imp.shelterName || 'Quezon City Animal Care Facility'}</div>
-                      <div><strong>${t('impounded.detailHoldingBay', 'Holding Bay:')}</strong> ${t('impounded.detailKennel', 'Kennel #')}${imp.cageNumber || 'B-04'}</div>
-                      <div><strong>${t('impounded.detailOfficer', 'Intake Officer:')}</strong> ${imp.intakeOfficer || 'Dr. Fernando Gomez, DVM'}</div>
-                      <div><strong>${t('impounded.detailDailyFee', 'Daily Pound Fee:')}</strong> ${t('impounded.dailyFeeRate', 'PHP 500 / day')}</div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div style="display:flex; gap:8px; margin-top:auto; pt:4px;">
-                      <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.ownerView ? window.ownerView.simulateClaim('${imp.id}', '${pet.name}') : null">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                        <span>${t('impounded.btnRedeemClaim', 'Redeem & Claim')}</span>
-                      </button>
-                      <a href="#owner" class="btn btn-outline btn-sm" onclick="setTimeout(() => { if (window.publicView) window.publicView.focusPetOnMap('${pet.id}'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}); }, 150);" title="${t('impounded.btnViewMap', 'View Facility on Map')}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-                      </a>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          `}
+          <div id="impounded-list">
+            ${this.renderList(activeImpoundments, pets)}
+          </div>
         </section>
       </div>
     `;
 
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons({ root: container });
+  }
+
+  filterList(activeImpoundments, pets) {
+    let list = activeImpoundments;
+    if (this.filterShelter !== 'all') {
+      list = list.filter(i => i.shelterId === this.filterShelter || i.shelterName?.toLowerCase().includes(this.filterShelter.toLowerCase()));
+    }
+    if (this.searchQuery) {
+      list = list.filter(i => {
+        const pet = pets.find(p => p.id === i.petId);
+        const name = (pet?.name || i.petName || '').toLowerCase();
+        const tag = (i.rfidTag || pet?.rfidTag || '').toLowerCase();
+        const shelter = (i.shelterName || '').toLowerCase();
+        return name.includes(this.searchQuery) || tag.includes(this.searchQuery) || shelter.includes(this.searchQuery);
+      });
+    }
+    return list;
+  }
+
+  getHoursLeft(imp) {
+    const timeData = window.pawStore.getImpoundCountdownData ? window.pawStore.getImpoundCountdownData(imp.id) : null;
+    return {
+      hoursLeft: timeData ? timeData.hoursLeft : 58,
+      percent: timeData ? timeData.percentElapsed : 20
+    };
+  }
+
+  renderList(activeImpoundments, pets) {
+    const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
+    // Most urgent first so the animals closest to the claim deadline are seen first
+    const filteredList = this.filterList(activeImpoundments, pets)
+      .map(imp => ({ imp, ...this.getHoursLeft(imp) }))
+      .sort((a, b) => a.hoursLeft - b.hoursLeft);
+
+    if (filteredList.length === 0) {
+      return `
+        <div class="glass-card" style="padding:48px 24px; text-align:center; color:var(--text-muted);">
+          <div style="width:56px; height:56px; border-radius:50%; background:rgba(22,163,74,0.12); color:#16a34a; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          </div>
+          <h3 style="font-size:1.15rem; margin-bottom:6px; color:var(--text-main);" data-i18n="impounded.emptyTitle">${t('impounded.emptyTitle', 'No Impounded Animals in Selected Facility')}</h3>
+          <p style="font-size:0.85rem; max-width:420px; margin:0 auto;" data-i18n="impounded.emptyDesc">${t('impounded.emptyDesc', 'All registered pets are currently safe at home or monitored under the municipal RFID grid.')}</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap:1.25rem;">
+        ${filteredList.map(({ imp, hoursLeft, percent }) => {
+          const pet = pets.find(p => p.id === imp.petId) || { name: imp.petName || 'Unknown Pet', breed: 'Domestic Companion', photoUrl: 'images/sample-pets/max.jpg' };
+          const isUrgent = hoursLeft <= 24;
+
+          return `
+            <div class="glass-card" style="padding:20px; border:1px solid ${isUrgent ? 'rgba(239,68,68,0.35)' : 'var(--border-subtle)'}; display:flex; flex-direction:column; gap:14px; position:relative;">
+              <div style="display:flex; gap:14px; align-items:flex-start;">
+                <img src="${pet.photoUrl || 'images/sample-pets/max.jpg'}" alt="${pet.name}" style="width:68px; height:68px; border-radius:12px; object-fit:cover; border:2px solid var(--border-subtle);" />
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-main);">${pet.name}</h3>
+                    <span class="badge badge-impounded" style="font-size:10.5px;">${t('impounded.badgeImpounded', 'IMPOUNDED')}</span>
+                  </div>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">${pet.breed || t('impounded.defaultBreed', 'Companion Pet')}</div>
+                  <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-top:2px;">${imp.rfidTag}</div>
+                </div>
+              </div>
+
+              <!-- 72-Hour Holding Window Progress -->
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; margin-bottom:6px;">
+                  <span style="color:var(--text-muted); font-weight:600;">${t('impounded.holdingWindowHeader', '72-Hour Legal Holding Window:')}</span>
+                  <strong style="color:${isUrgent ? '#ef4444' : '#ffd085'};">${hoursLeft} ${t('impounded.hoursRemaining', 'Hours Remaining')}</strong>
+                </div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:99px; overflow:hidden;">
+                  <div style="width:${percent}%; height:100%; background:${isUrgent ? '#ef4444' : 'var(--primary)'}; border-radius:99px; transition:width 0.3s ease;"></div>
+                </div>
+              </div>
+
+              <!-- Intake Details -->
+              <div style="font-size:0.8rem; line-height:1.55; color:var(--text-muted);">
+                <div>${imp.shelterName || 'Quezon City Animal Care Facility'} · ${t('impounded.detailKennel', 'Kennel #')}${imp.cageNumber || 'B-04'}</div>
+                <div>${t('impounded.detailDailyFee', 'Daily Pound Fee:')} ${t('impounded.dailyFeeRate', 'PHP 500 / day')}</div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display:flex; gap:8px; margin-top:auto;">
+                <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.ownerView ? window.ownerView.simulateClaim('${imp.id}', '${pet.name}') : null">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <span>${t('impounded.btnRedeemClaim', 'Redeem & Claim')}</span>
+                </button>
+                <a href="#owner" class="btn btn-outline btn-sm" onclick="setTimeout(() => { if (window.publicView) window.publicView.focusPetOnMap('${pet.id}'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'}); }, 150);" title="${t('impounded.btnViewMap', 'View Facility on Map')}" aria-label="${t('impounded.btnViewMap', 'View Facility on Map')}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 }
 

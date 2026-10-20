@@ -332,7 +332,7 @@ class OwnerView {
     return `
       <div class="pet-card glass-card ${matchingSighting ? 'pet-card-matched-pending' : ''}">
         <div class="pet-card-image-wrap" onclick="window.pawApp.openLightbox('${pet.photoUrl}', '${safePetName}', '${safeCaption}')" title="Click to view full photo of ${safePetName}" style="cursor:zoom-in;">
-          <img src="${pet.photoUrl}" alt="${pet.name}" class="pet-card-img" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+          <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${pet.name}" class="pet-card-img" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
           <div class="pet-img-zoom-hint">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 3 21 3 21 9"/>
@@ -643,7 +643,7 @@ class OwnerView {
     passBody.innerHTML = `
       <div style="text-align:center; padding:0.5rem 0;">
         <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; margin:0 auto 1rem; border:3px solid var(--primary); box-shadow:var(--shadow-md); cursor:pointer;" onclick="window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} · ${pet.species}')" title="Click to view full photo">
-          <img src="${pet.photoUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'" />
+          <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'" />
         </div>
         <h3 style="font-size:1.4rem; margin-bottom:0.25rem;">${pet.name}</h3>
         <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem;">${pet.breed} · ${pet.gender} · ${pet.species}</div>

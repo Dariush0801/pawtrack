@@ -19,15 +19,6 @@ class App {
   }
 
   init() {
-    // Clear any legacy test account data
-    try {
-      const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
-      if (user && (user.email === 'aguilar.dariushdave.gasang@gmail.com' || (user.name && user.name.includes('Aguilar')))) {
-        window.pawStore.setGoogleUser(null);
-        localStorage.removeItem('pawtrack_last_email');
-      }
-    } catch (e) {}
-
     this.initTheme();
     this.initLanguage();
     this.initGoogleAuth();
@@ -38,6 +29,7 @@ class App {
     this.updateGoogleAuthUI();
     this.handleRoute();
     this.checkHardwareScanUrl();
+    this.restoreSession();
 
     // Subscribe to store updates
     window.pawStore.subscribe(() => {
@@ -50,12 +42,72 @@ class App {
     this.updateNotifBadge();
   }
 
+  // The Supabase session is the source of truth (see initSupabaseAuth); its first auth event
+  // confirms or clears the cached profile, so here we only avoid flashing the app to signed-out visitors
+  restoreSession() {
+    if (!window.pawStore.getGoogleUser()) this.showStartScreenIfNeeded();
+  }
+
+  isGuestMode() {
+    try {
+      return sessionStorage.getItem('pawtrack_guest_mode') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  setGuestMode(enabled) {
+    try {
+      if (enabled) sessionStorage.setItem('pawtrack_guest_mode', '1');
+      else sessionStorage.removeItem('pawtrack_guest_mode');
+    } catch (e) {}
+  }
+
+  // Signed-out visitors start on the sign-in screen, unless they chose to report a found pet as a guest
+  showStartScreenIfNeeded() {
+    const signedIn = !!(window.pawStore.getGoogleUser() || {}).name;
+    if (signedIn) {
+      this.hideStartScreen();
+    } else if (!this.isGuestMode()) {
+      this.openLoginDialog();
+    }
+  }
+
+  hideStartScreen() {
+    const landing = document.getElementById('auth-landing');
+    if (landing) landing.style.display = 'none';
+    document.body.classList.remove('auth-locked');
+  }
+
+  // Map a server account onto the guardian profile shape the views already use
+  toGuardianProfile(user) {
+    const cached = window.pawStore.getGoogleUser();
+    const sameUser = !!(cached && cached.email === user.email);
+    const name = user.name || user.email;
+    return {
+      id: user.id,
+      name,
+      shortName: name.split(' ')[0] || name,
+      email: user.email,
+      phone: user.phone,
+      picture: (sameUser && cached.picture) || user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a73e8&color=fff&bold=true&size=128`,
+      avatarInitial: (name[0] || 'G').toUpperCase(),
+      avatarBg: '#1a73e8',
+      area: (sameUser && cached.area) || 'National Capital Region (NCR)',
+      backupPhone: (sameUser && cached.backupPhone) || '',
+      verified: true,
+      emailVerified: true,
+      authenticatedAt: new Date().toISOString()
+    };
+  }
+
   checkHardwareScanUrl() {
     const searchParams = new URLSearchParams(window.location.search);
     const hasScanParam = searchParams.has('scan') || searchParams.has('rfid') || searchParams.has('tag') || searchParams.has('action') || searchParams.has('hardware_scan');
     const isReportAction = searchParams.get('action') === 'report' || searchParams.get('scan') === '1' || searchParams.get('scan') === 'true' || searchParams.has('rfid') || searchParams.has('tag') || window.location.hash === '#report';
 
     if (hasScanParam || isReportAction) {
+      this.setGuestMode(true);
       const scannedTag = searchParams.get('rfid') || searchParams.get('tag') || '';
       window.location.hash = 'owner';
 
@@ -145,7 +197,7 @@ class App {
       if (notifDropdown) notifDropdown.style.display = 'none';
       if (userDropdown) userDropdown.style.display = 'none';
       if (onetapPrompt) onetapPrompt.style.display = 'none';
-      window.notifManager.openModal('login-dialog-modal');
+      this.openLoginDialog();
     });
 
     // Click Logged-in User Pill -> Toggle User Account Dropdown
@@ -265,6 +317,20 @@ class App {
       this.updateGoogleAuthUI();
       this.populateGuardianProfile(false);
 
+      if (this.supabase && user.id) {
+        this.supabase
+          .from('guardians')
+          .update({ full_name: nameVal, phone: phoneVal.replace(/[\s\-().]/g, '') })
+          .eq('id', user.id)
+          .then(({ error }) => {
+            if (!error || !window.notifManager) return;
+            const message = /phone/i.test(error.message)
+              ? 'Saved on this device only: please use a Philippine mobile number, e.g. 0917 123 4567.'
+              : 'Could not save your profile to your account; saved on this device only.';
+            window.notifManager.showToast(message, 'warning');
+          });
+      }
+
       const regOwnerName = document.getElementById('reg-owner-name');
       if (regOwnerName) regOwnerName.value = user.name;
 
@@ -292,10 +358,10 @@ class App {
       e.stopPropagation();
       if (userDropdown) userDropdown.style.display = 'none';
       window.pawStore.setGoogleUser(null);
-      try {
-        localStorage.removeItem('pawtrack_last_email');
-      } catch (err) {}
+      if (this.supabase) this.supabase.auth.signOut({ scope: 'local' });
+      this.setGuestMode(false);
       this.updateGoogleAuthUI();
+      this.openLoginDialog();
       if (window.location.hash && window.location.hash !== '#owner') {
         window.location.hash = '#owner';
       } else {
@@ -338,221 +404,21 @@ class App {
       if (onetapPrompt) onetapPrompt.style.display = 'none';
     });
 
-    // -------------------------------------------------------------
-    // Helper: Generate dynamic avatar based on email or name
-    // -------------------------------------------------------------
-    const getAvatarForAccount = (email, name) => {
-      const cleanEmail = (email || '').trim().toLowerCase();
-      const displayName = name || cleanEmail.split('@')[0] || 'User';
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1a73e8&color=fff&bold=true&size=128`;
-    };
-
-    // -------------------------------------------------------------
-    // Direct Google & User Authentication Handler
-    // -------------------------------------------------------------
-    const performDirectLogin = (targetEmail = '', customName = '', customPicture = '') => {
-      if (onetapPrompt) onetapPrompt.style.display = 'none';
-      if (warningModal) warningModal.style.display = 'none';
-
-      let email = (targetEmail || '').trim();
-      if (!email || !email.includes('@')) {
-        const inputVal = (loginDialogEmail?.value || '').trim();
-        if (inputVal && inputVal.includes('@')) {
-          email = inputVal;
-        } else {
-          const lastSaved = localStorage.getItem('pawtrack_last_email');
-          if (lastSaved && lastSaved.includes('@') && !lastSaved.includes('aguilar')) {
-            email = lastSaved;
-          }
-        }
-      }
-
-      if (!email || !email.includes('@')) {
-        if (loginDialogModal) {
-          window.notifManager.openModal('login-dialog-modal');
-        }
-        window.notifManager.showToast('Please enter your email above to continue with Google.', 'warning');
-        setTimeout(() => loginDialogEmail?.focus(), 150);
-        return;
-      }
-
-      let accountName = customName || '';
-      if (!accountName) {
-        const localPart = email.split('@')[0];
-        const cleanWords = localPart.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
-        accountName = cleanWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
-      }
-
-      const shortName = accountName.split(' ')[0] || accountName;
-      const avatarPic = customPicture || getAvatarForAccount(email, accountName);
-
-      const userObj = {
-        name: accountName,
-        shortName: shortName,
-        email: email,
-        picture: avatarPic,
-        avatarInitial: (accountName[0] || 'G').toUpperCase(),
-        avatarBg: '#1a73e8',
-        phone: '+63 917 555 3829',
-        area: 'National Capital Region (NCR)',
-        backupPhone: '',
-        verified: true,
-        emailVerified: true,
-        authenticatedAt: new Date().toISOString()
-      };
-
-      try {
-        localStorage.setItem('pawtrack_last_email', userObj.email);
-      } catch (e) {}
-
-      // Dispatch security & authorization notification to Gmail owner
-      fetch('/api/send-auth-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userObj.email,
-          name: userObj.name,
-          picture: userObj.picture,
-          authTime: userObj.authenticatedAt
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log('[Auth Notification Dispatched]:', data);
-      })
-      .catch(err => {
-        console.warn('[Auth Notification Notice]:', err.message);
-      });
-
-      window.pawStore.setGoogleUser(userObj);
-      this.updateGoogleAuthUI();
-      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-      window.notifManager.showToast(`Signed in with Google as ${userObj.name}. Security authorization confirmation dispatched to ${userObj.email}.`, 'success', 4500);
-    };
-
-    // Initialize Google Identity Services (GSI) SDK integration if available
-    const initGsiClient = () => {
-      if (typeof window !== 'undefined' && window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: 'pawtrack-app.apps.googleusercontent.com',
-            auto_select: false,
-            callback: (response) => {
-              if (response && response.credential) {
-                try {
-                  const base64Url = response.credential.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-                  const profile = JSON.parse(jsonPayload);
-                  if (profile && profile.email) {
-                    performDirectLogin(profile.email, profile.name, profile.picture);
-                  }
-                } catch (err) {
-                  console.warn('[Google GSI Decode Notice]:', err);
-                }
-              }
-            }
-          });
-        } catch (err) {
-          console.warn('[Google GSI Init Notice]:', err);
-        }
-      }
-    };
-
-    initGsiClient();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('load', initGsiClient);
-    }
-
-    // -------------------------------------------------------------
-    // Login / Collaborate Dialog Modal Controller
-    // -------------------------------------------------------------
-    const loginDialogModal = document.getElementById('login-dialog-modal');
-    const loginDialogGoogleBtn = document.getElementById('login-dialog-google-btn');
-    const loginDialogForm = document.getElementById('login-dialog-form');
-    const loginDialogEmail = document.getElementById('login-dialog-email');
-    const loginDialogPwd = document.getElementById('login-dialog-pwd');
-    const loginDialogResetPwd = document.getElementById('login-dialog-reset-pwd-btn');
-    const loginDialogCreate = document.getElementById('login-dialog-create-btn');
+    // Guardian sign-in (Supabase Auth) is set up in initSupabaseAuth()
+    this.initSupabaseAuth();
 
     const loginOpenTerms = document.getElementById('login-open-terms-btn');
     const loginOpenPrivacy = document.getElementById('login-open-privacy-btn');
+    const authLandingClose = document.getElementById('auth-landing-close');
+    const authLandingReport = document.getElementById('auth-landing-report-btn');
 
-    // -------------------------------------------------------------
-    // Google Consent & Terms Acceptance Modal Controller
-    // -------------------------------------------------------------
-    const googleConsentModal = document.getElementById('google-consent-modal');
-    const consentGoogleEmail = document.getElementById('consent-google-email');
-    const consentTermsCheckbox = document.getElementById('consent-terms-checkbox');
-    const consentAgreeBtn = document.getElementById('consent-agree-continue-btn');
-    const consentOpenTerms = document.getElementById('consent-open-terms-btn');
-    const consentOpenPrivacy = document.getElementById('consent-open-privacy-btn');
+    authLandingClose?.addEventListener('click', () => this.hideStartScreen());
 
-    const openGoogleConsentModal = (prefillEmail = '') => {
-      if (onetapPrompt) onetapPrompt.style.display = 'none';
-      if (warningModal) warningModal.style.display = 'none';
-      if (loginDialogModal) window.notifManager.closeModal('login-dialog-modal');
-
-      let email = prefillEmail || (loginDialogEmail?.value || '').trim();
-      if (!email || !email.includes('@')) {
-        const lastSaved = localStorage.getItem('pawtrack_last_email');
-        if (lastSaved && lastSaved.includes('@') && !lastSaved.includes('aguilar')) {
-          email = lastSaved;
-        }
-      }
-
-      if (consentGoogleEmail) {
-        consentGoogleEmail.value = email || '';
-      }
-      if (consentTermsCheckbox) {
-        consentTermsCheckbox.checked = true;
-      }
-
-      if (googleConsentModal) {
-        window.notifManager.openModal('google-consent-modal');
-        setTimeout(() => {
-          if (!consentGoogleEmail?.value) {
-            consentGoogleEmail?.focus();
-          } else {
-            consentAgreeBtn?.focus();
-          }
-        }, 150);
-      }
-    };
-
-    // "Continue with Google" -> opens modern Google OAuth Consent & Terms Acceptance Modal
-    loginDialogGoogleBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      const typedEmail = (loginDialogEmail?.value || '').trim();
-      openGoogleConsentModal(typedEmail);
-    });
-
-    // Google Consent: "Agree & Continue" Button
-    consentAgreeBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (consentTermsCheckbox && !consentTermsCheckbox.checked) {
-        window.notifManager.showToast('Please check the box to agree to the Terms of Service and Privacy Policy.', 'warning');
-        consentTermsCheckbox.focus();
-        return;
-      }
-
-      const email = (consentGoogleEmail?.value || '').trim();
-      if (!email || !email.includes('@') || !email.includes('.')) {
-        window.notifManager.showToast('Please enter a valid Google/Gmail email address.', 'warning');
-        consentGoogleEmail?.focus();
-        return;
-      }
-
-      if (googleConsentModal) window.notifManager.closeModal('google-consent-modal');
-      performDirectLogin(email);
-    });
-
-    // Google Consent: Press Enter in email box to submit
-    consentGoogleEmail?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        consentAgreeBtn?.click();
-      }
+    // Finders can report a found pet without an account
+    authLandingReport?.addEventListener('click', () => {
+      this.setGuestMode(true);
+      this.hideStartScreen();
+      if (window.reportManager) window.reportManager.openReportModal('found');
     });
 
     // Terms & Privacy Links
@@ -566,74 +432,25 @@ class App {
       window.notifManager.openModal('privacy-policy-modal');
     });
 
-    consentOpenTerms?.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.notifManager.openModal('terms-modal');
-    });
-
-    consentOpenPrivacy?.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.notifManager.openModal('privacy-policy-modal');
-    });
-
-    // "Log in" form submission with Email & Password
-    loginDialogForm?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = (loginDialogEmail?.value || '').trim();
-      const pwd = (loginDialogPwd?.value || '').trim();
-
-      if (!email || !email.includes('@') || !email.includes('.')) {
-        window.notifManager.showToast('Please enter a valid email address.', 'warning');
-        loginDialogEmail?.focus();
-        return;
-      }
-
-      if (!pwd) {
-        window.notifManager.showToast('Please enter your password.', 'warning');
-        loginDialogPwd?.focus();
-        return;
-      }
-
-      performDirectLogin(email);
-    });
-
-    // "Reset password"
-    loginDialogResetPwd?.addEventListener('click', (e) => {
-      e.preventDefault();
-      const email = (loginDialogEmail?.value || '').trim();
-      if (email && email.includes('@')) {
-        window.notifManager.showToast(`Password recovery link has been dispatched to ${email}.`, 'info');
-      } else {
-        window.notifManager.showToast('Please enter your email above to receive a password reset link.', 'info');
-        loginDialogEmail?.focus();
-      }
-    });
-
-    // "No account? Create one"
-    loginDialogCreate?.addEventListener('click', (e) => {
-      e.preventDefault();
-      loginDialogEmail?.focus();
-      window.notifManager.showToast('Enter your email address above and password, then click Log in or Continue with Google.', 'info');
-    });
-
-    // Sign in with Google Button (Trigger Authorization Flow)
+    // Sign in with Google (header prompt)
     onetapContinue?.addEventListener('click', (e) => {
       e.stopPropagation();
-      openGoogleConsentModal();
+      this.openLoginDialog();
     });
 
     // Continue as Guest
     onetapGuest?.addEventListener('click', (e) => {
       e.stopPropagation();
-      window.pawStore.setGoogleUser(null);
       if (onetapPrompt) onetapPrompt.style.display = 'none';
+      this.setGuestMode(true);
+      this.hideStartScreen();
       this.updateGoogleAuthUI();
       window.notifManager.showToast('Continuing in Guest Mode. Pet registration requires login.', 'info');
     });
 
-    // Modal prompt Google login
+    // "Sign-in required" prompt
     promptLoginBtn?.addEventListener('click', () => {
-      openGoogleConsentModal();
+      this.openLoginDialog();
     });
 
     // Click outside to dismiss all floating dropdowns
@@ -647,6 +464,481 @@ class App {
       if (notifDropdown && !notifDropdown.contains(e.target) && !e.target.closest('#notif-bell-btn')) {
         notifDropdown.style.display = 'none';
       }
+    });
+  }
+
+  initSupabaseAuth() {
+    // -------------------------------------------------------------
+    // Guardian Sign-In via Supabase Auth: email + password or Google.
+    // Supabase verifies the Turnstile token on password sign-in, sign-up and
+    // password reset; the guardians table holds each account's name and phone.
+    // -------------------------------------------------------------
+    const config = window.PAWTRACK_SUPABASE;
+    const loginForm = document.getElementById('login-form');
+    const loginTitle = document.getElementById('auth-landing-title');
+    const loginSub = document.getElementById('auth-landing-sub');
+    const loginNameInput = document.getElementById('login-name');
+    const loginEmailInput = document.getElementById('login-email');
+    const loginPhoneInput = document.getElementById('login-phone');
+    const loginPasswordInput = document.getElementById('login-password');
+    const loginPasswordToggle = document.getElementById('login-password-toggle');
+    const loginSubmit = document.getElementById('login-submit-btn');
+    const loginForgotBtn = document.getElementById('login-forgot-btn');
+    const loginModeText = document.getElementById('login-mode-text');
+    const loginModeToggle = document.getElementById('login-mode-toggle');
+    const loginGoogleBtn = document.getElementById('login-google-btn');
+    const loginStatus = document.getElementById('login-auth-status');
+    const loginTurnstileEl = document.getElementById('login-turnstile');
+    const registerForm = document.getElementById('register-dialog-form');
+    const registerEmail = document.getElementById('register-email');
+    const registerName = document.getElementById('register-name');
+    const registerPhone = document.getElementById('register-phone');
+    const registerStatus = document.getElementById('register-auth-status');
+    const registerSubmit = document.getElementById('register-submit-btn');
+    const resetForm = document.getElementById('reset-password-form');
+    const resetInput = document.getElementById('reset-password-input');
+    const resetConfirm = document.getElementById('reset-password-confirm');
+    const resetStatus = document.getElementById('reset-password-status');
+    const resetSubmit = document.getElementById('reset-password-submit');
+    const authLanding = document.getElementById('auth-landing');
+    const authLandingClose = document.getElementById('auth-landing-close');
+    const onetapPrompt = document.getElementById('google-onetap-prompt');
+    const warningModal = document.getElementById('google-required-modal');
+
+    const FRESH_SIGNIN_KEY = 'pawtrack_fresh_signin';
+    const PH_MOBILE = /^(\+?63|0)9\d{9}$/;
+
+    let authMode = 'signin';
+    let session = null;
+    let resolveRun = 0;
+    let loginTurnstileId = null;
+    let loginTurnstileToken = null;
+
+    // Email links and Google come back with ?code=… (or ?error=…)
+    const authParams = new URLSearchParams(window.location.search);
+    const returnedWithCode = authParams.has('code');
+    let pendingAuthError = authParams.get('error_description') || authParams.get('error');
+
+    const setStatus = (el, message, isError = false) => {
+      if (!el) return;
+      el.textContent = message || '';
+      el.classList.toggle('is-error', !!isError);
+    };
+
+    const normalizePhone = (value) => String(value || '').replace(/[\s\-().]/g, '');
+
+    const turnstileTheme = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+
+    // Supabase error codes -> wording a pet owner understands
+    const friendlyAuthError = (error) => {
+      const code = error && (error.code || '');
+      const message = (error && error.message) || '';
+      if (code === 'invalid_credentials' || /invalid login credentials/i.test(message)) return 'Incorrect email or password.';
+      if (code === 'email_not_confirmed' || /email not confirmed/i.test(message)) return 'Please confirm your email first. Check your inbox for the link we sent.';
+      if (code === 'captcha_failed' || /captcha/i.test(message)) return 'Security check failed. Please complete it again.';
+      if (code === 'user_already_exists' || /already registered/i.test(message)) return 'An account with this email already exists. Try logging in instead.';
+      if (code === 'weak_password' || /password should/i.test(message)) return 'Please choose a stronger password (at least 8 characters).';
+      if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit' || /rate limit/i.test(message)) return 'Too many attempts. Please wait a minute and try again.';
+      return message || 'Something went wrong. Please try again.';
+    };
+
+    if (!window.supabase || !config) {
+      this.supabase = null;
+      this.openLoginDialog = () => {
+        if (authLanding) authLanding.style.display = 'flex';
+        document.body.classList.add('auth-locked');
+        setStatus(loginStatus, 'Sign-in services did not load. Check your connection and refresh.', true);
+      };
+      return;
+    }
+
+    this.supabase = window.supabase.createClient(config.url, config.publishableKey, {
+      auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+
+    const waitForTurnstile = (timeoutMs = 10000) => new Promise((resolve, reject) => {
+      const started = Date.now();
+      const tick = () => {
+        if (window.turnstile) return resolve();
+        if (Date.now() - started > timeoutMs) return reject(new Error('Security check did not load. Check your connection and refresh.'));
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+
+    // Turnstile tokens are single-use, so the widget is reset after every attempt
+    const resetLoginTurnstile = () => {
+      loginTurnstileToken = null;
+      if (window.turnstile && loginTurnstileId !== null) window.turnstile.reset(loginTurnstileId);
+    };
+
+    const renderLoginTurnstile = async () => {
+      try {
+        await waitForTurnstile();
+        if (loginTurnstileId !== null) {
+          resetLoginTurnstile();
+          return;
+        }
+        loginTurnstileId = window.turnstile.render(loginTurnstileEl, {
+          sitekey: config.turnstileSiteKey,
+          theme: turnstileTheme(),
+          size: 'flexible', // stretches to the card width, matching the Log in button
+          callback: (token) => {
+            loginTurnstileToken = token;
+            if (loginStatus && loginStatus.classList.contains('is-error') && /security check/i.test(loginStatus.textContent)) setStatus(loginStatus, '');
+          },
+          'expired-callback': () => { loginTurnstileToken = null; },
+          'error-callback': () => setStatus(loginStatus, 'Security check failed to load. Please refresh and try again.', true)
+        });
+      } catch (err) {
+        setStatus(loginStatus, err.message, true);
+      }
+    };
+
+    const requireTurnstileToken = () => {
+      if (loginTurnstileToken) return loginTurnstileToken;
+      setStatus(loginStatus, 'Please complete the security check below the Log in button.', true);
+      return null;
+    };
+
+    const setBusy = (busy) => {
+      [loginSubmit, loginGoogleBtn, loginForgotBtn, loginModeToggle].forEach(btn => { if (btn) btn.disabled = busy; });
+    };
+
+    const setAuthMode = (mode) => {
+      authMode = mode;
+      const isSignup = mode === 'signup';
+      authLanding?.querySelectorAll('[data-signup-only]').forEach(el => { el.hidden = !isSignup; });
+      authLanding?.querySelectorAll('[data-signin-only]').forEach(el => { el.hidden = isSignup; });
+      if (loginTitle) loginTitle.textContent = isSignup ? 'Create your account' : 'Welcome back';
+      if (loginSub) loginSub.textContent = isSignup
+        ? 'Shelters use your name and mobile number to contact you if your pet is found.'
+        : 'Sign in to manage your pets and recovery alerts.';
+      if (loginSubmit) loginSubmit.textContent = isSignup ? 'Create account' : 'Log in';
+      if (loginModeText) loginModeText.textContent = isSignup ? 'Already have an account?' : 'New to PawTrack?';
+      if (loginModeToggle) loginModeToggle.textContent = isSignup ? 'Log in' : 'Create an account';
+      setStatus(loginStatus, '');
+    };
+
+    const completeSignIn = (guardian, user) => {
+      window.pawStore.setGoogleUser(this.toGuardianProfile({
+        id: guardian.id,
+        name: guardian.full_name,
+        email: guardian.email,
+        phone: guardian.phone,
+        picture: guardian.avatar_url || (user.user_metadata && (user.user_metadata.avatar_url || user.user_metadata.picture)) || null
+      }));
+      this.setGuestMode(false);
+      this.updateGoogleAuthUI();
+      this.renderCurrentView();
+      this.hideStartScreen();
+      window.notifManager.closeModal('register-dialog-modal');
+
+      let isFresh = false;
+      try {
+        isFresh = sessionStorage.getItem(FRESH_SIGNIN_KEY) === '1';
+        sessionStorage.removeItem(FRESH_SIGNIN_KEY);
+      } catch (e) {}
+      if (isFresh) window.notifManager.showToast(`Signed in as ${guardian.full_name}.`, 'success');
+    };
+
+    // First Google sign-in: ask for the name and phone shelters need
+    const openRegisterDialog = (user) => {
+      const meta = user.user_metadata || {};
+      if (registerEmail) registerEmail.value = user.email || '';
+      if (registerName) registerName.value = meta.full_name || meta.name || '';
+      if (registerPhone) registerPhone.value = '';
+      setStatus(registerStatus, '');
+      if (registerSubmit) registerSubmit.disabled = false;
+      window.notifManager.openModal('register-dialog-modal');
+      setTimeout(() => (registerName && registerName.value ? registerPhone : registerName)?.focus(), 150);
+    };
+
+    const resolveGuardian = async () => {
+      const run = ++resolveRun;
+      const user = session && session.user;
+
+      if (!user) {
+        window.pawStore.setGoogleUser(null);
+        this.updateGoogleAuthUI();
+        this.showStartScreenIfNeeded();
+        return;
+      }
+
+      const { data: guardian, error } = await this.supabase
+        .from('guardians')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (run !== resolveRun) return; // a newer auth event took over
+
+      if (error) {
+        // Offline or Supabase unreachable: keep any cached profile rather than signing the guardian out
+        console.warn('[Auth] Could not load guardian profile:', error.message);
+        if (!window.pawStore.getGoogleUser()) this.showStartScreenIfNeeded();
+        return;
+      }
+
+      if (guardian) {
+        completeSignIn(guardian, user);
+        return;
+      }
+
+      // Email sign-ups are normally recorded by the database; fall back to the sign-up details if not
+      const meta = user.user_metadata || {};
+      if (meta.signup_source === 'pawtrack_owner' && meta.full_name && PH_MOBILE.test(normalizePhone(meta.phone))) {
+        const { data: created, error: insertError } = await this.supabase
+          .from('guardians')
+          .insert({ id: user.id, email: user.email, full_name: meta.full_name, phone: normalizePhone(meta.phone) })
+          .select('*')
+          .single();
+        if (!insertError && created) {
+          completeSignIn(created, user);
+          return;
+        }
+      }
+      openRegisterDialog(user);
+    };
+
+    const openLoginDialog = () => {
+      if (onetapPrompt) onetapPrompt.style.display = 'none';
+      if (warningModal) warningModal.style.display = 'none';
+      if (authLanding) authLanding.style.display = 'flex';
+      // Guests reached this from inside the app, so they may close it again
+      if (authLandingClose) authLandingClose.style.display = this.isGuestMode() ? '' : 'none';
+      document.body.classList.add('auth-locked');
+      setBusy(false);
+      if (pendingAuthError) {
+        setStatus(loginStatus, pendingAuthError, true);
+        pendingAuthError = null;
+      }
+      renderLoginTurnstile();
+    };
+    this.openLoginDialog = openLoginDialog;
+
+    // Browser autofill stays off: the email and password fields are read-only until the guardian focuses them
+    authLanding?.querySelectorAll('[data-no-autofill]').forEach(input => {
+      input.addEventListener('focus', () => input.removeAttribute('readonly'), { once: true });
+      input.addEventListener('pointerdown', () => input.removeAttribute('readonly'), { once: true });
+    });
+
+    loginModeToggle?.addEventListener('click', () => {
+      setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+      (authMode === 'signup' ? loginNameInput : loginEmailInput)?.focus();
+    });
+
+    loginPasswordToggle?.addEventListener('click', () => {
+      const show = loginPasswordInput.type === 'password';
+      loginPasswordInput.type = show ? 'text' : 'password';
+      loginPasswordToggle.textContent = show ? 'Hide' : 'Show';
+      loginPasswordToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      loginPasswordToggle.setAttribute('aria-pressed', String(show));
+    });
+
+    loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (loginEmailInput?.value || '').trim().toLowerCase();
+      const password = loginPasswordInput?.value || '';
+      const isSignup = authMode === 'signup';
+
+      if (isSignup && (loginNameInput?.value || '').trim().length < 2) {
+        setStatus(loginStatus, 'Please enter your full name.', true);
+        loginNameInput?.focus();
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatus(loginStatus, 'Please enter a valid email address.', true);
+        loginEmailInput?.focus();
+        return;
+      }
+      const phone = normalizePhone(loginPhoneInput?.value);
+      if (isSignup && !PH_MOBILE.test(phone)) {
+        setStatus(loginStatus, 'Please enter a valid Philippine mobile number, e.g. 0917 123 4567.', true);
+        loginPhoneInput?.focus();
+        return;
+      }
+      if (!password || (isSignup && password.length < 8)) {
+        setStatus(loginStatus, isSignup ? 'Please choose a password with at least 8 characters.' : 'Please enter your password.', true);
+        loginPasswordInput?.focus();
+        return;
+      }
+      const captchaToken = requireTurnstileToken();
+      if (!captchaToken) return;
+
+      setBusy(true);
+      try {
+        if (isSignup) {
+          setStatus(loginStatus, 'Creating your account…');
+          const { data, error } = await this.supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              captchaToken,
+              emailRedirectTo: window.location.origin + window.location.pathname,
+              data: { signup_source: 'pawtrack_owner', full_name: loginNameInput.value.trim(), phone }
+            }
+          });
+          if (error) throw error;
+          if (data.session) {
+            sessionStorage.setItem(FRESH_SIGNIN_KEY, '1');
+            setStatus(loginStatus, '');
+          } else {
+            setAuthMode('signin');
+            if (loginPasswordInput) loginPasswordInput.value = '';
+            setStatus(loginStatus, `We sent a confirmation link to ${email}. Open it to activate your account, then log in.`);
+          }
+        } else {
+          setStatus(loginStatus, 'Signing you in…');
+          sessionStorage.setItem(FRESH_SIGNIN_KEY, '1');
+          const { error } = await this.supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
+          if (error) {
+            sessionStorage.removeItem(FRESH_SIGNIN_KEY);
+            throw error;
+          }
+          if (loginPasswordInput) loginPasswordInput.value = '';
+          setStatus(loginStatus, '');
+        }
+      } catch (err) {
+        setStatus(loginStatus, friendlyAuthError(err), true);
+      } finally {
+        setBusy(false);
+        resetLoginTurnstile();
+      }
+    });
+
+    loginForgotBtn?.addEventListener('click', async () => {
+      const email = (loginEmailInput?.value || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatus(loginStatus, 'Enter your email above, then tap "Forgot password?" again.', true);
+        loginEmailInput?.focus();
+        return;
+      }
+      const captchaToken = requireTurnstileToken();
+      if (!captchaToken) return;
+
+      setBusy(true);
+      setStatus(loginStatus, 'Sending reset link…');
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+        captchaToken,
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      setBusy(false);
+      resetLoginTurnstile();
+      if (error) {
+        setStatus(loginStatus, friendlyAuthError(error), true);
+        return;
+      }
+      setStatus(loginStatus, `If ${email} has a PawTrack account, a password reset link is on its way.`);
+    });
+
+    loginGoogleBtn?.addEventListener('click', async () => {
+      if (!requireTurnstileToken()) return;
+      setBusy(true);
+      setStatus(loginStatus, 'Redirecting to Google…');
+      sessionStorage.setItem(FRESH_SIGNIN_KEY, '1');
+      const { error } = await this.supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (error) {
+        sessionStorage.removeItem(FRESH_SIGNIN_KEY);
+        setBusy(false);
+        resetLoginTurnstile();
+        setStatus(loginStatus, friendlyAuthError(error), true);
+      }
+    });
+
+    registerForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = session && session.user;
+      const name = (registerName?.value || '').trim();
+      const phone = normalizePhone(registerPhone?.value);
+
+      if (!user) {
+        window.notifManager.closeModal('register-dialog-modal');
+        openLoginDialog();
+        return;
+      }
+      if (name.length < 2) {
+        setStatus(registerStatus, 'Please enter your full name.', true);
+        registerName?.focus();
+        return;
+      }
+      if (!PH_MOBILE.test(phone)) {
+        setStatus(registerStatus, 'Please enter a valid Philippine mobile number, e.g. 0917 123 4567.', true);
+        registerPhone?.focus();
+        return;
+      }
+
+      if (registerSubmit) registerSubmit.disabled = true;
+      setStatus(registerStatus, 'Creating your account…');
+      const meta = user.user_metadata || {};
+      const { data: guardian, error } = await this.supabase
+        .from('guardians')
+        .insert({ id: user.id, email: user.email, full_name: name, phone, avatar_url: meta.avatar_url || meta.picture || null })
+        .select('*')
+        .single();
+      if (registerSubmit) registerSubmit.disabled = false;
+      if (error) {
+        setStatus(registerStatus, `Could not create your account: ${error.message}`, true);
+        return;
+      }
+      setStatus(registerStatus, '');
+      completeSignIn(guardian, user);
+      window.notifManager.showToast(`Welcome to PawTrack, ${guardian.full_name}!`, 'success');
+    });
+
+    resetForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = resetInput?.value || '';
+      if (password.length < 8) {
+        setStatus(resetStatus, 'Please choose a password with at least 8 characters.', true);
+        resetInput?.focus();
+        return;
+      }
+      if (password !== (resetConfirm?.value || '')) {
+        setStatus(resetStatus, 'The passwords do not match.', true);
+        resetConfirm?.focus();
+        return;
+      }
+      if (resetSubmit) resetSubmit.disabled = true;
+      setStatus(resetStatus, 'Updating your password…');
+      const { error } = await this.supabase.auth.updateUser({ password });
+      if (resetSubmit) resetSubmit.disabled = false;
+      if (error) {
+        setStatus(resetStatus, friendlyAuthError(error), true);
+        return;
+      }
+      if (resetInput) resetInput.value = '';
+      if (resetConfirm) resetConfirm.value = '';
+      setStatus(resetStatus, '');
+      window.notifManager.closeModal('reset-password-modal');
+      window.notifManager.showToast('Your password has been updated.', 'success');
+    });
+
+    this.supabase.auth.onAuthStateChange((event, newSession) => {
+      session = newSession;
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+
+      if (event === 'INITIAL_SESSION' && (returnedWithCode || authParams.has('error'))) {
+        if (returnedWithCode && !newSession && !pendingAuthError) {
+          pendingAuthError = 'That link was opened in a different browser or has expired. If you just confirmed your email, log in with your password.';
+        }
+        ['code', 'error', 'error_code', 'error_description', 'state'].forEach(key => authParams.delete(key));
+        const query = authParams.toString();
+        window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setStatus(resetStatus, '');
+        window.notifManager.openModal('reset-password-modal');
+        setTimeout(() => resetInput?.focus(), 150);
+      }
+      // Deferred: calling Supabase from inside this callback can deadlock the auth client
+      setTimeout(resolveGuardian, 0);
     });
   }
 
