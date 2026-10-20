@@ -6,6 +6,7 @@ class CasesView {
   constructor() {
     this.currentCaseFilter = 'all';
     this.searchQuery = '';
+    this.analyticsOpen = false;
   }
 
   render(container) {
@@ -44,13 +45,15 @@ class CasesView {
 
     const currentCases = window.pawStore.getCases();
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
+    const countBy = status => currentCases.filter(c => c.status === status).length;
+    const openCount = currentCases.filter(c => c.status === 'missing' || c.status === 'sighted').length;
 
     container.innerHTML = `
       <div class="view-header">
         <div class="view-title-group">
-          <h1>${t('cases.title', 'Pet Recovery Cases & Analytics Dashboard')}</h1>
+          <h1>${t('cases.title', 'Cases & Analytics')}</h1>
           <div class="view-subtitle">
-            ${t('cases.subtitle', 'Real-time incident case lifecycle tracker, municipal hotspot analytics, and animal control decision support.')}
+            ${t('cases.subtitle', 'Follow every lost-pet case from first report to reunion.')}
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
@@ -60,73 +63,86 @@ class CasesView {
         </div>
       </div>
 
-      <!-- Key Analytics Metrics Bar -->
-      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-        <div class="stat-card glass-card" data-label="${t('cases.statMissing', 'Active Missing')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #ba3820, #54280e); color:#fff;">
-            <i data-lucide="alert-triangle"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#ff9b85;">${analytics.missingCount}</div>
-            <div class="stat-label">${t('cases.statMissing', 'Active Missing')}</div>
-          </div>
-        </div>
-
-        <div class="stat-card glass-card" data-label="${t('cases.statSighted', 'Community Sightings')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
-            <i data-lucide="eye"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#ea9d1e;">${analytics.sightedCount}</div>
-            <div class="stat-label">${t('cases.statSighted', 'Community Sightings')}</div>
+      <!-- Compact Summary Strip (each stat filters the case list) -->
+      <div class="owner-summary glass-card">
+        <div class="owner-summary-status ${openCount > 0 ? 'is-alert' : ''}">
+          <span class="owner-summary-dot"></span>
+          <div>
+            <div class="owner-summary-title">${openCount > 0
+              ? `${openCount} open case${openCount === 1 ? ' needs' : 's need'} follow-up`
+              : 'No open cases'}</div>
+            <div class="owner-summary-sub">${t('cases.statRecoveryRate', 'Reunification Rate')}: <strong>${analytics.recoveryRate}%</strong></div>
           </div>
         </div>
-
-        <div class="stat-card glass-card" data-label="${t('cases.statImpounded', 'Facility Impounds')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#fff;">
-            <i data-lucide="building-2"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#ffd085;">${analytics.impoundedCount}</div>
-            <div class="stat-label">${t('cases.statImpounded', 'Facility Impounds')}</div>
-          </div>
-        </div>
-
-        <div class="stat-card glass-card" data-label="${t('cases.statReunited', 'Safely Reunited')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #15803d, #14532d); color:#fff;">
-            <i data-lucide="check-circle-2"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:#86efac;">${analytics.reunitedCount}</div>
-            <div class="stat-label">${t('cases.statReunited', 'Safely Reunited')}</div>
-          </div>
-        </div>
-
-        <div class="stat-card glass-card" data-label="${t('cases.statRecoveryRate', 'Reunification Rate')}">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #54280e, #241208); color:#ea9d1e;">
-            <i data-lucide="trending-up"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" style="color:var(--text-main);">${analytics.recoveryRate}%</div>
-            <div class="stat-label">${t('cases.statRecoveryRate', 'Reunification Rate')}</div>
-          </div>
+        <div class="owner-summary-stats">
+          <button type="button" class="owner-summary-stat ${analytics.missingCount > 0 ? 'is-alert' : ''}" onclick="window.casesView.setFilter('missing')" title="${t('cases.statMissing', 'Active Missing')}">
+            <span class="owner-summary-value">${analytics.missingCount}</span>
+            <span class="owner-summary-label">${t('cases.filterMissing', 'Missing')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.casesView.setFilter('sighted')" title="${t('cases.statSighted', 'Community Sightings')}">
+            <span class="owner-summary-value">${analytics.sightedCount}</span>
+            <span class="owner-summary-label">${t('cases.filterSighted', 'Sighted')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.casesView.setFilter('impounded')" title="${t('cases.statImpounded', 'Facility Impounds')}">
+            <span class="owner-summary-value">${analytics.impoundedCount}</span>
+            <span class="owner-summary-label">${t('cases.filterImpounded', 'Impounded')}</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.casesView.setFilter('reunited')" title="${t('cases.statReunited', 'Safely Reunited')}">
+            <span class="owner-summary-value">${analytics.reunitedCount}</span>
+            <span class="owner-summary-label">${t('cases.filterReunited', 'Reunited')}</span>
+          </button>
         </div>
       </div>
 
-      <!-- Hotspot Analytics Grid -->
-      <div style="margin-bottom:2rem;">
-        <div class="glass-card" style="padding:1.5rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-            <h3 style="font-size:1.15rem; display:flex; align-items:center; gap:0.45rem;">
-              <i data-lucide="map-pin" style="color:var(--primary); width:18px; height:18px;"></i>
-              ${t('cases.hotspotTitle', 'Municipal Incident Hotspots (Decision Support)')}
-            </h3>
-            <span class="badge badge-safe" style="font-size:0.68rem;">${t('cases.hotspotBadge', 'Recorded Location Grid')}</span>
+      <!-- Recovery Cases Master Ledger -->
+      <div id="cases-ledger-section" style="margin-bottom:2rem;">
+        <div class="home-section-header">
+          <div>
+            <h2>${t('cases.ledgerTitle', 'Pet Recovery Case Files')} (${currentCases.length})</h2>
+            <div class="home-section-sub">${t('cases.ledgerSubtitle', 'Open a case to see its full timeline and evidence photos.')}</div>
           </div>
-          <p style="font-size:0.825rem; color:var(--text-muted); line-height:1.4; margin-bottom:1.25rem;">
-            ${t('cases.hotspotSubtitle', 'Barangays and zones with concentrated stray sightings or missing pet incidents requiring animal control patrol deployment.')}
+        </div>
+
+        <div class="ux-section-tools">
+          <input type="text" id="cases-search-input" placeholder="Search by pet name, case ID, or RFID…" value="${this.searchQuery.replace(/"/g, '&quot;')}" oninput="window.casesView.handleSearch(this.value)" autocomplete="off" />
+          <div class="home-filter-chips">
+            ${[
+              ['all', t('cases.filterAll', 'All'), currentCases.length],
+              ['missing', t('cases.filterMissing', 'Missing'), countBy('missing')],
+              ['sighted', t('cases.filterSighted', 'Sighted'), countBy('sighted')],
+              ['impounded', t('cases.filterImpounded', 'Impounded'), countBy('impounded')],
+              ['reunited', t('cases.filterReunited', 'Reunited'), countBy('reunited')]
+            ].map(([key, label, count]) => `
+              <button type="button" class="btn btn-sm ${this.currentCaseFilter === key ? 'btn-primary active' : 'btn-outline'}" onclick="window.casesView.setFilter('${key}')">
+                ${label} (${count})
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Cases Cards Grid -->
+        <div id="cases-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap:1.25rem;">
+          ${this.renderCasesList(currentCases)}
+        </div>
+      </div>
+
+      <!-- Hotspot Analytics (secondary, collapsed by default) -->
+      <details class="ux-collapsible glass-card" ${this.analyticsOpen ? 'open' : ''} ontoggle="window.casesView.analyticsOpen = this.open">
+        <summary>
+          <span class="ux-collapsible-title">
+            <i data-lucide="map-pin" style="color:var(--primary); width:18px; height:18px;"></i>
+            ${t('cases.hotspotTitle', 'Incident Hotspots & Metrics')}
+          </span>
+          <span style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="ux-collapsible-hint">${hotspots.length} areas</span>
+            <i data-lucide="chevron-down" class="ux-collapsible-chevron"></i>
+          </span>
+        </summary>
+        <div class="ux-collapsible-body">
+          <p style="font-size:0.825rem; color:var(--text-muted); line-height:1.4; margin-bottom:1rem;">
+            ${t('cases.hotspotSubtitle', 'Areas with the most stray sightings or missing pet reports, to help plan patrols.')}
           </p>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:0.75rem;">
             ${hotspots.map(h => `
               <div style="background:var(--bg-surface-elevated); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
                 <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:6px;">
@@ -139,52 +155,12 @@ class CasesView {
               </div>
             `).join('')}
           </div>
-          <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap; gap:0.75rem;">
+          <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid var(--border-subtle); display:flex; gap:1.5rem; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap;">
             <span>${t('cases.avgResolution', 'Avg. Case Resolution:')} <strong>${analytics.avgRecoveryHours}</strong></span>
             <span>${t('cases.rfidAdoption', 'RFID Transponder Adoption:')} <strong>${analytics.rfidScanAdoption}</strong></span>
-            <span>${t('cases.activeResponse', 'Active Response Units:')} <strong style="color:#16a34a;">${t('cases.patrolReady', 'Municipal Patrol Teams Ready')}</strong></span>
           </div>
         </div>
-      </div>
-
-      <!-- Recovery Cases Master Ledger -->
-      <div style="margin-top:1.5rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
-          <div>
-            <h2 style="font-size:1.35rem; display:flex; align-items:center; gap:0.5rem;">
-              <i data-lucide="folder-lock" style="color:var(--primary); width:20px; height:20px;"></i>
-              ${t('cases.ledgerTitle', 'Pet Recovery Case Files')} (${currentCases.length})
-            </h2>
-            <div style="font-size:0.85rem; color:var(--text-muted);">
-              ${t('cases.ledgerSubtitle', 'Chronological audit trail, sighting evidence photos, and recovery lifecycle stages.')}
-            </div>
-          </div>
-
-          <!-- Status Filter Tabs -->
-          <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
-            <button type="button" class="btn btn-sm ${this.currentCaseFilter === 'all' ? 'btn-primary active' : 'btn-outline'}" onclick="window.casesView.setFilter('all')">
-              ${t('cases.filterAll', 'All')} (${currentCases.length})
-            </button>
-            <button type="button" class="btn btn-sm ${this.currentCaseFilter === 'missing' ? 'btn-danger active' : 'btn-outline'}" onclick="window.casesView.setFilter('missing')">
-              ${t('cases.filterMissing', 'Missing')}
-            </button>
-            <button type="button" class="btn btn-sm ${this.currentCaseFilter === 'sighted' ? 'btn-primary active' : 'btn-outline'}" onclick="window.casesView.setFilter('sighted')">
-              ${t('cases.filterSighted', 'Sighted')}
-            </button>
-            <button type="button" class="btn btn-sm ${this.currentCaseFilter === 'impounded' ? 'btn-secondary active' : 'btn-outline'}" onclick="window.casesView.setFilter('impounded')">
-              ${t('cases.filterImpounded', 'Impounded')}
-            </button>
-            <button type="button" class="btn btn-sm ${this.currentCaseFilter === 'reunited' ? 'btn-primary active' : 'btn-outline'}" onclick="window.casesView.setFilter('reunited')">
-              ${t('cases.filterReunited', 'Reunited')}
-            </button>
-          </div>
-        </div>
-
-        <!-- Cases Cards Grid -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap:1.25rem;">
-          ${this.renderCasesList(currentCases)}
-        </div>
-      </div>
+      </details>
     `;
 
     if (window.lucide) window.lucide.createIcons({ root: container });
@@ -193,9 +169,11 @@ class CasesView {
   renderCasesList(cases) {
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
     const pets = window.pawStore.getPets();
+    const q = this.searchQuery.trim().toLowerCase();
     let filtered = cases.filter(c => {
-      if (this.currentCaseFilter === 'all') return true;
-      return c.status === this.currentCaseFilter;
+      if (this.currentCaseFilter !== 'all' && c.status !== this.currentCaseFilter) return false;
+      if (!q) return true;
+      return [c.petName, c.id, c.rfidTag].some(v => (v || '').toLowerCase().includes(q));
     });
 
     if (filtered.length === 0) {
@@ -262,6 +240,15 @@ class CasesView {
     if (container) this.render(container);
   }
 
+  // Refresh only the grid so the search box keeps focus while typing
+  handleSearch(value) {
+    this.searchQuery = value || '';
+    const grid = document.getElementById('cases-grid');
+    if (!grid) return;
+    grid.innerHTML = this.renderCasesList(window.pawStore.getCases());
+    if (window.lucide) window.lucide.createIcons({ root: grid });
+  }
+
   openCaseDossier(caseId) {
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
     const cases = window.pawStore.getCases();
@@ -283,7 +270,7 @@ class CasesView {
     content.innerHTML = `
       <div style="margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:1rem;">
         <div style="display:flex; align-items:center; gap:0.75rem;">
-          <img src="${pet.photoUrl}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid ${badgeBg};" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'" />
+          <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid ${badgeBg};" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'" />
           <div>
             <h3 style="font-size:1.25rem; margin:0;">${pet.name}</h3>
             <div style="font-size:0.8rem; color:var(--text-muted);">${pet.breed} · Case ${petCase.id}</div>
@@ -372,13 +359,13 @@ class CasesView {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; margin-bottom:1.5rem;">
           <div style="background:var(--bg-surface-elevated); padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-glass); text-align:center;">
             <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:var(--text-muted); margin-bottom:6px;">Community Sighting Photo</div>
-            <img src="${testSighting.photoUrl}" style="width:100%; height:130px; object-fit:cover; border-radius:var(--radius-sm);" />
+            <img src="${testSighting.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:100%; height:130px; object-fit:cover; border-radius:var(--radius-sm);" />
             <div style="font-size:0.75rem; color:var(--text-main); font-weight:600; margin-top:6px;">Spotted in Quezon City</div>
           </div>
 
           <div style="background:var(--bg-surface-elevated); padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-glass); text-align:center;">
             <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:var(--primary); margin-bottom:6px;">Registered Missing Pet: ${topMatch.pet.name}</div>
-            <img src="${topMatch.pet.photoUrl}" style="width:100%; height:130px; object-fit:cover; border-radius:var(--radius-sm);" />
+            <img src="${topMatch.pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:100%; height:130px; object-fit:cover; border-radius:var(--radius-sm);" />
             <div style="font-size:0.75rem; color:var(--text-main); font-weight:600; margin-top:6px;">RFID: ${topMatch.pet.rfidTag || 'Protected'}</div>
           </div>
         </div>

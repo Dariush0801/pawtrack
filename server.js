@@ -796,6 +796,14 @@ const server = http.createServer((req, res) => {
 
   const filePath = path.join(PUBLIC_DIR, safeUrl);
 
+  // Never serve dotfiles/dotfolders (.env, .git)
+  const relativeParts = path.relative(PUBLIC_DIR, filePath).split(path.sep);
+  if (relativeParts.some(part => part.startsWith('.'))) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
+
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('403 Forbidden');

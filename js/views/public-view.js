@@ -317,7 +317,7 @@ class PublicView {
       return `
         <div class="glass-card" style="padding:0.9rem; display:flex; flex-direction:column; gap:0.6rem; cursor:pointer;" onclick="window.publicView.focusPetOnMap('${pet.id}')">
           <div style="display:flex; gap:0.85rem; align-items:center;">
-            <img src="${pet.photoUrl}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} • ${pet.gender} | RFID: ${pet.rfidTag}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+            <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} • ${pet.gender} | RFID: ${pet.rfidTag}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
             <div style="flex:1; min-width:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:2px;">
                 <h4 style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">${pet.name}</h4>
@@ -415,7 +415,7 @@ class PublicView {
             </div>
             ${s.photoUrl ? `
               <div style="width:100%; height:115px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:0.55rem; border:1px solid var(--border-subtle);">
-                <img src="${s.photoUrl}" alt="${s.name}" style="width:100%; height:100%; object-fit:cover;" />
+                <img src="${s.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${s.name}" style="width:100%; height:100%; object-fit:cover;" />
               </div>
             ` : ''}
             <div style="display:flex; justify-content:space-between; font-size:0.8rem; padding-top:0.4rem; border-top:1px solid var(--border-subtle); margin-bottom:0.55rem;">
@@ -459,7 +459,7 @@ class PublicView {
         className: 'custom-map-icon-wrap',
         html: p.status === 'lost' ? `
           <div class="map-pin-bubble missing-pet-bubble">
-            <img src="${p.photoUrl}" alt="${p.name}" />
+            <img src="${p.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${p.name}" />
             <span><strong>${p.name}</strong><small>${p.breed || 'Pet'} · ${p.lastSeenLocation || 'Last known location'}</small></span>
           </div>
         ` : `
@@ -477,7 +477,7 @@ class PublicView {
         .bindPopup(`
           <div class="map-popup-card">
             <div style="width:100%; height:110px; border-radius:var(--radius-md); overflow:hidden; margin-bottom:0.6rem; border:1px solid var(--border-glass);">
-              <img src="${p.photoUrl}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+              <img src="${p.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; gap:0.5rem;">
               <h4 style="font-size:1.05rem; font-weight:800; color:var(--text-main); margin:0;">${p.name}</h4>
@@ -1184,7 +1184,7 @@ class PublicView {
           const scoreColor = m.confidenceScore >= 75 ? '#16a34a' : m.confidenceScore >= 55 ? '#ea9d1e' : '#ba3820';
           return `
             <div class="glass-card" style="padding:0.7rem; display:flex; gap:0.75rem; align-items:center; cursor:pointer;" onclick="window.notifManager.closeModal('photo-match-modal'); window.publicView.focusPetOnMap('${pet.id}')">
-              <img src="${pet.photoUrl}" style="width:52px; height:52px; border-radius:var(--radius-md); object-fit:cover; flex-shrink:0;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+              <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:52px; height:52px; border-radius:var(--radius-md); object-fit:cover; flex-shrink:0;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
               <div style="flex:1; min-width:0;">
                 <div style="font-weight:700; font-size:0.92rem;">${this.escapeHtml(pet.name || 'Unnamed pet')}</div>
                 <div style="font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(pet.breed || '')} · ${this.escapeHtml(pet.color || '')}</div>

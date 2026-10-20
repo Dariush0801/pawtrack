@@ -5,6 +5,7 @@
 class ShelterView {
   constructor() {
     this.currentScannedResult = null;
+    this.ledgerFilter = 'holding';
     this.setupScanListeners();
   }
 
@@ -29,52 +30,43 @@ class ShelterView {
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
     const pets = window.pawStore.getPets();
     const impoundments = window.pawStore.getImpoundments();
-    const activeCount = impoundments.filter(i => i.status === 'active_impounded').length;
+    const holding = impoundments.filter(i => i.status === 'active_impounded');
+    const activeCount = holding.length;
     const claimedCount = impoundments.filter(i => i.status === 'claimed').length;
+    const overdueCount = holding.filter(i => Date.now() > new Date(i.claimDeadline).getTime()).length;
 
     container.innerHTML = `
       <div class="view-header">
         <div class="view-title-group">
-          <h1>${t('shelter.title', 'Animal Control & Shelter Terminal')}</h1>
-          <div class="view-subtitle">${t('shelter.subtitle', 'Rapid RFID pet intake, owner notification dispatcher, and impoundment ledger management.')}</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:0.75rem;">
-          <span class="badge badge-safe">
-            <span class="hardware-led-status"></span> Reader Online: USB / NFC Hardware Ready
-          </span>
+          <h1>${t('shelter.title', 'Shelter Intake Terminal')}</h1>
+          <div class="view-subtitle">${t('shelter.subtitle', 'Scan a collar tag to look up the owner, log the intake, and alert them by SMS.')}</div>
         </div>
       </div>
 
-      <!-- Quick Metrics -->
-      <div class="stats-grid">
-        <div class="stat-card glass-card" data-label="Animals in Holding Bay" title="Animals in Holding Bay">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#ffffff;">
-            <i data-lucide="building-2"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">${activeCount}</div>
-            <div class="stat-label">Animals in Holding Bay</div>
-          </div>
-        </div>
-
-        <div class="stat-card glass-card" data-label="Reunited with Owners" title="Reunited with Owners">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #ea9d1e, #b85410); color:#180d07;">
-            <i data-lucide="check-circle-2"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">${claimedCount}</div>
-            <div class="stat-label">Reunited with Owners</div>
+      <!-- Compact Summary Strip -->
+      <div class="owner-summary glass-card">
+        <div class="owner-summary-status ${overdueCount > 0 ? 'is-alert' : ''}">
+          <span class="owner-summary-dot"></span>
+          <div>
+            <div class="owner-summary-title">${overdueCount > 0
+              ? `${overdueCount} past the 72h holding window`
+              : 'Reader online'}</div>
+            <div class="owner-summary-sub">USB / NFC reader ready · 13.56 MHz &amp; 125 kHz</div>
           </div>
         </div>
-
-        <div class="stat-card glass-card" data-label="RFID Scans Processed Today" title="RFID Scans Processed Today">
-          <div class="stat-icon" style="background:linear-gradient(135deg, #54280e, #241208); color:#ea9d1e;">
-            <i data-lucide="scan-line"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">${impoundments.length + 8}</div>
-            <div class="stat-label">RFID Scans Processed Today</div>
-          </div>
+        <div class="owner-summary-stats">
+          <button type="button" class="owner-summary-stat" onclick="window.shelterView.setLedgerFilter('holding', true)" title="Animals in Holding Bay">
+            <span class="owner-summary-value">${activeCount}</span>
+            <span class="owner-summary-label">In holding</span>
+          </button>
+          <button type="button" class="owner-summary-stat ${overdueCount > 0 ? 'is-alert' : ''}" onclick="window.shelterView.setLedgerFilter('holding', true)" title="Holding window expired">
+            <span class="owner-summary-value">${overdueCount}</span>
+            <span class="owner-summary-label">Overdue</span>
+          </button>
+          <button type="button" class="owner-summary-stat" onclick="window.shelterView.setLedgerFilter('released', true)" title="Reunited with Owners">
+            <span class="owner-summary-value">${claimedCount}</span>
+            <span class="owner-summary-label">Released</span>
+          </button>
         </div>
       </div>
 
@@ -82,10 +74,6 @@ class ShelterView {
       <div class="scanner-hud-container">
         <!-- Left: RFID Reader Interface -->
         <div class="scanner-box glass-card">
-          <div class="scanner-frequency-tag">
-            <span class="hardware-led-status"></span> 13.56 MHz (HF) / 125 kHz (LF) Active
-          </div>
-
           <div class="scanner-radar-disk" onclick="window.shelterView.triggerDemoScan('RFID-882194')" title="Click or scan RFID Tag">
             <div class="scanner-pulse-wave"></div>
             <div class="scanner-pulse-wave"></div>
@@ -94,34 +82,37 @@ class ShelterView {
             </div>
           </div>
 
-          <h3 style="margin-bottom:0.35rem; font-size:1.2rem;">Position RFID Tag Near Reader</h3>
+          <h3 style="margin-bottom:0.35rem; font-size:1.2rem;">Hold Tag Near Reader</h3>
           <p style="font-size:0.85rem; color:var(--text-muted); max-width:320px; margin-bottom:1.25rem;">
-            Interrogate tag UID to retrieve verified owner information and initialize intake.
+            Or type the RFID / microchip number below.
           </p>
 
           <form id="rfid-manual-form" onsubmit="window.shelterView.handleManualScan(event)" style="display:flex; gap:0.5rem; width:100%; max-width:380px; flex-wrap:wrap;">
-            <input type="text" id="rfid-manual-input" placeholder="Enter RFID UID or Microchip..." autocomplete="off" style="flex:1; min-width:180px;" />
+            <input type="text" id="rfid-manual-input" placeholder="RFID UID or microchip no." autocomplete="off" style="flex:1; min-width:180px;" />
             <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">
-              <i data-lucide="search"></i> Interrogate
+              <i data-lucide="search"></i> Look Up
             </button>
           </form>
 
-          <!-- Quick Test Demo Chips -->
-          <div class="demo-rfid-picker">
-            <div style="font-size:0.75rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">
-              Hardware Simulation Presets (Click to scan):
-            </div>
-            <div class="demo-tags-list">
-              ${pets.map(p => `
-                <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('${p.rfidTag}')">
-                  Tag #${p.rfidTag} (${p.name} - ${p.breed})
+          <!-- Sample tags for testing (collapsed by default) -->
+          <details class="ux-collapsible is-plain" style="width:100%; max-width:380px; margin:1rem 0 0;">
+            <summary>
+              <span class="ux-collapsible-hint">Test with a sample tag (${pets.length + 1})</span>
+              <i data-lucide="chevron-down" class="ux-collapsible-chevron"></i>
+            </summary>
+            <div class="ux-collapsible-body">
+              <div class="demo-tags-list">
+                ${pets.map(p => `
+                  <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('${p.rfidTag}')">
+                    ${p.name} · ${p.rfidTag}
+                  </button>
+                `).join('')}
+                <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('RFID-999000')">
+                  Unregistered stray · RFID-999000
                 </button>
-              `).join('')}
-              <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('RFID-999000')">
-                Tag #RFID-999000 (Unregistered Stray)
-              </button>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <!-- Right: Scan Result & Intake Action Box -->
@@ -131,35 +122,87 @@ class ShelterView {
       </div>
 
       <!-- Impoundment Records Ledger -->
-      <div style="margin-top:2.5rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+      <div id="shelter-ledger-section" style="margin-top:2.5rem;">
+        <div class="home-section-header">
           <div>
-            <h2 style="font-size:1.35rem;">Impounded Animals Management Ledger</h2>
-            <div style="font-size:0.85rem; color:var(--text-muted);">Current facility holding register, claim logs, and holding timelines.</div>
+            <h2>Impound Ledger</h2>
+            <div class="home-section-sub">Animals logged at your facilities and their claim status.</div>
+          </div>
+          <div class="home-filter-chips" id="shelter-ledger-filters">
+            ${this.renderLedgerFilters(impoundments)}
           </div>
         </div>
 
-        <div class="table-container glass-card">
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th>Pet & RFID UID</th>
-                <th>Facility & Kennel</th>
-                <th>Intake Date & Officer</th>
-                <th>Holding Period Status</th>
-                <th>Registered Guardian</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${impoundments.map(imp => this.renderLedgerRow(imp)).join('')}
-            </tbody>
-          </table>
+        <div class="table-container glass-card" id="shelter-ledger-table">
+          ${this.renderLedgerTable(impoundments)}
         </div>
       </div>
     `;
 
     if (window.lucide) window.lucide.createIcons({ root: container });
+
+    // Keep an in-progress scan visible across re-renders
+    if (this.currentScannedResult) this.renderScanResult();
+  }
+
+  renderLedgerFilters(impoundments) {
+    const counts = {
+      holding: impoundments.filter(i => i.status === 'active_impounded').length,
+      released: impoundments.filter(i => i.status !== 'active_impounded').length,
+      all: impoundments.length
+    };
+    const labels = { holding: 'In holding', released: 'Released', all: 'All' };
+    return Object.keys(labels).map(key => `
+      <button type="button" class="btn btn-sm ${this.ledgerFilter === key ? 'btn-primary' : 'btn-outline'}" onclick="window.shelterView.setLedgerFilter('${key}')">
+        ${labels[key]} (${counts[key]})
+      </button>
+    `).join('');
+  }
+
+  renderLedgerTable(impoundments) {
+    const rows = impoundments.filter(imp => {
+      if (this.ledgerFilter === 'holding') return imp.status === 'active_impounded';
+      if (this.ledgerFilter === 'released') return imp.status !== 'active_impounded';
+      return true;
+    });
+
+    if (rows.length === 0) {
+      return `
+        <div style="padding:2.5rem 1.5rem; text-align:center; color:var(--text-muted); font-size:0.875rem;">
+          ${this.ledgerFilter === 'holding' ? 'No animals are currently in holding.' : 'No records in this view yet.'}
+        </div>
+      `;
+    }
+
+    return `
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th>Pet</th>
+            <th>Facility</th>
+            <th>Intake</th>
+            <th>Guardian</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(imp => this.renderLedgerRow(imp)).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  setLedgerFilter(filter, scroll = false) {
+    this.ledgerFilter = filter;
+    const impoundments = window.pawStore.getImpoundments();
+    const filters = document.getElementById('shelter-ledger-filters');
+    const table = document.getElementById('shelter-ledger-table');
+    if (filters) filters.innerHTML = this.renderLedgerFilters(impoundments);
+    if (table) {
+      table.innerHTML = this.renderLedgerTable(impoundments);
+      if (window.lucide) window.lucide.createIcons({ root: table });
+    }
+    if (scroll) document.getElementById('shelter-ledger-section')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   renderInitialScanPrompt() {
@@ -217,7 +260,7 @@ class ShelterView {
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem; border-bottom:1px solid var(--border-subtle); padding-bottom:1rem;">
         <div style="display:flex; gap:1rem; align-items:center;">
-          <img src="${pet.photoUrl}" style="width:64px; height:64px; border-radius:var(--radius-md); object-fit:cover; border:2px solid var(--primary);" />
+          <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:64px; height:64px; border-radius:var(--radius-md); object-fit:cover; border:2px solid var(--primary);" />
           <div>
             <div style="display:flex; align-items:center; gap:0.5rem;">
               <h3 style="font-size:1.35rem; font-weight:800;">${pet.name}</h3>
@@ -294,6 +337,7 @@ class ShelterView {
     const isHolding = imp.status === 'active_impounded';
     const deadline = new Date(imp.claimDeadline);
     const isExpired = Date.now() > deadline.getTime();
+    const owner = imp.petId ? window.pawStore.getPetById(imp.petId)?.owner : null;
 
     return `
       <tr>
@@ -303,34 +347,28 @@ class ShelterView {
         </td>
         <td>
           <div style="font-weight:600; font-size:0.85rem;">${imp.shelterName}</div>
-          <div style="font-size:0.75rem; color:var(--primary); font-weight:600;">${imp.cageNumber}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${imp.cageNumber}</div>
         </td>
         <td>
           <div style="font-size:0.85rem;">${new Date(imp.intakeDate).toLocaleDateString()} ${new Date(imp.intakeDate).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
           <div style="font-size:0.75rem; color:var(--text-muted);">${imp.intakeOfficer}</div>
         </td>
         <td>
-          ${isHolding ? `
-            <span style="color: ${isExpired ? 'var(--danger)' : 'var(--primary)'}; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">
-              ${isExpired ? 'Holding Expired' : '72h Active Window'}
-            </span>
-          ` : `
-            <span style="color: var(--success); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">
-              Claimed & Released
-            </span>
-          `}
-        </td>
-        <td>
-          <div style="font-size:0.85rem;">${imp.petId ? window.pawStore.getPetById(imp.petId)?.owner?.name || 'Registered Guardian' : 'Registered Guardian'}</div>
-          <div style="font-size:0.75rem; color:var(--primary); font-weight:600;">${imp.petId ? window.pawStore.getPetById(imp.petId)?.owner?.phone || 'Contact' : 'Contact'}</div>
+          <div style="font-size:0.85rem;">${owner?.name || 'Registered Guardian'}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${owner?.phone || ''}</div>
         </td>
         <td>
           ${isHolding ? `
-            <button class="btn btn-primary btn-sm" onclick="window.ownerView.simulateClaim('${imp.id}', '${imp.petName}')">
-              <i data-lucide="check"></i> Release / Claim
-            </button>
+            <span class="ledger-status" style="color:${isExpired ? 'var(--danger)' : 'var(--primary)'};">
+              ${isExpired ? 'Holding Expired' : 'Within 72h'}
+            </span>
+            <div>
+              <button class="btn btn-primary btn-sm" onclick="window.ownerView.simulateClaim('${imp.id}', '${imp.petName}')">
+                <i data-lucide="check"></i> Release
+              </button>
+            </div>
           ` : `
-            <span style="font-size:0.8rem; color:var(--text-muted);">Completed</span>
+            <span class="ledger-status" style="color:var(--success);">Claimed &amp; Released</span>
           `}
         </td>
       </tr>

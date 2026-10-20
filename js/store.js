@@ -2,6 +2,9 @@
  * PawTrack Unified Store with Cross-App Real-time SSE Sync & BroadcastBus
  */
 
+// Shown when a pet or report has no photo, so templates never render src="undefined"
+window.PET_PHOTO_PLACEHOLDER = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
+
 const STORAGE_KEYS = {
   PETS: 'pawtrack_pets',
   IMPOUNDMENTS: 'pawtrack_impoundments',
