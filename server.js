@@ -8,6 +8,7 @@ if (fs.existsSync(path.join(__dirname, '.env'))) {
   process.loadEnvFile(path.join(__dirname, '.env'));
 }
 const photoMatch = require('./api/photo-match');
+const mailer = require('./api/mailer');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -328,18 +329,10 @@ const server = http.createServer((req, res) => {
         }
 
         let emailSentViaSmtp = false;
-        if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+        if (mailer.isConfigured()) {
           try {
-            const nodemailer = require('nodemailer');
-            const transporter = nodemailer.createTransport({
-              service: 'gmail',
-              auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_APP_PASS
-              }
-            });
+            const transporter = mailer;
             transporter.sendMail({
-              from: `"PawTrack Guardian Security" <${process.env.GMAIL_USER}>`,
               to: targetEmail,
               subject: `Google Security Alert: PawTrack Verification PIN [${securityPin}]`,
               html: `
@@ -355,7 +348,7 @@ const server = http.createServer((req, res) => {
                   <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack RFID Pet Recovery &amp; Municipal Pound Network</p>
                 </div>
               `
-            }).catch(e => console.warn('[Local SMTP Warn]:', e.message));
+            }).catch(e => console.warn('[Brevo Warn]:', e.message));
             emailSentViaSmtp = true;
           } catch (e) {}
         }
@@ -402,18 +395,10 @@ const server = http.createServer((req, res) => {
         }
 
         let emailSentViaSmtp = false;
-        if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+        if (mailer.isConfigured()) {
           try {
-            const nodemailer = require('nodemailer');
-            const transporter = nodemailer.createTransport({
-              service: 'gmail',
-              auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_APP_PASS
-              }
-            });
+            const transporter = mailer;
             transporter.sendMail({
-              from: `"PawTrack Guardian Security" <${process.env.GMAIL_USER}>`,
               to: targetEmail,
               subject: `Security Alert: Google Account Connected to PawTrack Pet Recovery`,
               html: `
@@ -456,7 +441,7 @@ const server = http.createServer((req, res) => {
                   </p>
                 </div>
               `
-            }).catch(e => console.warn('[Local SMTP Warn]:', e.message));
+            }).catch(e => console.warn('[Brevo Warn]:', e.message));
             emailSentViaSmtp = true;
           } catch (e) {}
         }

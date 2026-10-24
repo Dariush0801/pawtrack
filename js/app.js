@@ -506,11 +506,18 @@ class App {
     const warningModal = document.getElementById('google-required-modal');
 
     const FRESH_SIGNIN_KEY = 'pawtrack_fresh_signin';
+    const RECOVERY_KEY = 'pawtrack_password_recovery';
+    const OTP_LOG_KEY = 'pawtrack_otp_requests';
+    const OTP_MIN_GAP_MS = 60 * 1000;
+    const OTP_MAX_PER_WINDOW = 3;
+    const OTP_WINDOW_MS = 15 * 60 * 1000;
     const PH_MOBILE = /^(\+?63|0)9\d{9}$/;
 
     let authMode = 'signin';
     let session = null;
     let resolveRun = 0;
+    // True from a verified reset code until the new password is saved: the guardian is not logged in meanwhile
+    let recoveryActive = false;
     let loginTurnstileId = null;
     let loginTurnstileToken = null;
 
@@ -526,6 +533,24 @@ class App {
     };
 
     const normalizePhone = (value) => String(value || '').replace(/[\s\-().]/g, '');
+
+    // Mobile fields show a fixed "+63" prefix and take digits only: a pasted +63… or leading 0 is dropped
+    const cleanMobileDigits = (value) => {
+      let digits = String(value || '').replace(/\D/g, '');
+      if (digits.length > 10 && digits.startsWith('63')) digits = digits.slice(2);
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      return digits.slice(0, 10);
+    };
+    const mobileFieldValue = (input) => {
+      const digits = cleanMobileDigits(input?.value);
+      return digits ? `+63${digits}` : '';
+    };
+    document.querySelectorAll('input[data-ph-mobile]').forEach(input => {
+      input.addEventListener('input', () => {
+        const cleaned = cleanMobileDigits(input.value);
+        if (input.value !== cleaned) input.value = cleaned;
+      });
+    });
 
     const turnstileTheme = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 
@@ -608,6 +633,7 @@ class App {
     const setAuthMode = (mode) => {
       authMode = mode;
       const isSignup = mode === 'signup';
+      authLanding?.classList.toggle('is-signup', isSignup);
       authLanding?.querySelectorAll('[data-signup-only]').forEach(el => { el.hidden = !isSignup; });
       authLanding?.querySelectorAll('[data-signin-only]').forEach(el => { el.hidden = isSignup; });
       if (loginTitle) loginTitle.textContent = isSignup ? 'Create your account' : 'Welcome back';
@@ -730,7 +756,6 @@ class App {
     loginPasswordToggle?.addEventListener('click', () => {
       const show = loginPasswordInput.type === 'password';
       loginPasswordInput.type = show ? 'text' : 'password';
-      loginPasswordToggle.textContent = show ? 'Hide' : 'Show';
       loginPasswordToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
       loginPasswordToggle.setAttribute('aria-pressed', String(show));
     });
@@ -751,7 +776,7 @@ class App {
         loginEmailInput?.focus();
         return;
       }
-      const phone = normalizePhone(loginPhoneInput?.value);
+      const phone = mobileFieldValue(loginPhoneInput);
       if (isSignup && !PH_MOBILE.test(phone)) {
         setStatus(loginStatus, 'Please enter a valid Philippine mobile number, e.g. 0917 123 4567.', true);
         loginPhoneInput?.focus();
@@ -806,29 +831,213 @@ class App {
       }
     });
 
-    loginForgotBtn?.addEventListener('click', async () => {
-      const email = (loginEmailInput?.value || '').trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setStatus(loginStatus, 'Enter your email above, then tap "Forgot password?" again.', true);
-        loginEmailInput?.focus();
-        return;
-      }
-      const captchaToken = requireTurnstileToken();
-      if (!captchaToken) return;
+    // Forgot password: email -> 6-digit code (Supabase emails it through Brevo SMTP) -> set a new password
+    const forgotEmailForm = document.getElementById('forgot-email-form');
+    const forgotOtpForm = document.getElementById('forgot-otp-form');
+    const forgotEmailInput = document.getElementById('forgot-email');
+    const forgotOtpInput = document.getElementById('forgot-otp');
+    const forgotOtpEmail = document.getElementById('forgot-otp-email');
+    const forgotSendBtn = document.getElementById('forgot-send-btn');
+    const forgotVerifyBtn = document.getElementById('forgot-verify-btn');
+    const forgotResendBtn = document.getElementById('forgot-resend-btn');
+    const forgotStatus = document.getElementById('forgot-status');
+    const forgotTurnstileEl = document.getElementById('forgot-turnstile');
+    let forgotTurnstileId = null;
+    let forgotTurnstileToken = null;
 
-      setBusy(true);
-      setStatus(loginStatus, 'Sending reset link…');
-      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-        captchaToken,
-        redirectTo: window.location.origin + window.location.pathname
+    const forgotTitle = document.getElementById('forgot-title');
+    const forgotBackBtn = document.getElementById('forgot-back-btn');
+    const forgotModal = document.getElementById('forgot-password-modal');
+
+    const showForgotStep = (step) => {
+      if (forgotEmailForm) forgotEmailForm.hidden = step !== 'email';
+      if (forgotOtpForm) forgotOtpForm.hidden = step !== 'otp';
+      if (forgotBackBtn) forgotBackBtn.hidden = step !== 'otp';
+      if (forgotTitle) forgotTitle.textContent = step === 'otp' ? 'Check your email' : 'Forgot your password?';
+      document.querySelectorAll('#forgot-steps li').forEach(li => {
+        const order = ['email', 'otp', 'password'];
+        const idx = order.indexOf(li.dataset.step);
+        const current = order.indexOf(step);
+        li.classList.toggle('is-active', idx === current);
+        li.classList.toggle('is-done', idx < current);
+        const badge = li.querySelector('span');
+        if (badge) badge.textContent = idx < current ? '\u2713' : String(idx + 1);
       });
-      setBusy(false);
-      resetLoginTurnstile();
-      if (error) {
-        setStatus(loginStatus, friendlyAuthError(error), true);
+      setStatus(forgotStatus, '');
+    };
+
+    // Buttons show a spinner while a request is in flight
+    const setBtnLoading = (btn, loading) => {
+      if (!btn) return;
+      btn.classList.toggle('is-loading', loading);
+      btn.disabled = loading;
+    };
+
+    const resetForgotTurnstile = () => {
+      forgotTurnstileToken = null;
+      if (window.turnstile && forgotTurnstileId !== null) window.turnstile.reset(forgotTurnstileId);
+    };
+
+    const renderForgotTurnstile = async () => {
+      try {
+        await waitForTurnstile();
+        if (forgotTurnstileId !== null) {
+          resetForgotTurnstile();
+          return;
+        }
+        forgotTurnstileId = window.turnstile.render(forgotTurnstileEl, {
+          sitekey: config.turnstileSiteKey,
+          theme: turnstileTheme(),
+          size: 'flexible',
+          callback: (token) => { forgotTurnstileToken = token; },
+          'expired-callback': () => { forgotTurnstileToken = null; },
+          'error-callback': () => setStatus(forgotStatus, 'Security check failed to load. Please refresh and try again.', true)
+        });
+      } catch (err) {
+        setStatus(forgotStatus, err.message, true);
+      }
+    };
+
+    // Rate limit for code requests from this browser: 1 per minute, 3 per 15 minutes.
+    // Supabase enforces its own limits server-side.
+    const readOtpLog = () => {
+      try {
+        const log = JSON.parse(localStorage.getItem(OTP_LOG_KEY) || '[]');
+        return Array.isArray(log) ? log.filter(t => Date.now() - t < OTP_WINDOW_MS) : [];
+      } catch (err) { return []; }
+    };
+    const otpWaitMs = () => {
+      const log = readOtpLog();
+      if (!log.length) return 0;
+      let wait = Math.max(0, OTP_MIN_GAP_MS - (Date.now() - log[log.length - 1]));
+      if (log.length >= OTP_MAX_PER_WINDOW) wait = Math.max(wait, OTP_WINDOW_MS - (Date.now() - log[0]));
+      return wait;
+    };
+    const recordOtpRequest = () => {
+      try { localStorage.setItem(OTP_LOG_KEY, JSON.stringify([...readOtpLog(), Date.now()])); } catch (err) {}
+    };
+    const formatWait = (ms) => {
+      const secs = Math.ceil(ms / 1000);
+      return secs > 90 ? `${Math.ceil(secs / 60)} minutes` : `${secs} seconds`;
+    };
+
+    let otpCooldownTimer = null;
+    const tickOtpCooldown = () => {
+      clearInterval(otpCooldownTimer);
+      const apply = () => {
+        const wait = otpWaitMs();
+        if (forgotSendBtn && !forgotSendBtn.classList.contains('is-loading')) {
+          forgotSendBtn.disabled = wait > 0;
+          forgotSendBtn.textContent = wait > 0 ? `Send code again in ${formatWait(wait)}` : 'Send code';
+        }
+        if (forgotResendBtn) {
+          forgotResendBtn.disabled = wait > 0;
+          forgotResendBtn.textContent = wait > 0 ? `Send again in ${Math.ceil(wait / 1000)}s` : 'Send again';
+        }
+        if (wait <= 0) clearInterval(otpCooldownTimer);
+      };
+      apply();
+      otpCooldownTimer = setInterval(apply, 1000);
+    };
+
+    loginForgotBtn?.addEventListener('click', () => {
+      if (forgotEmailInput) forgotEmailInput.value = (loginEmailInput?.value || '').trim();
+      if (forgotOtpInput) forgotOtpInput.value = '';
+      showForgotStep('email');
+      window.notifManager.openModal('forgot-password-modal');
+      tickOtpCooldown();
+      renderForgotTurnstile();
+      setTimeout(() => forgotEmailInput?.focus(), 150);
+    });
+
+    forgotOtpInput?.addEventListener('input', () => {
+      forgotOtpInput.value = forgotOtpInput.value.replace(/\D/g, '').slice(0, 6);
+      if (forgotOtpInput.value.length === 6) forgotOtpForm?.requestSubmit();
+    });
+
+    forgotBackBtn?.addEventListener('click', () => {
+      showForgotStep('email');
+      setTimeout(() => forgotEmailInput?.focus(), 50);
+    });
+
+    // Escape and a click on the dim backdrop close the forgot-password dialog
+    forgotModal?.addEventListener('mousedown', (e) => {
+      if (e.target === forgotModal) window.notifManager.closeModal('forgot-password-modal');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && forgotModal?.classList.contains('active')) window.notifManager.closeModal('forgot-password-modal');
+    });
+
+    forgotResendBtn?.addEventListener('click', () => {
+      showForgotStep('email');
+      resetForgotTurnstile();
+      setStatus(forgotStatus, 'Complete the security check, then tap "Send code" again.');
+    });
+
+    forgotEmailForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (forgotEmailInput?.value || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatus(forgotStatus, 'Enter a valid email address.', true);
+        forgotEmailInput?.focus();
         return;
       }
-      setStatus(loginStatus, `If ${email} has a PawTrack account, a password reset link is on its way.`);
+      const wait = otpWaitMs();
+      if (wait > 0) {
+        setStatus(forgotStatus, `Too many code requests. Please try again in ${formatWait(wait)}.`, true);
+        tickOtpCooldown();
+        return;
+      }
+      if (!forgotTurnstileToken) {
+        setStatus(forgotStatus, 'Please complete the security check first.', true);
+        return;
+      }
+
+      setBtnLoading(forgotSendBtn, true);
+      setStatus(forgotStatus, 'Sending code…');
+      recordOtpRequest();
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, { captchaToken: forgotTurnstileToken });
+      resetForgotTurnstile();
+      setBtnLoading(forgotSendBtn, false);
+      tickOtpCooldown();
+      if (error) {
+        const limited = error.status === 429 || /rate.?limit|too many|seconds/i.test(`${error.code || ''} ${error.message || ''}`);
+        setStatus(forgotStatus, limited ? 'Too many code requests. Please wait a minute and try again.' : friendlyAuthError(error), true);
+        return;
+      }
+      if (forgotOtpEmail) forgotOtpEmail.textContent = email;
+      showForgotStep('otp');
+      setTimeout(() => forgotOtpInput?.focus(), 100);
+    });
+
+    forgotOtpForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (forgotOtpEmail?.textContent || '').trim();
+      const token = (forgotOtpInput?.value || '').trim();
+      if (!/^\d{6}$/.test(token)) {
+        setStatus(forgotStatus, 'Enter the 6-digit code from your email.', true);
+        forgotOtpInput?.focus();
+        return;
+      }
+
+      setBtnLoading(forgotVerifyBtn, true);
+      setStatus(forgotStatus, 'Verifying…');
+      // Verifying creates a temporary session; hold the login back until the new password is saved
+      recoveryActive = true;
+      try { sessionStorage.setItem(RECOVERY_KEY, '1'); } catch (err) {}
+      const { error } = await this.supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+      setBtnLoading(forgotVerifyBtn, false);
+      if (error) {
+        recoveryActive = false;
+        try { sessionStorage.removeItem(RECOVERY_KEY); } catch (err) {}
+        setStatus(forgotStatus, 'That code is incorrect or has expired. Check the code or send a new one.', true);
+        forgotOtpInput?.select();
+        return;
+      }
+      if (forgotOtpInput) forgotOtpInput.value = '';
+      setStatus(forgotStatus, '');
+      window.notifManager.closeModal('forgot-password-modal');
+      openResetPasswordModal();
     });
 
     loginGoogleBtn?.addEventListener('click', async () => {
@@ -855,7 +1064,7 @@ class App {
       e.preventDefault();
       const user = session && session.user;
       const name = (registerName?.value || '').trim();
-      const phone = normalizePhone(registerPhone?.value);
+      const phone = mobileFieldValue(registerPhone);
 
       if (!user) {
         window.notifManager.closeModal('register-dialog-modal');
@@ -891,37 +1100,119 @@ class App {
       window.notifManager.showToast(`Welcome to PawTrack, ${guardian.full_name}!`, 'success');
     });
 
+    // Live password requirements for the reset form
+    const passwordRules = {
+      length: (pw) => pw.length >= 8,
+      upper: (pw) => /[A-Z]/.test(pw),
+      lower: (pw) => /[a-z]/.test(pw),
+      number: (pw) => /\d/.test(pw),
+      symbol: (pw) => /[^A-Za-z0-9\s]/.test(pw),
+      match: (pw, confirm) => pw.length > 0 && pw === confirm
+    };
+
+    const updatePasswordRules = () => {
+      const pw = resetInput?.value || '';
+      const confirm = resetConfirm?.value || '';
+      let allMet = true;
+      document.querySelectorAll('#reset-password-rules li[data-rule]').forEach(li => {
+        const met = passwordRules[li.dataset.rule](pw, confirm);
+        li.classList.toggle('is-met', met);
+        if (!met) allMet = false;
+      });
+      if (resetSubmit) resetSubmit.disabled = !allMet;
+      return allMet;
+    };
+    resetInput?.addEventListener('input', updatePasswordRules);
+    resetConfirm?.addEventListener('input', updatePasswordRules);
+
+    document.querySelectorAll('[data-toggle-for]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.toggleFor);
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-pressed', String(show));
+      });
+    });
+
+    // Leaving the set-password step abandons the reset: end the temporary session
+    document.getElementById('reset-cancel-btn')?.addEventListener('click', async () => {
+      await this.supabase.auth.signOut({ scope: 'local' });
+      recoveryActive = false;
+      try { sessionStorage.removeItem(RECOVERY_KEY); } catch (err) {}
+      session = null;
+      window.notifManager.closeModal('reset-password-modal');
+      window.pawStore.setGoogleUser(null);
+      this.updateGoogleAuthUI();
+      window.notifManager.showToast('Password reset cancelled.', 'info');
+    });
+
+    const openResetPasswordModal = () => {
+      if (resetInput) resetInput.value = '';
+      if (resetConfirm) resetConfirm.value = '';
+      updatePasswordRules();
+      setStatus(resetStatus, '');
+      window.notifManager.openModal('reset-password-modal');
+      setTimeout(() => resetInput?.focus(), 150);
+    };
+
     resetForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const password = resetInput?.value || '';
-      if (password.length < 8) {
-        setStatus(resetStatus, 'Please choose a password with at least 8 characters.', true);
-        resetInput?.focus();
+      if (!updatePasswordRules()) {
+        setStatus(resetStatus, 'Please meet all the password requirements.', true);
         return;
       }
-      if (password !== (resetConfirm?.value || '')) {
-        setStatus(resetStatus, 'The passwords do not match.', true);
-        resetConfirm?.focus();
-        return;
-      }
-      if (resetSubmit) resetSubmit.disabled = true;
+      const password = resetInput.value;
+      setBtnLoading(resetSubmit, true);
       setStatus(resetStatus, 'Updating your password…');
       const { error } = await this.supabase.auth.updateUser({ password });
-      if (resetSubmit) resetSubmit.disabled = false;
+      setBtnLoading(resetSubmit, false);
       if (error) {
+        updatePasswordRules();
         setStatus(resetStatus, friendlyAuthError(error), true);
         return;
       }
+
+      // Password saved: end the recovery session and make the guardian log in with the new password
+      const email = session?.user?.email || '';
+      await this.supabase.auth.signOut({ scope: 'local' });
+      recoveryActive = false;
+      try { sessionStorage.removeItem(RECOVERY_KEY); } catch (err) {}
+      session = null;
       if (resetInput) resetInput.value = '';
       if (resetConfirm) resetConfirm.value = '';
       setStatus(resetStatus, '');
       window.notifManager.closeModal('reset-password-modal');
-      window.notifManager.showToast('Your password has been updated.', 'success');
+      window.pawStore.setGoogleUser(null);
+      this.updateGoogleAuthUI();
+      setAuthMode('signin');
+      openLoginDialog();
+      if (loginEmailInput) loginEmailInput.value = email;
+      if (loginPasswordInput) loginPasswordInput.value = '';
+      window.notifManager.openModal('password-updated-modal');
+      setTimeout(() => document.getElementById('password-updated-login-btn')?.focus(), 150);
+    });
+
+    // Password updated: continue to the log-in form with the email filled in
+    document.getElementById('password-updated-login-btn')?.addEventListener('click', () => {
+      window.notifManager.closeModal('password-updated-modal');
+      loginPasswordInput?.removeAttribute('readonly');
+      setTimeout(() => loginPasswordInput?.focus(), 100);
     });
 
     this.supabase.auth.onAuthStateChange((event, newSession) => {
       session = newSession;
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+
+      // A reset-code session must not log the guardian in: keep the set-new-password step in front
+      let pendingRecovery = false;
+      try { pendingRecovery = sessionStorage.getItem(RECOVERY_KEY) === '1'; } catch (err) {}
+      if (recoveryActive || (pendingRecovery && newSession)) {
+        recoveryActive = true;
+        if (event === 'INITIAL_SESSION' && newSession) openResetPasswordModal();
+        return;
+      }
 
       if (event === 'INITIAL_SESSION' && (returnedWithCode || authParams.has('error'))) {
         if (returnedWithCode && !newSession && !pendingAuthError) {
@@ -933,9 +1224,10 @@ class App {
       }
 
       if (event === 'PASSWORD_RECOVERY') {
-        setStatus(resetStatus, '');
-        window.notifManager.openModal('reset-password-modal');
-        setTimeout(() => resetInput?.focus(), 150);
+        recoveryActive = true;
+        try { sessionStorage.setItem(RECOVERY_KEY, '1'); } catch (err) {}
+        openResetPasswordModal();
+        return;
       }
       // Deferred: calling Supabase from inside this callback can deadlock the auth client
       setTimeout(resolveGuardian, 0);

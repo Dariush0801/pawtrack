@@ -2,6 +2,8 @@
  * Vercel Serverless Function: Send Google Authorization & Security Notification to Gmail Account
  * Dispatches official access confirmation and scope breakdown to the user's primary Gmail inbox.
  */
+const mailer = require('./mailer');
+
 module.exports = async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,19 +29,11 @@ module.exports = async function handler(req, res) {
     }
 
     let emailSentViaSmtp = false;
-    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+    if (mailer.isConfigured()) {
       try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASS
-          }
-        });
+        const transporter = mailer;
 
         await transporter.sendMail({
-          from: `"PawTrack Guardian Security" <${process.env.GMAIL_USER}>`,
           to: targetEmail,
           subject: `Security Alert: Google Account Connected to PawTrack Pet Recovery`,
           html: `
@@ -85,7 +79,7 @@ module.exports = async function handler(req, res) {
         });
         emailSentViaSmtp = true;
       } catch (err) {
-        console.warn('[SMTP Dispatch Warning]:', err.message);
+        console.warn('[Brevo Dispatch Warning]:', err.message);
       }
     }
 

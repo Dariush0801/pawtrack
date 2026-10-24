@@ -5431,6 +5431,234 @@
   margin: -6px 0 2px 2px;
 }
 
+/* Mobile number: fixed "+63 |" prefix, then the 10-digit number */
+.auth-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-phone-prefix {
+  flex: none;
+  font-size: 15px;
+  color: var(--auth-ink);
+  padding-right: 8px;
+  border-right: 1.5px solid var(--auth-ink-muted);
+  line-height: 1.2;
+}
+
+.auth-dialog-form[hidden] {
+  display: none;
+}
+
+/* Password updated confirmation */
+.auth-success-card {
+  text-align: center;
+}
+
+.auth-success-icon {
+  width: 64px;
+  height: 64px;
+  margin: 6px auto 14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.12);
+  box-shadow: 0 0 0 8px rgba(21, 128, 61, 0.06);
+  animation: auth-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .auth-success-icon {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.14);
+  box-shadow: 0 0 0 8px rgba(74, 222, 128, 0.07);
+}
+
+@keyframes auth-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-success-icon { animation: none; }
+}
+
+/* Step indicator: Email > Code > New password */
+.auth-steps {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--auth-ink-muted);
+}
+
+.auth-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-steps li span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: var(--auth-field-bg);
+  border: 1px solid var(--auth-field-border);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.auth-steps li.is-active {
+  color: var(--auth-ink);
+}
+
+.auth-steps li.is-active span {
+  background: var(--auth-accent);
+  border-color: var(--auth-accent);
+  color: var(--auth-on-accent);
+}
+
+.auth-steps li.is-done span {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+@media (max-width: 400px) {
+  .auth-steps {
+    gap: 8px;
+    font-size: 10.5px;
+  }
+}
+
+/* Back arrow on the code step */
+.auth-dialog-back-btn {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--auth-ink-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-dialog-back-btn[hidden] {
+  display: none;
+}
+
+.auth-dialog-back-btn:hover {
+  background: var(--auth-field-bg);
+  color: var(--auth-ink);
+}
+
+.auth-dialog-back-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--auth-accent-ring);
+}
+
+/* Spinner while a request is in flight */
+.auth-dialog-submit-btn.is-loading {
+  position: relative;
+  color: transparent;
+  cursor: progress;
+}
+
+.auth-dialog-submit-btn.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid var(--auth-on-accent);
+  border-right-color: transparent;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-dialog-submit-btn.is-loading::after { animation-duration: 1.6s; }
+}
+
+/* Live password requirements */
+.auth-rules {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--auth-ink-muted);
+}
+
+.auth-rules li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+  transition: color 0.15s;
+}
+
+.auth-rules li::before {
+  content: '';
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--auth-field-border);
+  background: transparent center / 9px no-repeat;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.auth-rules li.is-met {
+  color: #15803d;
+}
+
+.auth-rules li.is-met::before {
+  border-color: #15803d;
+  background-color: #15803d;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .auth-rules li.is-met {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .auth-rules li.is-met::before {
+  border-color: #4ade80;
+  background-color: #4ade80;
+}
+
+@media (max-width: 380px) {
+  .auth-rules {
+    grid-template-columns: 1fr;
+  }
+}
+
+.auth-otp-input {
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  font-weight: 600;
+}
+
 .auth-password-row {
   display: flex;
   align-items: center;
@@ -5447,6 +5675,25 @@
   font-weight: 600;
   color: var(--auth-ink-muted);
   cursor: pointer;
+}
+
+.auth-password-toggle {
+  display: grid;
+  place-items: center;
+}
+
+.auth-password-toggle svg {
+  display: block;
+}
+
+/* Eye = password hidden (click to show); eye-off = password visible */
+.auth-password-toggle .icon-eye-off,
+.auth-password-toggle[aria-pressed="true"] .icon-eye {
+  display: none;
+}
+
+.auth-password-toggle[aria-pressed="true"] .icon-eye-off {
+  display: block;
 }
 
 .auth-password-toggle:hover {
@@ -5737,6 +5984,78 @@ body.auth-locked {
 
 [data-theme="dark"] .auth-landing-guest-btn {
   color: #ea9d1e;
+}
+
+/* Register (sign-up) mode fits in a single frame: no page scrolling, compact spacing */
+.auth-landing.is-signup {
+  overflow: hidden;
+  padding: 10px 16px;
+}
+
+.auth-landing.is-signup .auth-landing-inner {
+  gap: 8px;
+}
+
+.auth-landing.is-signup .auth-landing-card {
+  padding-top: 14px !important;
+  padding-bottom: 12px !important;
+}
+
+.auth-landing.is-signup .auth-landing-brand {
+  margin-bottom: 6px;
+}
+
+.auth-landing.is-signup .auth-dialog-sub {
+  display: none;
+}
+
+.auth-landing.is-signup .auth-dialog-title {
+  margin-bottom: 10px !important;
+}
+
+.auth-landing.is-signup .auth-dialog-form {
+  gap: 6px;
+}
+
+.auth-landing.is-signup .auth-field-box {
+  padding: 4px 14px 5px;
+}
+
+.auth-landing.is-signup .auth-dialog-submit-btn,
+.auth-landing.is-signup .auth-google-continue-btn {
+  height: 40px;
+}
+
+.auth-landing.is-signup .auth-turnstile {
+  min-height: 65px;
+}
+
+.auth-landing.is-signup .auth-turnstile-below {
+  margin-top: 8px;
+}
+
+.auth-landing.is-signup .auth-dialog-divider {
+  margin: 6px 0;
+}
+
+.auth-landing.is-signup .auth-status {
+  margin-top: 8px;
+}
+
+.auth-landing.is-signup .auth-mode-row {
+  margin-top: 8px;
+}
+
+.auth-landing.is-signup .auth-terms-note {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+@media (max-height: 700px) {
+  .auth-landing.is-signup .auth-terms-note,
+  .auth-landing.is-signup .auth-landing-guest {
+    display: none;
+  }
 }
 
 /* Short laptop screens: keep the whole sign-in card in view without scrolling */
