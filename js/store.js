@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'pawtrack_current_user',
   THEME: 'pawtrack_theme',
   GOOGLE_AUTH: 'pawtrack_google_auth',
-  RFID_TAGS: 'pawtrack_rfid_tags',
+  NFC_TAGS: 'pawtrack_nfc_tags',
   SETTINGS: 'pawtrack_system_settings',
   SIGHTINGS: 'pawtrack_sightings',
   CASES: 'pawtrack_cases',
@@ -70,7 +70,7 @@ const SEED_PETS = [
     breed: 'Golden Retriever',
     gender: 'Male',
     color: 'Golden brown with white chest patch',
-    rfidTag: 'RFID-882194',
+    nfcTag: 'NFC-882194',
     microchipNo: '98514100882194',
     status: 'lost',
     medicalNotes: 'Friendly, microchipped, floppy ears, distinctive white patch on chest.',
@@ -96,7 +96,7 @@ const SEED_PETS = [
     breed: 'Calico / Domestic Shorthair',
     gender: 'Female',
     color: 'Tri-color (Orange, Black, White)',
-    rfidTag: 'RFID-441920',
+    nfcTag: 'NFC-441920',
     microchipNo: '98514100441920',
     status: 'impounded',
     medicalNotes: 'Spayed, calico coat pattern, wearing blue collar with bell.',
@@ -121,7 +121,7 @@ const SEED_PETS = [
     breed: 'Beagle',
     gender: 'Male',
     color: 'Tricolor (White, Brown, Black)',
-    rfidTag: 'RFID-912044',
+    nfcTag: 'NFC-912044',
     microchipNo: '98514100912044',
     status: 'safe',
     medicalNotes: 'Fully vaccinated, active tracker collar, highly energetic.',
@@ -153,7 +153,7 @@ const SEED_MISSING_REPORTS = [
     lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
     lastSeenCoords: [14.6360, 121.0370],
     lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
-    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with RFID-882194.',
+    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with NFC-882194.',
     status: 'active',
     createdAt: new Date(Date.now() - 5 * 3600000).toISOString()
   }
@@ -238,7 +238,27 @@ class Store {
     this.initRealtimeSync();
   }
 
+  // Brings data saved before the RFID -> NFC rename up to date (field names, tag prefixes, storage key)
+  migrateLegacyNfcData() {
+    try {
+      const legacyTags = localStorage.getItem('pawtrack_rfid_tags');
+      if (legacyTags !== null) {
+        if (localStorage.getItem(STORAGE_KEYS.NFC_TAGS) === null) localStorage.setItem(STORAGE_KEYS.NFC_TAGS, legacyTags);
+        localStorage.removeItem('pawtrack_rfid_tags');
+      }
+      [STORAGE_KEYS.PETS, STORAGE_KEYS.IMPOUNDMENTS, STORAGE_KEYS.NOTIFICATIONS, STORAGE_KEYS.SIGHTINGS,
+        STORAGE_KEYS.CASES, STORAGE_KEYS.MISSING_REPORTS, STORAGE_KEYS.NFC_TAGS].forEach(key => {
+        const raw = localStorage.getItem(key);
+        if (!raw || !/rfid/i.test(raw)) return;
+        localStorage.setItem(key, JSON.stringify(window.migrateLegacyNfc(JSON.parse(raw))));
+      });
+    } catch (e) {
+      console.warn('[Store] Could not migrate legacy RFID data:', e);
+    }
+  }
+
   init() {
+    this.migrateLegacyNfcData();
     if (localStorage.getItem(STORAGE_KEYS.SHELTERS) === null) {
       localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(SEED_SHELTERS));
     }
@@ -357,8 +377,8 @@ class Store {
       if (Array.isArray(db.shelters) && db.shelters.length > 0) {
         localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(db.shelters));
       }
-      if (Array.isArray(db.rfidTags) && db.rfidTags.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.RFID_TAGS, JSON.stringify(db.rfidTags));
+      if (Array.isArray(db.nfcTags) && db.nfcTags.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.NFC_TAGS, JSON.stringify(db.nfcTags));
       }
       this.notify(source);
     } catch (e) {
@@ -526,10 +546,10 @@ class Store {
     return this.getPets().find(p => p.id === id);
   }
 
-  getPetByRFID(rfidTag) {
-    if (!rfidTag) return null;
-    const cleanTag = rfidTag.trim().toUpperCase();
-    return this.getPets().find(p => (p.rfidTag || '').toUpperCase() === cleanTag);
+  getPetByNFC(nfcTag) {
+    if (!nfcTag) return null;
+    const cleanTag = window.normalizeNfcCode(nfcTag);
+    return this.getPets().find(p => window.normalizeNfcCode(p.nfcTag) === cleanTag);
   }
 
   savePet(pet) {
@@ -957,7 +977,7 @@ class Store {
         id: 'CASE-' + new Date().getFullYear() + '-' + String(cases.length + 1).padStart(4, '0'),
         petId: pet ? pet.id : petIdOrCaseId,
         petName: pet ? pet.name : 'Unknown Pet',
-        rfidTag: pet ? pet.rfidTag : null,
+        nfcTag: pet ? pet.nfcTag : null,
         status: event.type || 'missing',
         createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
@@ -1153,7 +1173,7 @@ class Store {
       totalCases: cases.length,
       recoveryRate: Math.min(100, Math.max(75, recoveryRate)),
       avgRecoveryHours: '14.2 Hours',
-      rfidScanAdoption: '96.5%'
+      nfcScanAdoption: '96.5%'
     };
   }
 

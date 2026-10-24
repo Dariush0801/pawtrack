@@ -159,7 +159,7 @@ class ImpoundedView {
           <div class="glass-card" style="padding:14px 18px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
             <div style="position:relative; flex:1; min-width:220px;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="${t('impounded.searchPlaceholder', 'Search by pet name, RFID UID, or shelter...')}" value="${this.searchQuery}" oninput="window.impoundedView.handleSearch(event)" style="width:100%; padding-left:36px; height:38px; border-radius:var(--radius-full); font-size:0.85rem;" />
+              <input type="text" placeholder="${t('impounded.searchPlaceholder', 'Search by pet name, NFC UID, or shelter...')}" value="${this.searchQuery}" oninput="window.impoundedView.handleSearch(event)" style="width:100%; padding-left:36px; height:38px; border-radius:var(--radius-full); font-size:0.85rem;" />
             </div>
 
             ${this.filterShelter !== 'all' ? `
@@ -188,7 +188,7 @@ class ImpoundedView {
       list = list.filter(i => {
         const pet = pets.find(p => p.id === i.petId);
         const name = (pet?.name || i.petName || '').toLowerCase();
-        const tag = (i.rfidTag || pet?.rfidTag || '').toLowerCase();
+        const tag = (i.nfcTag || pet?.nfcTag || '').toLowerCase();
         const shelter = (i.shelterName || '').toLowerCase();
         return name.includes(this.searchQuery) || tag.includes(this.searchQuery) || shelter.includes(this.searchQuery);
       });
@@ -218,7 +218,7 @@ class ImpoundedView {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
           </div>
           <h3 style="font-size:1.15rem; margin-bottom:6px; color:var(--text-main);" data-i18n="impounded.emptyTitle">${t('impounded.emptyTitle', 'No Impounded Animals in Selected Facility')}</h3>
-          <p style="font-size:0.85rem; max-width:420px; margin:0 auto;" data-i18n="impounded.emptyDesc">${t('impounded.emptyDesc', 'All registered pets are currently safe at home or monitored under the municipal RFID grid.')}</p>
+          <p style="font-size:0.85rem; max-width:420px; margin:0 auto;" data-i18n="impounded.emptyDesc">${t('impounded.emptyDesc', 'All registered pets are currently safe at home or monitored under the municipal NFC grid.')}</p>
         </div>
       `;
     }
@@ -239,7 +239,7 @@ class ImpoundedView {
                     <span class="badge badge-impounded" style="font-size:10.5px;">${t('impounded.badgeImpounded', 'IMPOUNDED')}</span>
                   </div>
                   <div style="font-size:0.8rem; color:var(--text-muted);">${pet.breed || t('impounded.defaultBreed', 'Companion Pet')}</div>
-                  <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-top:2px;">${imp.rfidTag}</div>
+                  <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-top:2px;">${imp.nfcTag}</div>
                 </div>
               </div>
 

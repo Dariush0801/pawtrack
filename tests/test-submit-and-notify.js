@@ -39,15 +39,15 @@ global.pawStore = {
   cases,
   getPets() {
     return [
-      { id: 'pet-1', name: 'Bella', species: 'Dog', breed: 'Golden Retriever', rfidTag: 'RFID-9901', status: 'active', owner: { email: 'maria@gmail.com', phone: '+63 917 111 2222', community: 'District 4, Quezon City' } },
-      { id: 'pet-2', name: 'Milo', species: 'Cat', breed: 'Siamese', rfidTag: 'RFID-8822', status: 'lost', owner: { email: 'carlos@gmail.com', phone: '+63 918 333 4444', community: 'District 1, Quezon City' } }
+      { id: 'pet-1', name: 'Bella', species: 'Dog', breed: 'Golden Retriever', nfcTag: 'NFC-9901', status: 'active', owner: { email: 'maria@gmail.com', phone: '+63 917 111 2222', community: 'District 4, Quezon City' } },
+      { id: 'pet-2', name: 'Milo', species: 'Cat', breed: 'Siamese', nfcTag: 'NFC-8822', status: 'lost', owner: { email: 'carlos@gmail.com', phone: '+63 918 333 4444', community: 'District 1, Quezon City' } }
     ];
   },
   getPetById(id) {
     return this.getPets().find(p => p.id === id);
   },
-  getPetByRFID(rfid) {
-    return this.getPets().find(p => p.rfidTag === rfid);
+  getPetByNFC(nfc) {
+    return this.getPets().find(p => p.nfcTag === nfc);
   },
   getActiveMissingReportForPet(petId) {
     return this.missingReports.find(r => r.petId === petId);
@@ -85,12 +85,12 @@ global.location = { hash: '#map' };
 const reportManagerCode = fs.readFileSync(path.join(__dirname, '..', 'js', 'report-manager.js'), 'utf8');
 eval(reportManagerCode);
 
-console.log('--- Testing Found Pet "Submit and Notify" (No RFID match) ---');
+console.log('--- Testing Found Pet "Submit and Notify" (No NFC match) ---');
 document.elements['report-found-pet-select'] = { value: 'unregistered' };
 document.elements['report-found-species'] = { value: 'Dog' };
 document.elements['report-found-breed'] = { value: 'Aspin' };
 document.elements['report-found-location'] = { value: 'District 2 (Commonwealth), Quezon City' };
-document.elements['report-found-rfid'] = { value: 'RFID-UNKNOWN' };
+document.elements['report-found-nfc'] = { value: 'NFC-UNKNOWN' };
 document.elements['report-found-phone'] = { value: '+63 917 000 1111' };
 document.elements['report-found-notes'] = { value: 'Spotted resting under tree near Commonwealth market.' };
 
@@ -103,9 +103,9 @@ console.log('✓ Found report submitted successfully. Sighting count:', sighting
 console.log('✓ Sighting location:', sightings[0].location, 'coords:', sightings[0].coords);
 console.log('✓ Notification count:', notifications.length);
 
-console.log('\n--- Testing Found Pet "Submit and Notify" (With RFID match) ---');
+console.log('\n--- Testing Found Pet "Submit and Notify" (With NFC match) ---');
 document.elements['report-found-pet-select'] = { value: 'pet-1' }; // Bella
-document.elements['report-found-rfid'] = { value: 'RFID-9901' };
+document.elements['report-found-nfc'] = { value: 'NFC-9901' };
 window.reportManager.submitFoundReport();
 
 console.log('✓ Matched pet found report submitted successfully. Sighting count:', sightings.length);

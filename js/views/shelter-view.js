@@ -72,23 +72,23 @@ class ShelterView {
 
       <!-- Scanner HUD and Result Screen -->
       <div class="scanner-hud-container">
-        <!-- Left: RFID Reader Interface -->
+        <!-- Left: NFC Reader Interface -->
         <div class="scanner-box glass-card">
-          <div class="scanner-radar-disk" onclick="window.shelterView.triggerDemoScan('RFID-882194')" title="Click or scan RFID Tag">
+          <div class="scanner-radar-disk" onclick="window.shelterView.triggerDemoScan('NFC-882194')" title="Click or scan NFC Tag">
             <div class="scanner-pulse-wave"></div>
             <div class="scanner-pulse-wave"></div>
-            <div class="rfid-core-chip">
+            <div class="nfc-core-chip">
               <i data-lucide="radio" style="width:36px; height:36px;"></i>
             </div>
           </div>
 
           <h3 style="margin-bottom:0.35rem; font-size:1.2rem;">Hold Tag Near Reader</h3>
           <p style="font-size:0.85rem; color:var(--text-muted); max-width:320px; margin-bottom:1.25rem;">
-            Or type the RFID / microchip number below.
+            Or type the NFC / microchip number below.
           </p>
 
-          <form id="rfid-manual-form" onsubmit="window.shelterView.handleManualScan(event)" style="display:flex; gap:0.5rem; width:100%; max-width:380px; flex-wrap:wrap;">
-            <input type="text" id="rfid-manual-input" placeholder="RFID UID or microchip no." autocomplete="off" style="flex:1; min-width:180px;" />
+          <form id="nfc-manual-form" onsubmit="window.shelterView.handleManualScan(event)" style="display:flex; gap:0.5rem; width:100%; max-width:380px; flex-wrap:wrap;">
+            <input type="text" id="nfc-manual-input" placeholder="NFC UID or microchip no." autocomplete="off" style="flex:1; min-width:180px;" />
             <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">
               <i data-lucide="search"></i> Look Up
             </button>
@@ -103,12 +103,12 @@ class ShelterView {
             <div class="ux-collapsible-body">
               <div class="demo-tags-list">
                 ${pets.map(p => `
-                  <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('${p.rfidTag}')">
-                    ${p.name} · ${p.rfidTag}
+                  <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('${p.nfcTag}')">
+                    ${p.name} · ${p.nfcTag}
                   </button>
                 `).join('')}
-                <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('RFID-999000')">
-                  Unregistered stray · RFID-999000
+                <button class="demo-tag-chip" onclick="window.shelterView.triggerDemoScan('NFC-999000')">
+                  Unregistered stray · NFC-999000
                 </button>
               </div>
             </div>
@@ -209,9 +209,9 @@ class ShelterView {
     return `
       <div class="scan-idle-state">
         <i data-lucide="scan-line"></i>
-        <h3>Awaiting RFID Reader Signal</h3>
+        <h3>Awaiting NFC Reader Signal</h3>
         <p style="font-size:0.875rem; max-width:340px; margin-top:0.5rem;">
-          Hold an RFID collar tag to the scanner or select a test tag to view registry data and trigger notifications.
+          Hold an NFC collar tag to the scanner or select a test tag to view registry data and trigger notifications.
         </p>
       </div>
     `;
@@ -227,15 +227,15 @@ class ShelterView {
       return;
     }
 
-    const { rfidTag, pet, registered } = this.currentScannedResult;
+    const { nfcTag, pet, registered } = this.currentScannedResult;
 
     if (!registered || !pet) {
       card.innerHTML = `
         <div style="border-left:4px solid var(--danger); padding-left:1rem; margin-bottom:1.5rem;">
           <div style="font-size:0.8rem; text-transform:uppercase; color:var(--danger); font-weight:700;">Interrogation Result: Unregistered Transponder</div>
-          <h3 style="font-size:1.35rem; margin-top:0.25rem;">UID: <code>${rfidTag}</code></h3>
+          <h3 style="font-size:1.35rem; margin-top:0.25rem;">UID: <code>${nfcTag}</code></h3>
           <p style="color:var(--text-muted); font-size:0.875rem; margin-top:0.25rem;">
-            This RFID tag is not yet linked to any pet record in the national database.
+            This NFC tag is not yet linked to any pet record in the national database.
           </p>
         </div>
 
@@ -246,8 +246,8 @@ class ShelterView {
           <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
             Log this animal under the temporary shelter intake ledger or assign this UID to an existing pet record.
           </p>
-          <button class="btn btn-primary btn-sm" onclick="window.ownerView.openRegisterModal('${rfidTag}')">
-            <i data-lucide="plus"></i> Register Pet with UID: ${rfidTag}
+          <button class="btn btn-primary btn-sm" onclick="window.ownerView.openRegisterModal('${nfcTag}')">
+            <i data-lucide="plus"></i> Register Pet with UID: ${nfcTag}
           </button>
         </div>
       `;
@@ -266,7 +266,7 @@ class ShelterView {
               <h3 style="font-size:1.35rem; font-weight:800;">${pet.name}</h3>
               <span class="badge badge-safe">Verified Match</span>
             </div>
-            <div style="font-size:0.825rem; color:var(--text-muted);">${pet.breed} • ${pet.gender} • UID: <strong style="color:var(--primary);">${pet.rfidTag}</strong></div>
+            <div style="font-size:0.825rem; color:var(--text-muted);">${pet.breed} • ${pet.gender} • UID: <strong style="color:var(--primary);">${pet.nfcTag}</strong></div>
           </div>
         </div>
         <button class="btn btn-outline btn-sm" onclick="window.shelterView.clearScan()">Reset</button>
@@ -319,7 +319,7 @@ class ShelterView {
 
         <div class="form-group">
           <label class="form-label">Physical Assessment & Health Observations</label>
-          <input type="text" id="intake-health" value="Active, healthy, scanned collar RFID tag verified." required />
+          <input type="text" id="intake-health" value="Active, healthy, scanned collar NFC tag verified." required />
         </div>
 
         <div style="display:flex; gap:0.75rem; margin-top:1rem;">
@@ -343,7 +343,7 @@ class ShelterView {
       <tr>
         <td>
           <div style="font-weight:700;">${imp.petName}</div>
-          <div style="font-size:0.75rem; color:var(--primary); font-family:monospace;">${imp.rfidTag}</div>
+          <div style="font-size:0.75rem; color:var(--primary); font-family:monospace;">${imp.nfcTag}</div>
         </td>
         <td>
           <div style="font-weight:600; font-size:0.85rem;">${imp.shelterName}</div>
@@ -375,17 +375,17 @@ class ShelterView {
     `;
   }
 
-  triggerDemoScan(rfidTag) {
-    const input = document.getElementById('rfid-manual-input');
-    if (input) input.value = rfidTag;
-    window.rfidScanner.scanTag(rfidTag);
+  triggerDemoScan(nfcTag) {
+    const input = document.getElementById('nfc-manual-input');
+    if (input) input.value = nfcTag;
+    window.nfcScanner.scanTag(nfcTag);
   }
 
   handleManualScan(e) {
     e.preventDefault();
-    const input = document.getElementById('rfid-manual-input');
+    const input = document.getElementById('nfc-manual-input');
     if (input && input.value) {
-      window.rfidScanner.scanTag(input.value);
+      window.nfcScanner.scanTag(input.value);
     }
   }
 
@@ -409,7 +409,7 @@ class ShelterView {
     const newImpound = window.pawStore.createImpoundment({
       petId: pet.id,
       petName: pet.name,
-      rfidTag: pet.rfidTag,
+      nfcTag: pet.nfcTag,
       shelterId: shelter.id,
       shelterName: shelter.name,
       shelterAddress: shelter.address,
@@ -426,7 +426,7 @@ class ShelterView {
     window.notifManager.showSmsSimulation({
       ownerPhone: pet.owner.phone,
       petName: pet.name,
-      rfidTag: pet.rfidTag,
+      nfcTag: pet.nfcTag,
       shelterName: shelter.name,
       shelterAddress: shelter.address,
       shelterPhone: shelter.phone,

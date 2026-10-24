@@ -1,8 +1,8 @@
 /**
- * PawTrack RFID Scanner Hardware Integration & Audio Synthesizer
+ * PawTrack NFC Scanner Hardware Integration & Audio Synthesizer
  */
 
-class RFIDScannerModule {
+class NFCScannerModule {
   constructor() {
     this.audioCtx = null;
     this.isScanning = false;
@@ -67,20 +67,20 @@ class RFIDScannerModule {
   }
 
   /**
-   * Scan an RFID tag with realistic delay & sound
+   * Scan an NFC tag with realistic delay & sound
    */
-  async scanTag(rfidTagCode) {
+  async scanTag(nfcTagCode) {
     if (this.isScanning) return;
     this.isScanning = true;
 
     // Trigger visual scan state
-    document.dispatchEvent(new CustomEvent('pawtrack:scan-start', { detail: { rfidTagCode } }));
+    document.dispatchEvent(new CustomEvent('pawtrack:scan-start', { detail: { nfcTagCode } }));
 
-    // Simulate RFID reader interrogation time (400ms)
+    // Simulate NFC reader interrogation time (400ms)
     await new Promise(res => setTimeout(res, 450));
 
-    const cleanCode = (rfidTagCode || '').trim().toUpperCase();
-    const pet = window.pawStore.getPetByRFID(cleanCode);
+    const cleanCode = (nfcTagCode || '').trim().toUpperCase();
+    const pet = window.pawStore.getPetByNFC(cleanCode);
 
     if (pet) {
       this.playSuccessChirp();
@@ -88,7 +88,7 @@ class RFIDScannerModule {
       
       const result = {
         success: true,
-        rfidTag: cleanCode,
+        nfcTag: cleanCode,
         pet: pet,
         registered: true,
         timestamp: new Date().toISOString()
@@ -103,7 +103,7 @@ class RFIDScannerModule {
 
       const result = {
         success: true,
-        rfidTag: cleanCode,
+        nfcTag: cleanCode,
         pet: null,
         registered: false,
         timestamp: new Date().toISOString()
@@ -118,12 +118,12 @@ class RFIDScannerModule {
   /**
    * Scan hardware tag and immediately navigate to owner landing page with Report Pet modal
    */
-  scanAndReportTag(rfidTagCode = 'RFID-882194') {
+  scanAndReportTag(nfcTagCode = 'NFC-882194') {
     this.playSuccessChirp();
-    const cleanCode = (rfidTagCode || '').trim().toUpperCase();
+    const cleanCode = (nfcTagCode || '').trim().toUpperCase();
 
     if (window.notifManager && typeof window.notifManager.showToast === 'function') {
-      window.notifManager.showToast(`Hardware RFID tag [${cleanCode}] scanned! Directing to Report Pet...`, 'success');
+      window.notifManager.showToast(`Hardware NFC tag [${cleanCode}] scanned! Directing to Report Pet...`, 'success');
     }
 
     // Direct directly to owner landing page
@@ -131,10 +131,10 @@ class RFIDScannerModule {
 
     setTimeout(() => {
       if (window.reportManager) {
-        window.reportManager.openReportModal('found', null, { rfidTag: cleanCode });
+        window.reportManager.openReportModal('found', null, { nfcTag: cleanCode });
       }
     }, 200);
   }
 }
 
-window.rfidScanner = new RFIDScannerModule();
+window.nfcScanner = new NFCScannerModule();

@@ -6,7 +6,7 @@ class CasesView {
   constructor() {
     this.currentCaseFilter = 'all';
     this.searchQuery = '';
-    this.analyticsOpen = false;
+    this.analyticsOpen = true;
   }
 
   render(container) {
@@ -24,7 +24,7 @@ class CasesView {
             id: 'CASE-2026-' + String(index + 1).padStart(4, '0'),
             petId: pet.id,
             petName: pet.name,
-            rfidTag: pet.rfidTag,
+            nfcTag: pet.nfcTag,
             status: status,
             createdAt: pet.lastSeenDate || new Date(Date.now() - (index + 1) * 3600000 * 8).toISOString(),
             lastUpdated: new Date().toISOString(),
@@ -55,11 +55,6 @@ class CasesView {
           <div class="view-subtitle">
             ${t('cases.subtitle', 'Follow every lost-pet case from first report to reunion.')}
           </div>
-        </div>
-        <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
-          <button class="btn btn-primary btn-sm" onclick="window.publicView.openFoundPetModal()">
-            <i data-lucide="eye"></i> ${t('cases.reportSightingBtn', 'Report Community Sighting')}
-          </button>
         </div>
       </div>
 
@@ -104,7 +99,7 @@ class CasesView {
         </div>
 
         <div class="ux-section-tools">
-          <input type="text" id="cases-search-input" placeholder="Search by pet name, case ID, or RFID…" value="${this.searchQuery.replace(/"/g, '&quot;')}" oninput="window.casesView.handleSearch(this.value)" autocomplete="off" />
+          <input type="text" id="cases-search-input" placeholder="Search by pet name, case ID, or NFC…" value="${this.searchQuery.replace(/"/g, '&quot;')}" oninput="window.casesView.handleSearch(this.value)" autocomplete="off" />
           <div class="home-filter-chips">
             ${[
               ['all', t('cases.filterAll', 'All'), currentCases.length],
@@ -139,31 +134,171 @@ class CasesView {
           </span>
         </summary>
         <div class="ux-collapsible-body">
-          <p style="font-size:0.825rem; color:var(--text-muted); line-height:1.4; margin-bottom:1rem;">
-            ${t('cases.hotspotSubtitle', 'Areas with the most stray sightings or missing pet reports, to help plan patrols.')}
-          </p>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:0.75rem;">
-            ${hotspots.map(h => `
-              <div style="background:var(--bg-surface-elevated); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
-                <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:6px;">
-                  <span style="font-weight:600; color:var(--text-main);">${h.name}</span>
-                  <span style="font-weight:700; color:var(--primary);">${h.count} ${t('cases.incidents', 'Incidents')}</span>
-                </div>
-                <div style="width:100%; height:8px; background:var(--bg-surface); border-radius:99px; overflow:hidden; border:1px solid var(--border-subtle);">
-                  <div style="width:${h.percent}%; height:100%; background:linear-gradient(90deg, #ea9d1e, #ba3820); border-radius:99px;"></div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid var(--border-subtle); display:flex; gap:1.5rem; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap;">
-            <span>${t('cases.avgResolution', 'Avg. Case Resolution:')} <strong>${analytics.avgRecoveryHours}</strong></span>
-            <span>${t('cases.rfidAdoption', 'RFID Transponder Adoption:')} <strong>${analytics.rfidScanAdoption}</strong></span>
-          </div>
+          ${this.renderAnalyticsPanel(analytics, hotspots, currentCases)}
         </div>
       </details>
     `;
 
     if (window.lucide) window.lucide.createIcons({ root: container });
+  }
+
+  // Charts for the Incident Hotspots & Metrics panel. Plain SVG/CSS, no chart library.
+  renderAnalyticsPanel(analytics, hotspots, cases) {
+    const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
+    const e = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+    // --- KPI strip: headline numbers with small rings ---
+    const ring = (pct, color) => {
+      const v = Math.max(0, Math.min(100, parseFloat(pct) || 0));
+      return `<svg viewBox="0 0 42 42" class="kpi-ring" aria-hidden="true">
+        <circle cx="21" cy="21" r="16" fill="none" stroke="var(--border-subtle)" stroke-width="5"></circle>
+        <circle cx="21" cy="21" r="16" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" pathLength="100" stroke-dasharray="${v} ${100 - v}" transform="rotate(-90 21 21)"></circle>
+      </svg>`;
+    };
+    const num = (v) => { const n = parseFloat(v) || 0; return n % 1 ? n.toFixed(1) : String(n); };
+    const hours = String(analytics.avgRecoveryHours).replace(/\s*hours?/i, '');
+    const kpis = `
+      <div class="kpi-strip">
+        <div class="kpi-tile">
+          <div class="kpi-icon" style="--kpi:#ba3820;"><i data-lucide="folder-open"></i></div>
+          <div><div class="kpi-value">${cases.length}</div><div class="kpi-label">Total cases</div></div>
+        </div>
+        <div class="kpi-tile">
+          ${ring(analytics.recoveryRate, '#16a34a')}
+          <div><div class="kpi-value">${num(analytics.recoveryRate)}%</div><div class="kpi-label">${t('cases.statRecoveryRate', 'Reunification Rate')}</div></div>
+        </div>
+        <div class="kpi-tile">
+          ${ring(analytics.nfcScanAdoption, '#2563eb')}
+          <div><div class="kpi-value">${num(analytics.nfcScanAdoption)}%</div><div class="kpi-label">NFC tag adoption</div></div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-icon" style="--kpi:#ea9d1e;"><i data-lucide="timer"></i></div>
+          <div><div class="kpi-value">${e(hours)}<small> hrs</small></div><div class="kpi-label">Avg. case resolution</div></div>
+        </div>
+      </div>`;
+
+    // --- Incidents per day, last 14 days (smooth area lines: new cases + sightings) ---
+    const days = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      days.push({ date: d, cases: 0, sightings: 0 });
+    }
+    const dayIndex = (value) => {
+      const d = new Date(value); if (isNaN(d)) return -1;
+      d.setHours(0, 0, 0, 0);
+      return days.findIndex(x => x.date.getTime() === d.getTime());
+    };
+    cases.forEach(c => { const i = dayIndex(c.createdAt); if (i >= 0) days[i].cases++; });
+    window.pawStore.getSightings().forEach(s => { const i = dayIndex(s.dateTimeSeen || s.createdAt); if (i >= 0) days[i].sightings++; });
+    const peak = Math.max(0, ...days.map(d => Math.max(d.cases, d.sightings)));
+    const yMax = Math.max(4, Math.ceil(peak / 2) * 2);
+    const W = 640, H = 230, L = 34, R = 14, T = 14, B = 30;
+    const plotW = W - L - R, plotH = H - T - B, step = plotW / (days.length - 1);
+    const xOf = (i) => L + i * step;
+    const yOf = (v) => T + plotH - (v / yMax) * plotH;
+    const smooth = (pts) => pts.map((p, i) => {
+      if (i === 0) return `M${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+      const q = pts[i - 1], mx = (q[0] + p[0]) / 2;
+      return `C${mx.toFixed(1)},${q[1].toFixed(1)} ${mx.toFixed(1)},${p[1].toFixed(1)} ${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+    }).join('');
+    const series = [
+      { key: 'sightings', color: '#ea9d1e', label: 'Sightings' },
+      { key: 'cases', color: '#ba3820', label: 'New cases' }
+    ].map(s => {
+      const pts = days.map((d, i) => [xOf(i), yOf(d[s.key])]);
+      const line = smooth(pts);
+      return { ...s, pts, line, area: `${line}L${xOf(days.length - 1)},${yOf(0)}L${xOf(0)},${yOf(0)}Z` };
+    });
+    const ticks = [0, yMax / 2, yMax];
+    const gridLines = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${yOf(v)}" y2="${yOf(v)}" class="chart-grid"/><text x="${L - 8}" y="${yOf(v) + 4}" text-anchor="end" class="chart-axis">${v}</text>`).join('');
+    const xLabels = days.map((d, i) => (i % 3 === 0 || i === days.length - 1)
+      ? `<text x="${xOf(i)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === days.length - 1 ? 'end' : 'middle'}" class="chart-axis">${d.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</text>` : '').join('');
+    const hover = days.map((d, i) => {
+      const label = d.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      return `<g class="chart-day"><title>${label}: ${plural(d.cases, 'new case')}, ${plural(d.sightings, 'sighting')}</title>
+        <rect class="chart-day-hit" x="${xOf(i) - step / 2}" y="${T}" width="${step}" height="${plotH}"/>
+        <line class="chart-day-rule" x1="${xOf(i)}" x2="${xOf(i)}" y1="${T}" y2="${yOf(0)}"/>
+        ${series.map(s => `<circle class="chart-dot${d[s.key] ? ' is-on' : ''}" cx="${xOf(i)}" cy="${yOf(d[s.key])}" r="${d[s.key] ? 3.6 : 0}" fill="var(--bg-surface-elevated)" stroke="${s.color}" stroke-width="2"/>`).join('')}
+      </g>`;
+    }).join('');
+    const anyDay = days.some(d => d.cases || d.sightings);
+    const trend = `
+      <div class="chart-card chart-card--trend">
+        <div class="chart-title-row">
+          <h4 class="chart-title">${t('cases.chartTrend', 'Incidents, last 14 days')}</h4>
+          <ul class="chart-legend chart-legend--inline">
+            ${series.map(s => `<li><span class="chart-swatch chart-swatch--line" style="background:${s.color};"></span>${s.label}</li>`).join('')}
+          </ul>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="chart-lines" role="img" aria-label="Incidents per day over the last 14 days">
+          <defs>
+            ${series.map(s => `<linearGradient id="trend-fill-${s.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity="0.32"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient>`).join('')}
+          </defs>
+          ${gridLines}${xLabels}
+          ${series.map(s => `<path d="${s.area}" fill="url(#trend-fill-${s.key})"/>`).join('')}
+          ${series.map(s => `<path d="${s.line}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}
+          ${hover}
+        </svg>
+        ${anyDay ? '' : '<div class="chart-empty">No incidents logged in the last 14 days.</div>'}
+      </div>`;
+
+    // --- Cases by status (donut) ---
+    const statuses = [
+      { key: 'missing',   label: t('cases.filterMissing', 'Missing'),     color: '#ba3820' },
+      { key: 'sighted',   label: t('cases.filterSighted', 'Sighted'),     color: '#ea9d1e' },
+      { key: 'impounded', label: t('cases.filterImpounded', 'Impounded'), color: '#7c3aed' },
+      { key: 'reunited',  label: t('cases.filterReunited', 'Reunited'),   color: '#16a34a' }
+    ].map(s => ({ ...s, count: cases.filter(c => c.status === s.key).length }));
+    const total = statuses.reduce((n, s) => n + s.count, 0);
+    let offset = 0;
+    const arcs = statuses.filter(s => s.count).map(s => {
+      const len = s.count / total * 100;
+      const gap = statuses.filter(x => x.count).length > 1 ? 1.2 : 0;
+      const arc = `<circle class="chart-donut-arc" cx="21" cy="21" r="16" fill="none" stroke="${s.color}" stroke-width="5" pathLength="100" stroke-dasharray="${Math.max(len - gap, 0.1)} ${100 - Math.max(len - gap, 0.1)}" stroke-dashoffset="${-offset}" transform="rotate(-90 21 21)"><title>${e(s.label)}: ${s.count} (${Math.round(len)}%)</title></circle>`;
+      offset += len;
+      return arc;
+    }).join('');
+    const donut = `
+      <div class="chart-card chart-card--donut">
+        <h4 class="chart-title">${t('cases.chartByStatus', 'Cases by status')}</h4>
+        <div class="chart-donut-wrap">
+          <svg viewBox="0 0 42 42" class="chart-donut" role="img" aria-label="Cases by status, ${total} in total">
+            <circle cx="21" cy="21" r="16" fill="none" stroke="var(--border-subtle)" stroke-width="5"></circle>
+            ${arcs}
+            <text x="21" y="22.5" text-anchor="middle" class="chart-donut-total">${total}</text>
+            <text x="21" y="27.5" text-anchor="middle" class="chart-donut-caption">cases</text>
+          </svg>
+          <ul class="chart-legend">
+            ${statuses.map(s => `<li class="${s.count ? '' : 'is-zero'}"><span class="chart-swatch" style="background:${s.color};"></span>${e(s.label)}<strong>${s.count}</strong><em>${total ? Math.round(s.count / total * 100) : 0}%</em></li>`).join('')}
+          </ul>
+        </div>
+      </div>`;
+
+    // --- Hotspots (ranked horizontal bars) ---
+    const ranked = [...hotspots].sort((a, b) => b.count - a.count);
+    const hot = `
+      <div class="chart-card chart-card--hot">
+        <div class="chart-title-row">
+          <h4 class="chart-title">${t('cases.hotspotChart', 'Incident hotspots')}</h4>
+          <span class="chart-hint">${t('cases.hotspotSubtitle', 'Areas with the most stray sightings or missing pet reports, to help plan patrols.')}</span>
+        </div>
+        <ol class="chart-hbars">
+          ${ranked.map((h, i) => `
+            <li title="${e(h.name)}: ${h.count} incidents">
+              <span class="chart-hbar-rank">${i + 1}</span>
+              <div class="chart-hbar-main">
+                <div class="chart-hbar-name">${e(h.name.split(',')[0])}<small>${e(h.name.split(',').slice(1).join(',').trim())}</small></div>
+                <div class="chart-hbar-track"><div class="chart-hbar-fill" style="width:${h.percent}%; opacity:${(1 - i * 0.14).toFixed(2)};"></div></div>
+              </div>
+              <span class="chart-hbar-risk">${e(h.risk)}</span>
+              <span class="chart-hbar-count">${h.count}</span>
+            </li>`).join('')}
+        </ol>
+      </div>`;
+
+    return `${kpis}<div class="chart-grid-layout">${trend}${donut}${hot}</div>`;
   }
 
   renderCasesList(cases) {
@@ -173,7 +308,7 @@ class CasesView {
     let filtered = cases.filter(c => {
       if (this.currentCaseFilter !== 'all' && c.status !== this.currentCaseFilter) return false;
       if (!q) return true;
-      return [c.petName, c.id, c.rfidTag].some(v => (v || '').toLowerCase().includes(q));
+      return [c.petName, c.id, c.nfcTag].some(v => (v || '').toLowerCase().includes(q));
     });
 
     if (filtered.length === 0) {
@@ -187,7 +322,7 @@ class CasesView {
     }
 
     return filtered.map(c => {
-      const pet = pets.find(p => p.id === c.petId) || { name: c.petName || 'Pet', breed: 'Domestic', photoUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80', rfidTag: c.rfidTag || 'RFID-TAG' };
+      const pet = pets.find(p => p.id === c.petId) || { name: c.petName || 'Pet', breed: 'Domestic', photoUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80', nfcTag: c.nfcTag || 'NFC-TAG' };
 
       let badgeBg = '#ba3820';
       let badgeText = `${t('cases.filterMissing', 'Missing')}`;
@@ -205,7 +340,7 @@ class CasesView {
               <div>
                 <span style="font-family:monospace; font-weight:800; font-size:0.75rem; color:var(--primary);">${c.id}</span>
                 <h3 style="font-size:1.15rem; margin-top:2px; font-weight:700;">${pet.name}</h3>
-                <div style="font-size:0.78rem; color:var(--text-muted);">${pet.breed} · ${pet.rfidTag || 'Collar Tagged'}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">${pet.breed} · ${pet.nfcTag || 'Collar Tagged'}</div>
               </div>
               <span class="badge" style="background:${badgeBg}22; color:${badgeBg}; border:1px solid ${badgeBg}66; font-size:0.7rem;">
                 ${badgeText}
@@ -255,7 +390,7 @@ class CasesView {
     const petCase = cases.find(c => c.id === caseId || c.petId === caseId);
     if (!petCase) return;
 
-    const pet = window.pawStore.getPetById(petCase.petId) || { name: petCase.petName || 'Pet', breed: 'Domestic', photoUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80', rfidTag: petCase.rfidTag || 'RFID-TAG', owner: { name: 'Verified Guardian', phone: '+63 917 555 3829' } };
+    const pet = window.pawStore.getPetById(petCase.petId) || { name: petCase.petName || 'Pet', breed: 'Domestic', photoUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80', nfcTag: petCase.nfcTag || 'NFC-TAG', owner: { name: 'Verified Guardian', phone: '+63 917 555 3829' } };
 
     const modal = document.getElementById('case-dossier-modal');
     const content = document.getElementById('case-dossier-content');
@@ -283,8 +418,8 @@ class CasesView {
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.5rem; font-size:0.82rem;">
         <div style="background:var(--bg-surface-elevated); padding:10px; border-radius:var(--radius-sm);">
-          <span style="color:var(--text-muted); font-size:0.72rem;">${t('cases.dossierRfidUid', 'RFID UID:')}</span>
-          <strong style="display:block; font-family:monospace; color:var(--primary);">${pet.rfidTag || 'N/A'}</strong>
+          <span style="color:var(--text-muted); font-size:0.72rem;">${t('cases.dossierNfcUid', 'NFC UID:')}</span>
+          <strong style="display:block; font-family:monospace; color:var(--primary);">${pet.nfcTag || 'N/A'}</strong>
         </div>
         <div style="background:var(--bg-surface-elevated); padding:10px; border-radius:var(--radius-sm);">
           <span style="color:var(--text-muted); font-size:0.72rem;">${t('cases.dossierGuardianContact', 'Guardian Contact:')}</span>
@@ -366,7 +501,7 @@ class CasesView {
           <div style="background:var(--bg-surface-elevated); padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-glass); text-align:center;">
             <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:var(--primary); margin-bottom:6px;">Registered Missing Pet: ${topMatch.pet.name}</div>
             <img src="${topMatch.pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:100%; height:130px; object-fit:cover; border-radius:var(--radius-sm);" />
-            <div style="font-size:0.75rem; color:var(--text-main); font-weight:600; margin-top:6px;">RFID: ${topMatch.pet.rfidTag || 'Protected'}</div>
+            <div style="font-size:0.75rem; color:var(--text-main); font-weight:600; margin-top:6px;">NFC: ${topMatch.pet.nfcTag || 'Protected'}</div>
           </div>
         </div>
 

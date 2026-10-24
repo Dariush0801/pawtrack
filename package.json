@@ -1,7 +1,7 @@
 {
   "name": "pawtrack",
   "version": "1.0.0",
-  "description": "PawTrack - Universal NFC & RFID Pet Recovery Portal with Municipal Shelter Integration",
+  "description": "PawTrack - Universal NFC Pet Recovery Portal with Municipal Shelter Integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,7 @@
     "pawtrack",
     "pet-recovery",
     "nfc",
-    "rfid",
+    "nfc",
     "smart-collar",
     "animal-welfare"
   ],

@@ -155,7 +155,7 @@ async function wait(ms) {
       breed: 'Golden Retriever',
       gender: 'Female',
       color: 'Golden',
-      rfidTag: 'RFID-109283',
+      nfcTag: 'NFC-109283',
       status: 'safe',
       owner: {
         name: 'Maria Santos',
@@ -185,7 +185,7 @@ async function wait(ms) {
     const sightingId = 'sight-' + Date.now();
     const testSighting = {
       id: sightingId,
-      rfidTag: testPet.rfidTag,
+      nfcTag: testPet.nfcTag,
       matchedPetId: testPet.id,
       location: 'Katipunan Ave, Quezon City',
       reporterName: 'Carlos Finder',
@@ -211,7 +211,7 @@ async function wait(ms) {
       id: impoundId,
       petId: testPetId,
       petName: testPet.name,
-      rfidTag: testPet.rfidTag,
+      nfcTag: testPet.nfcTag,
       shelterId: 'sh-1',
       shelterName: 'Quezon City Animal Care & Adoption Facility',
       cageNumber: 'Cage B-07',
