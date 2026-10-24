@@ -17,9 +17,9 @@ const MAP_LAYER_PRESETS = {
 const MAP_LAYER_DEFS = [
   { key: 'missing',   label: 'Missing pets',        color: '#ba3820' },
   { key: 'lastSeen',  label: 'Last seen locations', color: '#e11d48' },
-  { key: 'sightings', label: 'Community sightings', color: '#16a34a' },
+  { key: 'sightings', label: 'Community sightings', color: '#ea9d1e' },
   { key: 'impounded', label: 'Impounded pets',      color: '#b85410' },
-  { key: 'reunited',  label: 'Safe / reunited',     color: '#2563eb' },
+  { key: 'reunited',  label: 'Reunited',            color: '#16a34a' },
   { key: 'shelters',  label: 'Shelters',            color: '#54280e' }
 ];
 
@@ -77,7 +77,7 @@ class PublicView {
       <!-- Search & Filters -->
       <div class="glass-card" style="padding:1rem 1.25rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between;">
         <div style="display:flex; gap:0.5rem; flex:1; min-width:260px;">
-          <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, barangay, or RFID tag...')}" value="${this.searchQuery}" oninput="window.publicView.handleSearch(this.value)" />
+          <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, or barangay...')}" value="${this.searchQuery}" oninput="window.publicView.handleSearch(this.value)" />
           <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.openPhotoMatchModal()" title="Upload a photo and let AI compare it with all missing pets" style="display:flex; align-items:center; gap:0.4rem; white-space:nowrap;">
             <i data-lucide="camera"></i> Search by Photo
           </button>
@@ -136,7 +136,7 @@ class PublicView {
     const sightedCount = sightings.length;
     const lastSeenCount = (this.lastSeenItems || []).length;
     const impoundedCount = pets.filter(p => p.status === 'impounded' || p.status === 'active_impounded').length;
-    const reunitedCount = pets.filter(p => p.status === 'reunited' || p.status === 'safe').length;
+    const reunitedCount = pets.filter(p => p.status === 'reunited').length;
 
     const isAll = this.currentFilter === 'all';
     const isLost = this.currentFilter === 'lost';
@@ -289,9 +289,8 @@ class PublicView {
         const q = this.searchQuery.toLowerCase();
         const matchName = (p.name || '').toLowerCase().includes(q);
         const matchBreed = (p.breed || '').toLowerCase().includes(q);
-        const matchTag = (p.rfidTag || '').toLowerCase().includes(q);
         const matchLoc = (p.lastSeenLocation || '').toLowerCase().includes(q);
-        if (!matchName && !matchBreed && !matchTag && !matchLoc) return;
+        if (!matchName && !matchBreed && !matchLoc) return;
       }
 
       items.push({ type: 'pet', data: p, date: p.lastSeenDate || p.createdAt || p.registeredDate });
@@ -343,7 +342,7 @@ class PublicView {
       `;
     }
 
-    return items.map(item => {
+    const renderItem = (item) => {
       if (item.type === 'lastseen') {
         const r = item.data;
         return `
@@ -385,9 +384,6 @@ class PublicView {
               <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.publicView.showDirections(${sLat}, ${sLng}, '${(s.breed || 'Pet Sighting').replace(/'/g, "\\'")}', '${s.location.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'sighting')">
                 Directions
               </button>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${sLat},${sLng}" target="_blank" class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation();" title="Open directly in Google Maps">
-                Google Maps ↗
-              </a>
             </div>
           </div>
         `;
@@ -411,27 +407,40 @@ class PublicView {
       return `
         <div class="glass-card" style="padding:0.9rem; display:flex; flex-direction:column; gap:0.6rem; cursor:pointer;" onclick="window.publicView.focusPetOnMap('${pet.id}')">
           <div style="display:flex; gap:0.85rem; align-items:center;">
-            <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} • ${pet.gender} | RFID: ${pet.rfidTag}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+            <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} • ${pet.gender}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
             <div style="flex:1; min-width:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:2px;">
                 <h4 style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">${pet.name}</h4>
                 <span style="font-size:0.68rem; font-weight:700; color:${statusColor}; text-transform:uppercase; white-space:nowrap; flex-shrink:0;">${statusLabel}</span>
               </div>
-              <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px;">${pet.breed} • ${pet.gender}</div>
-              <div style="font-size:0.75rem; color:var(--primary); font-family:monospace;">RFID: ${pet.rfidTag}</div>
+              <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pet.breed} • ${pet.gender}</div>
             </div>
           </div>
           <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
             <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.publicView.showDirections(${pCoords[0]}, ${pCoords[1]}, '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${(pet.lastSeenLocation || 'Metro Manila').replace(/'/g, "\\'")}', '${pet.photoUrl}', 'pet')">
               Directions
             </button>
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${pCoords[0]},${pCoords[1]}" target="_blank" class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation();" title="Open directly in Google Maps">
-              Google Maps ↗
-            </a>
           </div>
         </div>
       `;
-    }).join('');
+    };
+
+    // One section per kind of case, each with its own header, so the list is not mixed together
+    const groupOf = (item) => item.type === 'lastseen' ? 'lastSeen' : item.type === 'sighting' ? 'sightings' : this.layerFor(item.data);
+    const newest = (a, b) => new Date(b.date || 0) - new Date(a.date || 0);
+    return MAP_LAYER_DEFS
+      .filter(d => d.key !== 'shelters')
+      .map(d => ({ def: d, list: items.filter(i => groupOf(i) === d.key).sort(newest) }))
+      .filter(g => g.list.length)
+      .map(g => `
+        <section class="incident-section" aria-label="${g.def.label}">
+          <h3 class="incident-section-header" style="--section:${g.def.color};">
+            <span class="incident-section-title">${g.def.label}</span>
+            <span class="incident-section-count">${g.list.length}</span>
+          </h3>
+          ${g.list.map(renderItem).join('')}
+        </section>
+      `).join('');
   }
 
   async initMap(pets, shelters) {
@@ -468,21 +477,7 @@ class PublicView {
 
     // Add Shelter / Facility Pins (Icon-only by default, info appears on hover, full details on click)
     shelters.forEach(s => {
-      const shelterIcon = window.L.divIcon({
-        className: 'custom-map-icon-wrap',
-        html: `
-          <div class="shelter-icon-pin" title="${s.name}" aria-label="${s.name}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
-              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
-              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
-              <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
-            </svg>
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
+      const shelterIcon = this.pinIcon({ kind: 'shelter', title: s.name });
 
       const tooltipContent = `
         <div class="shelter-hover-content">
@@ -524,36 +519,26 @@ class PublicView {
     // Add Pet Pins with non-overlapping, well-spaced coordinates
     pets.forEach(p => {
       let coords = p.lastSeenCoords || petCoordinates[p.id] || [14.6400 + (Math.random() - 0.5) * 0.05, 121.0500 + (Math.random() - 0.5) * 0.05];
-      if (!this.isInSelectedCommunity(p)) return;
+      if (!this.isInSelectedCommunity(p) || !this.layerFor(p)) return;
 
-      let pinTypeClass = 'pet-safe-pin';
+      let pinKind = 'safe';
       let statusDisplay = 'Safe';
       if (p.status === 'lost') {
-        pinTypeClass = 'pet-lost-pin';
+        pinKind = 'missing';
         statusDisplay = 'Missing';
       } else if (p.status === 'impounded' || p.status === 'active_impounded') {
-        pinTypeClass = 'pet-impounded-pin';
+        pinKind = 'impounded';
         statusDisplay = 'Impounded';
       } else if (p.status === 'reunited') {
-        pinTypeClass = 'pet-reunited-pin';
+        pinKind = 'reunited';
         statusDisplay = 'Reunited';
       }
 
-      const petPin = window.L.divIcon({
-        className: 'custom-map-icon-wrap',
-        html: p.status === 'lost' ? `
-          <div class="map-pin-bubble missing-pet-bubble">
-            <img src="${p.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${p.name}" />
-            <span><strong>${p.name}</strong><small>${p.breed || 'Pet'} · ${p.lastSeenLocation || 'Last known location'}</small></span>
-          </div>
-        ` : `
-          <div class="map-pin-pill ${pinTypeClass}">
-            <span class="map-pin-dot"></span>
-            <span class="map-pin-label">${p.name} (${statusDisplay})</span>
-          </div>
-        `,
-        iconSize: null,
-        iconAnchor: [12, 14]
+      const petPin = this.pinIcon({
+        kind: pinKind,
+        photo: p.photoUrl || window.PET_PHOTO_PLACEHOLDER,
+        label: p.name,
+        sub: statusDisplay
       });
 
       const marker = window.L.marker(coords, { icon: petPin })
@@ -566,9 +551,7 @@ class PublicView {
           title: p.name,
           subtitle: [p.breed, p.gender].filter(Boolean).join(' · '),
           rows: [
-            { icon: 'pin', label: p.status === 'lost' ? 'Last seen at' : 'Location', value: p.lastSeenLocation, hint: p.lastSeenDate ? this.getTimeAgo(p.lastSeenDate) : '' },
-            { icon: 'tag', label: 'RFID tag', value: p.rfidTag, mono: true },
-            { icon: 'chip', label: 'Microchip', value: p.microchipNo ? '…' + String(p.microchipNo).slice(-6) : '', mono: true }
+            { icon: 'pin', label: p.status === 'lost' ? 'Last seen at' : 'Location', value: p.lastSeenLocation, hint: p.lastSeenDate ? this.getTimeAgo(p.lastSeenDate) : '' }
           ],
           actions: `${p.status === 'lost' ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Have you seen this pet?</button><button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
         })}
@@ -585,16 +568,11 @@ class PublicView {
     sightings.forEach(s => {
       if (s.status === 'dismissed' || s.status === 'archived' || !this.isInSelectedCommunity(s)) return;
       let sCoords = (s.lat && s.lng) ? [s.lat, s.lng] : [14.6360 + (Math.random() - 0.5) * 0.02, 121.0370 + (Math.random() - 0.5) * 0.02];
-      const sightingPin = window.L.divIcon({
-        className: 'custom-map-icon-wrap',
-        html: `
-          <div class="map-pin-bubble possible-sighting-bubble">
-            <img src="${s.photoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80'}" alt="Possible sighting" />
-            <span><strong>${s.status === 'confirmed_sighting' ? 'Confirmed Sighting' : 'Possible Sighting'}</strong><small>${this.getTimeAgo(s.dateTimeSeen || s.createdAt)} · ${s.location || 'Community landmark'}</small></span>
-          </div>
-        `,
-        iconSize: null,
-        iconAnchor: [12, 14]
+      const sightingPin = this.pinIcon({
+        kind: s.status === 'confirmed_sighting' ? 'confirmed' : 'sighting',
+        photo: s.photoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80',
+        label: s.status === 'confirmed_sighting' ? 'Confirmed sighting' : 'Possible sighting',
+        sub: this.getTimeAgo(s.dateTimeSeen || s.createdAt)
       });
 
       const sMarker = window.L.marker(sCoords, { icon: sightingPin })
@@ -669,20 +647,13 @@ class PublicView {
 
     this.lastSeenItems = (data || []).map(row => {
       const coords = [row.lat, row.lng];
-      const name = this.escapeHtml(row.pet_name);
       const ago = this.getTimeAgo(row.last_seen_at);
 
-      const icon = window.L.divIcon({
-        className: 'custom-map-icon-wrap',
-        html: `
-          <div class="last-seen-pin">
-            <span class="last-seen-pulse"></span>
-            <span class="last-seen-dot"></span>
-            <div class="last-seen-label"><strong>${name}</strong><small>Last seen ${ago}</small></div>
-          </div>
-        `,
-        iconSize: null,
-        iconAnchor: [9, 9]
+      const icon = this.pinIcon({
+        kind: 'lastseen',
+        photo: row.photo_url,
+        label: row.pet_name,
+        sub: `Last seen ${ago}`
       });
 
       const marker = window.L.marker(coords, { icon, zIndexOffset: 500 }).bindPopup(`
@@ -751,6 +722,39 @@ class PublicView {
       if (visible) shown.push(item.coords);
     });
     return shown;
+  }
+
+  // One pin family for every situation: a round head with a pointer, coloured and glyphed by situation.
+  // Pets with a photo show it in the head and carry the glyph as a small badge. The anchor is the pointer tip.
+  pinIcon({ kind, photo = '', label = '', sub = '', title = '' }) {
+    const kinds = {
+      missing:   { color: '#ba3820', pulse: true,  glyph: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' },
+      lastseen:  { color: '#e11d48', pulse: true,  glyph: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
+      sighting:  { color: '#ea9d1e', pulse: false, glyph: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>' },
+      confirmed: { color: '#0d9488', pulse: false, glyph: '<path d="M20 6 9 17l-5-5"/>' },
+      impounded: { color: '#b85410', pulse: false, glyph: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>' },
+      safe:      { color: '#16a34a', pulse: false, glyph: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>' },
+      reunited:  { color: '#16a34a', pulse: false, glyph: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>' },
+      shelter:   { color: '#54280e', pulse: false, glyph: '<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/>' }
+    };
+    const k = kinds[kind] || kinds.safe;
+    const e = (v) => this.escapeHtml(String(v ?? ''));
+    const svg = (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${k.glyph}</svg>`;
+
+    const html = `
+      <div class="pt-pin pt-pin--${kind}" style="--pin:${k.color};"${title ? ` title="${e(title)}" aria-label="${e(title)}"` : ''}>
+        ${k.pulse ? '<span class="pt-pin-pulse"></span>' : ''}
+        <span class="pt-pin-head">${photo ? `<img src="${e(photo)}" alt="" onerror="this.remove()" />` : svg(20)}</span>
+        ${photo ? `<span class="pt-pin-badge">${svg(11)}</span>` : ''}
+        ${label ? `<span class="pt-pin-label"><strong>${e(label)}</strong>${sub ? `<small>${e(sub)}</small>` : ''}</span>` : ''}
+      </div>
+    `;
+    return window.L.divIcon({
+      className: 'custom-map-icon-wrap',
+      html,
+      iconSize: [44, 54],
+      iconAnchor: [22, 54]
+    });
   }
 
   // Shared look for every map popup: photo header with a status badge, key facts with icons, action buttons
@@ -867,8 +871,78 @@ class PublicView {
     }
   }
 
-  showDirections(destLat, destLng, destName, destAddress, destPhotoUrl, destType = 'shelter', travelMode = 'drive') {
+  // Asks the browser for the user's position when they tap Directions (free; the browser prompts once)
+  getUserPosition() {
+    return new Promise(resolve => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve([pos.coords.latitude, pos.coords.longitude]),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  }
+
+  // Road route from the Google Routes library (one billed request per origin, destination and mode; repeats are cached).
+  // Without Google Maps, or when the request fails, falls back to a straight line with a rough estimate.
+  async fetchRoute(origin, dest, travelMode) {
+    const key = [origin[0].toFixed(4), origin[1].toFixed(4), dest[0].toFixed(5), dest[1].toFixed(5), travelMode].join('|');
+    this.routeCache = this.routeCache || new Map();
+    if (this.routeCache.has(key)) return this.routeCache.get(key);
+
+    let result = null;
+    if (window.google && window.google.maps && document.documentElement.classList.contains('google-maps-active')) {
+      try {
+        const { Route } = await google.maps.importLibrary('routes');
+        const { routes } = await Route.computeRoutes({
+          origin: { lat: origin[0], lng: origin[1] },
+          destination: { lat: dest[0], lng: dest[1] },
+          travelMode: { drive: 'DRIVING', walk: 'WALKING', transit: 'TRANSIT' }[travelMode] || 'DRIVING',
+          fields: ['path', 'distanceMeters', 'durationMillis']
+        });
+        const r = routes && routes[0];
+        if (r && r.path && r.path.length > 1) {
+          result = {
+            path: r.path.map(p => [p.lat, p.lng]),
+            distanceKm: r.distanceMeters / 1000,
+            durationMin: Math.max(1, Math.round(r.durationMillis / 60000)),
+            approximate: false
+          };
+        }
+      } catch (err) {
+        console.warn('[Directions] Routes request failed, showing a straight line instead:', err.message);
+      }
+    }
+
+    if (!result) {
+      const km = this.calculateDistance(origin[0], origin[1], dest[0], dest[1]);
+      const kmh = { drive: 30, transit: 20, walk: 4.5 }[travelMode] || 30;
+      return { path: [origin, dest], distanceKm: km, durationMin: Math.max(1, Math.round(km / kmh * 60)), approximate: true };
+    }
+    this.routeCache.set(key, result);
+    return result;
+  }
+
+  formatDuration(min) {
+    return min >= 60 ? `${Math.floor(min / 60)} hr ${min % 60} min` : `${min} min`;
+  }
+
+  async showDirections(destLat, destLng, destName, destAddress, destPhotoUrl, destType = 'shelter', travelMode = 'drive') {
     if (!this.map || !window.L) return;
+
+    const requestId = (this.routeRequestId = (this.routeRequestId || 0) + 1);
+    if (window.notifManager) window.notifManager.showToast('Getting your location…', 'info', 2000);
+
+    const origin = await this.getUserPosition();
+    if (requestId !== this.routeRequestId || !this.map) return; // a newer request replaced this one
+    if (!origin) {
+      if (window.notifManager) window.notifManager.showToast('Location access is needed for directions. Allow it in your browser and try again.', 'warning', 5000);
+      return;
+    }
+    this.userLocation = origin;
+
+    const route = await this.fetchRoute(origin, [destLat, destLng], travelMode);
+    if (requestId !== this.routeRequestId || !this.map) return;
 
     this.activeRoute = {
       destLat,
@@ -880,35 +954,16 @@ class PublicView {
       travelMode
     };
 
-    const startLat = this.userLocation[0];
-    const startLng = this.userLocation[1];
-
-    // Calculate straight-line distance
-    const distKm = this.calculateDistance(startLat, startLng, destLat, destLng);
-    const driveMin = Math.max(3, Math.round(distKm * 2.4 + 2));
-    const walkMin = Math.max(12, Math.round(distKm * 13.5));
-    const transitMin = Math.max(8, Math.round(distKm * 4.2 + 6));
-
-    let activeEta = driveMin + ' min';
-    let activeDistance = (distKm * 1.18).toFixed(1) + ' km';
-    if (travelMode === 'walk') {
-      activeEta = (walkMin >= 60 ? `${Math.floor(walkMin / 60)} hr ${walkMin % 60} min` : `${walkMin} min`);
-      activeDistance = distKm.toFixed(1) + ' km';
-    } else if (travelMode === 'transit') {
-      activeEta = transitMin + ' min';
-      activeDistance = (distKm * 1.25).toFixed(1) + ' km';
-    }
-
-    // Generate realistic road navigation coordinates connecting start and destination
-    const routeCoords = this.generateRealisticRoute([startLat, startLng], [destLat, destLng]);
+    const [startLat, startLng] = origin;
+    const activeEta = this.formatDuration(route.durationMin);
+    const activeDistance = route.distanceKm.toFixed(1) + ' km';
 
     // Clear previous route layers
     if (this.routePolyline) this.map.removeLayer(this.routePolyline);
     if (this.routeGlowLine) this.map.removeLayer(this.routeGlowLine);
     if (this.startMarker) this.map.removeLayer(this.startMarker);
 
-    // Draw Google Maps vibrant blue polyline with route glow
-    this.routeGlowLine = window.L.polyline(routeCoords, {
+    this.routeGlowLine = window.L.polyline(route.path, {
       color: '#1e40af',
       weight: 8,
       opacity: 0.5,
@@ -916,13 +971,13 @@ class PublicView {
       lineJoin: 'round'
     }).addTo(this.map);
 
-    this.routePolyline = window.L.polyline(routeCoords, {
+    this.routePolyline = window.L.polyline(route.path, {
       color: '#3b82f6',
       weight: 5,
       opacity: 0.95,
       lineCap: 'round',
       lineJoin: 'round',
-      dashArray: travelMode === 'walk' ? '4, 8' : null
+      dashArray: travelMode === 'walk' || route.approximate ? '4, 8' : null
     }).addTo(this.map);
 
     // Place Start Point pulsing marker
@@ -940,12 +995,21 @@ class PublicView {
 
     this.startMarker = window.L.marker([startLat, startLng], { icon: startIcon })
       .addTo(this.map)
-      .bindPopup('<strong>Your Location</strong><br><span style="font-size:11px; color:#94a3b8;">QC Central Rescue Grid</span>');
+      .bindPopup('<strong>Your Location</strong>');
 
     // Fit map smoothly along navigation route
     this.map.fitBounds(this.routePolyline.getBounds(), { padding: [60, 60], maxZoom: 16 });
 
-    // Render Google Maps Navigation Drawer with Real Place Visuals
+    // Hands the same trip to the Google Maps app/site, where turn-by-turn navigation can be started
+    const gmMode = { drive: 'driving', transit: 'transit', walk: 'walking' }[travelMode] || 'driving';
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLat},${startLng}&destination=${destLat},${destLng}&travelmode=${gmMode}&dir_action=navigate`;
+
+    const modeTab = (mode, label) => `
+      <button type="button" class="gmap-mode-tab ${travelMode === mode ? 'active' : ''}" onclick="window.publicView.showDirections(${destLat}, ${destLng}, '${this.jsArg(destName)}', '${this.jsArg(destAddress)}', '${this.jsArg(this.activeRoute.destPhotoUrl)}', '${destType}', '${mode}')">
+        <span style="font-size:11px; font-weight:700;">${label}</span>
+        ${travelMode === mode ? `<span style="font-size:10px; opacity:0.8;">${route.durationMin}m</span>` : ''}
+      </button>`;
+
     const hudContainer = document.getElementById('gmap-directions-hud-container');
     if (hudContainer) {
       hudContainer.innerHTML = `
@@ -959,10 +1023,10 @@ class PublicView {
                 </span>
               </div>
               <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${destName}
+                ${this.escapeHtml(destName)}
               </h3>
               <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
-                ${destAddress}
+                ${this.escapeHtml(this.activeRoute.destAddress)}
               </div>
             </div>
             <button type="button" class="modal-close-squircle-btn" onclick="window.publicView.closeDirections()" style="width:28px; height:28px; min-width:28px; min-height:28px; border-radius:8px;" title="Close Directions">
@@ -977,7 +1041,7 @@ class PublicView {
           <div class="gmap-nav-body">
             <!-- Actual Real-World Place Photo Preview Card -->
             <div class="gmap-place-card">
-              <img src="${this.activeRoute.destPhotoUrl}" class="gmap-place-img" alt="${destName}" onerror="this.src='https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=600&q=80'" />
+              <img src="${this.escapeHtml(this.activeRoute.destPhotoUrl)}" class="gmap-place-img" alt="${this.escapeHtml(destName)}" onerror="this.src='https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=600&q=80'" />
               <div class="gmap-place-overlay">
                 <span style="color:#ffffff; font-size:11px; font-weight:700; text-shadow:0 1px 4px rgba(0,0,0,0.8);">
                   Actual Place View
@@ -990,51 +1054,26 @@ class PublicView {
 
             <!-- Travel Modes Switcher Bar -->
             <div class="gmap-modes-bar">
-              <button type="button" class="gmap-mode-tab ${travelMode === 'drive' ? 'active' : ''}" onclick="window.publicView.showDirections(${destLat}, ${destLng}, '${destName.replace(/'/g, "\\'")}', '${destAddress.replace(/'/g, "\\'")}', '${this.activeRoute.destPhotoUrl}', '${destType}', 'drive')">
-                <span style="font-size:11px; font-weight:700;">Drive</span>
-                <span style="font-size:10px; opacity:0.8;">${driveMin}m</span>
-              </button>
-              <button type="button" class="gmap-mode-tab ${travelMode === 'transit' ? 'active' : ''}" onclick="window.publicView.showDirections(${destLat}, ${destLng}, '${destName.replace(/'/g, "\\'")}', '${destAddress.replace(/'/g, "\\'")}', '${this.activeRoute.destPhotoUrl}', '${destType}', 'transit')">
-                <span style="font-size:11px; font-weight:700;">Transit</span>
-                <span style="font-size:10px; opacity:0.8;">${transitMin}m</span>
-              </button>
-              <button type="button" class="gmap-mode-tab ${travelMode === 'walk' ? 'active' : ''}" onclick="window.publicView.showDirections(${destLat}, ${destLng}, '${destName.replace(/'/g, "\\'")}', '${destAddress.replace(/'/g, "\\'")}', '${this.activeRoute.destPhotoUrl}', '${destType}', 'walk')">
-                <span style="font-size:11px; font-weight:700;">Walk</span>
-                <span style="font-size:10px; opacity:0.8;">${walkMin}m</span>
-              </button>
+              ${modeTab('drive', 'Drive')}
+              ${modeTab('transit', 'Transit')}
+              ${modeTab('walk', 'Walk')}
             </div>
 
             <!-- ETA and Distance Summary Badge -->
             <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.12); border:1px solid rgba(59,130,246,0.3); padding:8px 12px; border-radius:10px;">
               <div>
                 <div style="font-size:1.15rem; font-weight:800; color:#38bdf8;">${activeEta}</div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">${activeDistance} via primary municipal corridor</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${activeDistance} from your location${route.approximate ? ' (straight line, estimate only)' : ''}</div>
               </div>
               <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.setMapLayer('satellite')" style="font-size:10.5px; padding:4px 8px;" title="Switch map to actual satellite photos">
                 Satellite View
               </button>
             </div>
 
-            <!-- Turn-by-Turn GPS Step Guidance -->
-            <div class="gmap-steps-list">
-              <div class="gmap-step-item">
-                <span class="gmap-step-icon">1.</span>
-                <span>Head towards major route from current GPS origin (${startLat.toFixed(3)}, ${startLng.toFixed(3)})</span>
-              </div>
-              <div class="gmap-step-item">
-                <span class="gmap-step-icon">2.</span>
-                <span>Follow corridor ${activeDistance} towards ${destAddress.split(',')[0]}</span>
-              </div>
-              <div class="gmap-step-item">
-                <span class="gmap-step-icon">3.</span>
-                <span>Arrive at destination landmark <strong>${destName}</strong></span>
-              </div>
-            </div>
-
             <!-- Action Buttons -->
             <div class="gmap-nav-actions">
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}" target="_blank" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; box-shadow:0 4px 14px rgba(234,157,30,0.4);">
-                <span>Open Live Navigation in Google Maps ↗</span>
+              <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; box-shadow:0 4px 14px rgba(234,157,30,0.4);">
+                <span>Follow this route in Google Maps ↗</span>
               </a>
               <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.closeDirections()" style="width:100%; justify-content:center;">
                 Exit Navigation
@@ -1047,6 +1086,7 @@ class PublicView {
   }
 
   closeDirections() {
+    this.routeRequestId = (this.routeRequestId || 0) + 1;
     if (this.routePolyline && this.map) this.map.removeLayer(this.routePolyline);
     if (this.routeGlowLine && this.map) this.map.removeLayer(this.routeGlowLine);
     if (this.startMarker && this.map) this.map.removeLayer(this.startMarker);
@@ -1077,26 +1117,6 @@ class PublicView {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
-  }
-
-  generateRealisticRoute(start, end) {
-    const [lat1, lng1] = start;
-    const [lat2, lng2] = end;
-
-    // Generate road-like intermediate waypoints
-    const midLat = (lat1 + lat2) / 2;
-    const midLng = (lng1 + lng2) / 2;
-
-    const offsetLat = (lat2 - lat1) * 0.15;
-    const offsetLng = (lng2 - lng1) * 0.15;
-
-    return [
-      [lat1, lng1],
-      [lat1 + (lat2 - lat1) * 0.25, lng1 + offsetLng],
-      [midLat + offsetLat, midLng],
-      [lat1 + (lat2 - lat1) * 0.75, lng2 - offsetLng],
-      [lat2, lng2]
-    ];
   }
 
   locateMe() {
@@ -1178,7 +1198,8 @@ class PublicView {
   layerFor(pet) {
     if (pet.status === 'lost') return 'missing';
     if (pet.status === 'impounded' || pet.status === 'active_impounded') return 'impounded';
-    return 'reunited';
+    if (pet.status === 'reunited') return 'reunited';
+    return null; // safe pets are not shown on the map or in its list
   }
 
   layerCounts() {
@@ -1286,8 +1307,7 @@ class PublicView {
         const q = this.searchQuery.toLowerCase();
         const matchName = (p.name || '').toLowerCase().includes(q);
         const matchBreed = (p.breed || '').toLowerCase().includes(q);
-        const matchTag = (p.rfidTag || '').toLowerCase().includes(q);
-        isMatch = matchName || matchBreed || matchTag;
+        isMatch = matchName || matchBreed;
       }
 
       if (isMatch) {

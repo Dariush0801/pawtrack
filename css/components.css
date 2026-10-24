@@ -982,6 +982,126 @@
   transition: transform 0.15s ease;
 }
 
+/* Situation pins: round head + pointer, coloured per situation via --pin.
+   The 44x54 box has its anchor at the pointer tip (22px, 54px). */
+.pt-pin {
+  position: relative;
+  width: 44px;
+  height: 54px;
+  cursor: pointer;
+  filter: drop-shadow(0 3px 5px rgba(12, 6, 3, 0.45));
+  transition: transform 0.15s ease;
+  transform-origin: 50% 100%;
+}
+
+.pt-pin:hover {
+  transform: scale(1.08);
+}
+
+.pt-pin-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  border: 3px solid var(--pin);
+  border-radius: 50%;
+  background: var(--pin);
+  color: #fff;
+  overflow: hidden;
+}
+
+.pt-pin-head img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #fff;
+}
+
+/* pointer */
+.pt-pin::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: var(--pin);
+  transform: translateY(-3px) rotate(45deg);
+  border-radius: 0 0 3px 0;
+}
+
+.pt-pin-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--pin);
+  border: 2px solid #fff;
+  color: #fff;
+}
+
+.pt-pin-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--pin);
+  opacity: 0.5;
+  animation: last-seen-pulse 1.8s ease-out infinite;
+}
+
+.pt-pin-label {
+  position: absolute;
+  left: 52px;
+  top: 6px;
+  max-width: 190px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f1410;
+  border-left: 4px solid var(--pin);
+  box-shadow: 0 3px 10px rgba(12, 6, 3, 0.35);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pt-pin-label strong,
+.pt-pin-label small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pt-pin-label small {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: var(--pin);
+}
+
+/* Shelters are landmarks, not incidents: a square head instead of a round one */
+.pt-pin--shelter .pt-pin-head {
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-pin-pulse { animation: none; opacity: 0.25; }
+}
+
 .map-pin-bubble {
   display: flex;
   align-items: center;
@@ -8482,4 +8602,46 @@ div.owner-summary-stat:hover {
   border: none;
   border-radius: 99px;
   cursor: pointer;
+}
+
+
+/* Sidebar list: one headed section per kind of case */
+.incident-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.incident-section-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-left: 4px solid var(--section);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface-elevated, #23130a);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-main);
+}
+
+.incident-section-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--section);
+  color: #fff;
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+[data-theme="light"] .incident-section-header {
+  background: #f1f5f9;
 }

@@ -184,7 +184,7 @@ class OwnerView {
         <!-- Search & Filters -->
         <div class="home-search-panel glass-card">
           <div class="home-search-row">
-            <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, barangay, or RFID tag...')}" value="${window.publicView ? window.publicView.searchQuery : ''}" oninput="window.publicView ? window.publicView.handleSearch(this.value) : null" />
+            <input type="text" id="public-search-input" placeholder="${t('map.searchPh', 'Search by pet name, breed, or barangay...')}" value="${window.publicView ? window.publicView.searchQuery : ''}" oninput="window.publicView ? window.publicView.handleSearch(this.value) : null" />
             <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openPhotoMatchModal() : null" title="Upload a photo and let AI compare it with all missing pets">
               <i data-lucide="camera"></i> <span>Search by Photo</span>
             </button>

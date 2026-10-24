@@ -14,7 +14,9 @@ const requiredMethods = [
   'closeDirections',
   'openStreetView',
   'calculateDistance',
-  'generateRealisticRoute'
+  'getUserPosition',
+  'fetchRoute',
+  'pinIcon'
 ];
 
 console.log('[Check 1] Verifying PublicView Google Maps Methods:');
