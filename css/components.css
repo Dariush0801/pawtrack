@@ -1031,6 +1031,72 @@
   background: #16a34a;
 }
 
+/* "Last seen" pin: the dot and its pulse share one 18px box so the pulse is centred on the dot.
+   The label floats beside it, so the marker anchor (9px, 9px) is the exact centre of the dot. */
+.last-seen-pin {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.last-seen-dot,
+.last-seen-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.last-seen-dot {
+  z-index: 1;
+  background: #ba3820;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(12, 6, 3, 0.55);
+}
+
+.last-seen-pulse {
+  background: rgba(186, 56, 32, 0.5);
+  transform-origin: center center;
+  animation: last-seen-pulse 1.8s ease-out infinite;
+}
+
+.last-seen-label {
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f1410;
+  border: 1.5px solid #ba3820;
+  box-shadow: 0 3px 10px rgba(12, 6, 3, 0.35);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.last-seen-label strong,
+.last-seen-label small {
+  display: block;
+}
+
+.last-seen-label small {
+  font-size: 0.63rem;
+  color: #ba3820;
+  font-weight: 600;
+}
+
+@keyframes last-seen-pulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .last-seen-pulse { animation: none; opacity: 0.4; }
+}
+
 .map-pin-pill:hover {
   transform: scale(1.06);
 }
@@ -4263,6 +4329,176 @@
   box-shadow: 0 2px 8px rgba(234, 157, 30, 0.35);
 }
 
+/* Layer selector (top-left of the map, beside the zoom buttons) */
+.map-layers {
+  position: absolute;
+  top: 14px;
+  left: 58px;
+  z-index: 1000;
+  width: 232px;
+  max-width: calc(100% - 130px);
+  background: var(--bg-surface-elevated, rgba(35, 19, 10, 0.92));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.3));
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text-main);
+  overflow: hidden;
+}
+
+.map-layers-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-layers-toggle span:nth-of-type(1) {
+  flex: 1;
+  text-align: left;
+}
+
+.map-layers-badge {
+  font-size: 0.68rem;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--primary, #c2410c);
+  color: #fff;
+}
+
+.map-layers-body {
+  padding: 2px 6px 8px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.map-layers-body[hidden] {
+  display: none;
+}
+
+.map-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.map-layer-row:hover {
+  background: rgba(127, 127, 127, 0.14);
+}
+
+.map-layer-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-layer-swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 2px solid var(--swatch);
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.map-layer-row input:checked + .map-layer-swatch {
+  background: var(--swatch);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  background-size: 11px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.map-layer-row input:focus-visible + .map-layer-swatch {
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.35);
+}
+
+.map-layer-name {
+  flex: 1;
+}
+
+.map-layer-count {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-layers-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 6px 0;
+  margin-top: 4px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.map-layers-actions button {
+  flex: 1 1 auto;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.3));
+  border-radius: 99px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.map-layers-actions button:hover {
+  background: rgba(127, 127, 127, 0.16);
+}
+
+@media (max-width: 640px) {
+  .map-layers {
+    width: 210px;
+  }
+}
+
+/* Last seen card in the sidebar list */
+.last-seen-card {
+  padding: 0.9rem;
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  cursor: pointer;
+  border-left: 3px solid #e11d48;
+}
+
+.last-seen-card-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(225, 29, 72, 0.12);
+}
+
+.last-seen-card-icon span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e11d48;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.25);
+}
+
 .gmap-quick-tools {
   position: absolute;
   top: 14px;
@@ -6589,7 +6825,7 @@ body.auth-locked {
   flex-wrap: wrap;
 }
 
-/* Sighting Submission Modal Styles */
+/* Sighting Submission Modal Styles ("Have you seen this pet?") */
 .sighting-submission-box {
   max-width: 680px;
   width: 95%;
@@ -6598,24 +6834,121 @@ body.auth-locked {
   flex-direction: column;
 }
 
+.sighting-submission-box form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.sighting-submission-box .modal-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.sighting-intro {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .sighting-prefill-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(234, 88, 12, 0.12);
-  border: 1px solid rgba(234, 88, 12, 0.35);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 1rem;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(186, 56, 32, 0.14), rgba(234, 88, 12, 0.08));
+  border: 1px solid rgba(186, 56, 32, 0.4);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 1.1rem;
 }
 
 .sighting-prefill-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--primary);
+  border: 3px solid #ba3820;
   flex-shrink: 0;
+}
+
+/* Numbered section headings */
+.sighting-step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 18px 0 10px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.sighting-step:first-of-type {
+  margin-top: 4px;
+}
+
+.sighting-step span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  background: var(--primary);
+  color: #fff;
+  flex: none;
+}
+
+.sighting-step small {
+  font-weight: 500;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* Quick-pick chips (time and observations) */
+.sighting-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sighting-chip {
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.35));
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sighting-chip:hover,
+.sighting-chip:focus-visible {
+  background: rgba(127, 127, 127, 0.16);
+  border-color: var(--primary);
+  outline: none;
+}
+
+.sighting-privacy {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.sighting-submission-box .modal-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .sighting-dropzone {
@@ -7183,4 +7516,970 @@ div.owner-summary-stat {
 
 div.owner-summary-stat:hover {
   background: none;
+}
+
+/* --- Google Maps popups and tooltips (match the former Leaflet popup look) --- */
+.gm-style .gm-style-iw-c {
+  background: var(--bg-surface-elevated, #23130a) !important;
+  color: var(--text-main, #fff) !important;
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.3));
+  border-radius: var(--radius-lg, 14px) !important;
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.5)) !important;
+  padding: 12px 14px !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: auto !important;
+  max-height: 340px !important;
+}
+
+.gm-style .gm-style-iw-tc::after {
+  background: var(--bg-surface-elevated, #23130a) !important;
+}
+
+.gm-style .gm-style-iw-chr button span {
+  background-color: var(--text-main, #fff) !important;
+}
+
+.pt-popup {
+  min-width: 220px;
+  line-height: 1.4;
+  font-family: var(--font-body);
+  color: var(--text-main);
+}
+
+.gm-style .gm-style-iw-c:has(.pt-tooltip) {
+  padding: 8px 12px !important;
+  pointer-events: none;
+}
+
+.pt-tooltip.shelter-hover-tooltip {
+  max-width: 260px;
+  font-family: var(--font-body, inherit);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-main, #fff);
+}
+
+[data-theme="light"] .gm-style .gm-style-iw-c {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .gm-style .gm-style-iw-tc::after {
+  background: #ffffff !important;
+}
+
+[data-theme="light"] .gm-style .gm-style-iw-chr button span {
+  background-color: #0f172a !important;
+}
+
+
+/* --- Map popup card ("pt-card"): used for pets, last seen, sightings and shelters --- */
+.gm-style .gm-style-iw-c {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  max-height: 380px !important;
+  scrollbar-width: thin;
+}
+
+/* Close button floats over the photo */
+.gm-style .gm-style-iw-chr {
+  position: absolute !important;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  height: auto !important;
+}
+
+.gm-style .gm-style-iw-chr button.gm-ui-hover-effect {
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  border-radius: 50%;
+  background: rgba(15, 8, 4, 0.55) !important;
+  backdrop-filter: blur(4px);
+}
+
+.gm-style .gm-style-iw-chr button.gm-ui-hover-effect span {
+  width: 14px !important;
+  height: 14px !important;
+  margin: 7px !important;
+  background-color: #fff !important;
+}
+
+[data-theme="light"] .gm-style .gm-style-iw-chr button span {
+  background-color: #fff !important;
+}
+
+.pt-card {
+  width: 280px;
+  max-width: calc(100vw - 90px);
+  color: var(--text-main);
+  font-family: var(--font-body);
+}
+
+.pt-card-hero {
+  position: relative;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--tone), #1f1410);
+  overflow: hidden;
+}
+
+.pt-card-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pt-card-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15, 8, 4, 0.45), transparent 55%);
+  pointer-events: none;
+}
+
+.pt-card-hero-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pt-card-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--tone);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.pt-card-body {
+  padding: 12px 14px 14px;
+}
+
+.pt-card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+
+.pt-card-sub {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pt-card-rows {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pt-card-rows li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.pt-card-ico {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+}
+
+.pt-card-row-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.pt-card-row-text small {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pt-card-row-text strong {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.pt-card-row-text em {
+  font-style: normal;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--tone);
+}
+
+.pt-mono {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.pt-card-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: rgba(127, 127, 127, 0.12);
+  border-left: 3px solid var(--tone);
+}
+
+.pt-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.pt-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s, background 0.15s;
+}
+
+.pt-btn-primary {
+  background: var(--tone);
+  color: #fff;
+}
+
+.pt-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.pt-btn-ghost,
+.pt-btn-icon {
+  background: transparent;
+  color: var(--text-main);
+  border-color: var(--border-glass, rgba(234, 157, 30, 0.35));
+}
+
+.pt-btn-ghost:hover,
+.pt-btn-icon:hover {
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.pt-btn-icon {
+  flex: none;
+  width: 36px;
+  padding: 0;
+}
+
+.pt-btn:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: 2px;
+}
+
+/* --- Map popup card: fits in one frame, no scrolling --- */
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+  max-height: none !important;
+}
+
+.pt-card {
+  width: 270px;
+}
+
+.pt-card-hero {
+  height: 104px;
+}
+
+.pt-card-body {
+  padding: 10px 12px 12px;
+}
+
+.pt-card-title {
+  font-size: 1.02rem;
+}
+
+.pt-card-sub {
+  font-size: 0.76rem;
+}
+
+.pt-card-rows {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.pt-card-rows li {
+  gap: 8px;
+}
+
+.pt-card-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
+.pt-card-ico svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pt-card-row-text small {
+  font-size: 0.62rem;
+}
+
+.pt-card-row-text strong {
+  font-size: 0.8rem;
+}
+
+.pt-card-note {
+  margin-top: 8px;
+  padding: 6px 9px;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pt-card-actions {
+  margin-top: 10px;
+}
+
+.pt-btn {
+  min-height: 34px;
+  font-size: 0.78rem;
+}
+
+.pt-btn-icon {
+  width: 34px;
+}
+
+/* Short windows: shrink the photo and drop the note so the card never outgrows the map */
+@media (max-height: 760px) and (min-width: 641px) {
+  .pt-card-hero { height: 76px; }
+  .pt-card-note { display: none; }
+}
+
+@media (max-height: 620px) and (min-width: 641px) {
+  .pt-card-hero { height: 56px; }
+  .pt-card-rows { gap: 4px; }
+}
+
+/* --- Map popup photo: show the whole picture (no cropping) over a blurred copy of itself --- */
+.pt-card-hero {
+  height: 128px;
+}
+
+.pt-card-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pt-card-hero .pt-card-hero-bg {
+  object-fit: cover;
+  filter: blur(14px) brightness(0.7);
+  transform: scale(1.2);
+}
+
+.pt-card-hero .pt-card-hero-img {
+  object-fit: contain;
+  z-index: 1;
+}
+
+/* Badge and the bottom fade stay above the photo */
+.pt-card-hero::after {
+  z-index: 1;
+}
+
+.pt-card-badge {
+  z-index: 2;
+}
+
+@media (max-height: 760px) and (min-width: 641px) {
+  .pt-card-hero { height: 96px; }
+}
+
+@media (max-height: 620px) and (min-width: 641px) {
+  .pt-card-hero { height: 72px; }
+}
+
+/* --- Tap the popup photo to open it full size --- */
+.pt-card-hero.is-zoomable {
+  cursor: zoom-in;
+}
+
+.pt-card-hero.is-zoomable:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+.pt-card-zoom {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(15, 8, 4, 0.55);
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+
+.pt-card-hero.is-zoomable:hover .pt-card-zoom {
+  background: rgba(15, 8, 4, 0.8);
+}
+
+
+/* --- Phones: the pet popup is a bottom sheet showing every detail --- */
+.pt-sheet {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 1200;
+  max-height: 72vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg-surface-elevated, #23130a);
+  color: var(--text-main);
+  border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.3));
+  border-radius: 20px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+  transform: translateY(24px);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s;
+}
+
+[data-theme="light"] .pt-sheet {
+  background: #ffffff;
+}
+
+.pt-sheet.is-open {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.pt-sheet-handle {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 38px;
+  height: 4px;
+  margin-left: -19px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 4;
+}
+
+.pt-sheet-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(15, 8, 4, 0.6);
+  cursor: pointer;
+}
+
+.pt-sheet .pt-card {
+  width: 100%;
+  max-width: none;
+}
+
+.pt-sheet .pt-card-hero {
+  height: 150px;
+}
+
+.pt-sheet .pt-card-body {
+  padding: 12px 16px 16px;
+}
+
+.pt-sheet .pt-card-title {
+  font-size: 1.15rem;
+}
+
+.pt-sheet .pt-card-row-text strong {
+  font-size: 0.9rem;
+}
+
+/* The full description shows: no clamping on phones */
+.pt-sheet .pt-card-note {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  font-size: 0.82rem;
+}
+
+.pt-sheet .pt-btn {
+  min-height: 44px;
+  font-size: 0.88rem;
+}
+
+.pt-sheet .pt-btn-icon {
+  width: 44px;
+}
+
+@media (max-height: 560px) {
+  .pt-sheet .pt-card-hero { height: 96px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-sheet { transition: none; }
+}
+
+/* --- Phone bottom sheet: everything fits in one frame, no scrolling --- */
+.pt-sheet {
+  max-height: none;
+  overflow: hidden;
+}
+
+.pt-sheet .pt-card-hero {
+  height: 84px;
+}
+
+.pt-sheet .pt-card-body {
+  padding: 10px 14px 12px;
+}
+
+.pt-sheet .pt-card-title {
+  font-size: 1.05rem;
+}
+
+.pt-sheet .pt-card-sub {
+  font-size: 0.78rem;
+}
+
+/* Facts sit two to a row; the first (location) spans the full width */
+.pt-sheet .pt-card-rows {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.pt-sheet .pt-card-rows li:first-child {
+  grid-column: 1 / -1;
+}
+
+.pt-sheet .pt-card-ico {
+  width: 24px;
+  height: 24px;
+}
+
+.pt-sheet .pt-card-row-text small {
+  font-size: 0.6rem;
+}
+
+.pt-sheet .pt-card-row-text strong {
+  font-size: 0.82rem;
+}
+
+.pt-sheet .pt-card-note {
+  margin-top: 8px;
+  padding: 6px 9px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.pt-sheet .pt-card-actions {
+  margin-top: 10px;
+}
+
+.pt-sheet .pt-btn {
+  min-height: 42px;
+}
+
+.pt-sheet .pt-btn-icon {
+  width: 42px;
+}
+
+/* Landscape or very short phones: slimmer photo so the full card still fits */
+@media (max-height: 640px) {
+  .pt-sheet .pt-card-hero { height: 56px; }
+  .pt-sheet .pt-card-rows { margin-top: 6px; }
+  .pt-sheet .pt-card-actions { margin-top: 8px; }
+}
+
+@media (max-height: 480px) {
+  .pt-sheet .pt-card-hero { display: none; }
+  .pt-sheet .pt-card-body { padding-top: 14px; }
+}
+
+/* --- "Have you seen this pet?" modal on phones: readable banner, buttons that fit --- */
+.sighting-prefill-banner > div {
+  min-width: 0;
+}
+
+.sighting-submission-box .modal-footer .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  /* The "Owner is searching" pill squeezed the pet details into a narrow column; the MISSING PET label says the same */
+  .sighting-prefill-banner {
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .sighting-prefill-banner > .badge {
+    display: none;
+  }
+
+  #sighting-prefill-pet-meta {
+    line-height: 1.35;
+  }
+
+  .sighting-submission-box .modal-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .sighting-submission-box .modal-body {
+    padding: 1rem !important;
+  }
+
+  .sighting-submission-box .modal-footer {
+    padding: 10px 1rem calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 8px !important;
+  }
+
+  .sighting-submission-box .modal-footer .btn-outline {
+    flex: 0 0 auto;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sighting-submission-box .modal-footer .btn-primary {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 0.88rem;
+  }
+
+  .sighting-submission-box .modal-footer .btn-primary svg {
+    display: none;
+  }
+}
+
+/* Phones: stack the footer buttons so "Send sighting to owner" always has the full width */
+@media (max-width: 560px) {
+  .sighting-submission-box .modal-footer {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+  }
+
+  .sighting-submission-box .modal-footer .btn,
+  .sighting-submission-box .modal-footer .btn-outline,
+  .sighting-submission-box .modal-footer .btn-primary {
+    flex: 0 0 auto !important;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    white-space: normal;
+    text-align: center;
+    justify-content: center;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .sighting-submission-box .modal-footer .btn-primary svg {
+    display: inline-block;
+  }
+}
+
+
+/* --- "Have you seen this pet?" modal: step headings, tags and the details row --- */
+.sighting-step {
+  align-items: flex-start;
+}
+
+.sighting-step > span {
+  margin-top: 1px;
+}
+
+.sighting-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sighting-step-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-main);
+}
+
+.sighting-step-text small {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.sighting-tag {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.sighting-tag.is-required {
+  color: #ba3820;
+  background: rgba(186, 56, 32, 0.14);
+}
+
+.sighting-tag.is-optional {
+  color: var(--text-muted);
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.sighting-tag.is-done {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.16);
+}
+
+.sighting-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+  align-items: start;
+}
+
+@media (max-width: 560px) {
+  .sighting-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "Stay anonymous": a checkbox under the name field */
+.sighting-anon-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+
+.sighting-anon-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sighting-anon-box {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--text-muted);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sighting-anon-toggle input:checked + .sighting-anon-box {
+  background: var(--primary);
+  border-color: var(--primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.sighting-anon-toggle input:focus-visible + .sighting-anon-box {
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.35);
+}
+
+/* Map and photo are separate sections, so the photo drop area no longer needs a fixed tall box */
+#sighting-photo-dropzone {
+  height: 200px !important;
+}
+
+
+/* --- "Use my current location" button --- */
+.use-location-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: transparent;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.use-location-btn:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.use-location-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.use-location-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.use-location-btn.is-loading svg {
+  animation: auth-spin 1.2s linear infinite;
+}
+
+/* Visually hidden checkboxes: the global `input` rule makes inputs 100% wide and 42px tall, so a hidden
+   checkbox was a huge invisible box. Focusing it scrolled the modal to a blank spot (it "went white").
+   Keep it 1px and anchored to its own label. */
+.sighting-anon-toggle,
+.map-layer-row {
+  position: relative;
+}
+
+.sighting-anon-toggle input,
+.map-layer-row input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* Required-field asterisk in the sighting form */
+.sighting-req {
+  color: #ba3820;
+  font-weight: 800;
+}
+
+/* --- Pin pickers: roomier map on laptops, and the pin drops onto the spot you click --- */
+@media (min-width: 900px) {
+  .report-map-wrapper {
+    height: 340px;
+  }
+}
+
+@keyframes pin-drop {
+  from { top: -16px; opacity: 0.35; }
+  to { top: 0; opacity: 1; }
+}
+
+.pin-drop {
+  animation: pin-drop 0.26s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-drop { animation: none; }
+}
+
+/* Sidebar chip shown while a map pin is selected */
+.map-focus-chip {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.map-focus-chip button {
+  flex: none;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
 }

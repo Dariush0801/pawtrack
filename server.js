@@ -237,6 +237,13 @@ const server = http.createServer((req, res) => {
 
   const parsedUrl = req.url.split('?')[0];
 
+  // API: public browser config (Google Maps key and Map ID from .env)
+  if (parsedUrl === '/api/config' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(require('./api/config').getPublicConfig()));
+    return;
+  }
+
   // API: Health & Status Check
   if (parsedUrl === '/api/health' || parsedUrl === '/api/ping') {
     const db = getDatabase();

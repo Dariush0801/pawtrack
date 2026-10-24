@@ -1870,6 +1870,17 @@ class App {
   }
 }
 
+// Escape closes the full-size photo viewer first, without also closing a dialog underneath it
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const viewer = document.getElementById('image-lightbox-modal');
+  if (viewer && viewer.classList.contains('active')) {
+    e.stopImmediatePropagation();
+    if (window.pawApp) window.pawApp.closeLightbox();
+    else viewer.classList.remove('active');
+  }
+}, true);
+
 function bootstrapOwnerApp() {
   if (!window.pawApp) {
     window.pawApp = new App();

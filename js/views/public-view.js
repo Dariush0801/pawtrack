@@ -4,6 +4,25 @@
  * Interactive Turn-by-Turn Navigation, and Real-World Actual Place / Street View Visualizer.
  */
 
+// What each quick filter shows on the map; the Layers panel then fine-tunes it
+const MAP_LAYER_PRESETS = {
+  all:       { missing: true,  lastSeen: true,  sightings: true,  impounded: true,  reunited: true,  shelters: true },
+  lost:      { missing: true,  lastSeen: true,  sightings: false, impounded: false, reunited: false, shelters: false },
+  lastseen:  { missing: false, lastSeen: true,  sightings: false, impounded: false, reunited: false, shelters: false },
+  sighted:   { missing: false, lastSeen: false, sightings: true,  impounded: false, reunited: false, shelters: false },
+  impounded: { missing: false, lastSeen: false, sightings: false, impounded: true,  reunited: false, shelters: true },
+  reunited:  { missing: false, lastSeen: false, sightings: false, impounded: false, reunited: true,  shelters: false }
+};
+
+const MAP_LAYER_DEFS = [
+  { key: 'missing',   label: 'Missing pets',        color: '#ba3820' },
+  { key: 'lastSeen',  label: 'Last seen locations', color: '#e11d48' },
+  { key: 'sightings', label: 'Community sightings', color: '#16a34a' },
+  { key: 'impounded', label: 'Impounded pets',      color: '#b85410' },
+  { key: 'reunited',  label: 'Safe / reunited',     color: '#2563eb' },
+  { key: 'shelters',  label: 'Shelters',            color: '#54280e' }
+];
+
 class PublicView {
   constructor() {
     this.map = null;
@@ -12,6 +31,10 @@ class PublicView {
     this.petMarkers = {};
     this.shelterMarkers = [];
     this.sightingMarkers = [];
+    this.lastSeenItems = [];
+    this.layers = { ...MAP_LAYER_PRESETS.all };
+    this.focusPoint = null; // {lat, lng, label}: set when a pin is tapped; the list then shows only what is there
+    this.layersPanelOpen = window.innerWidth >= 768;
     this.currentMapType = 'roadmap'; // 'roadmap', 'satellite', 'hybrid', 'dark'
     this.selectedCommunity = 'all';
     this.currentTileLayer = null;
@@ -30,6 +53,7 @@ class PublicView {
   }
 
   render(container) {
+    this.focusPoint = null;
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
     const pets = window.pawStore.getPets();
     const shelters = window.pawStore.getShelters();
@@ -75,22 +99,6 @@ class PublicView {
         <div class="glass-card" style="position:relative; overflow:hidden; min-height:520px; padding:0;">
           <div id="public-map-container" style="min-height:520px;"></div>
 
-          <!-- Google Maps Layer Switcher Floating Dock -->
-          <div class="gmap-layer-dock" id="gmap-layer-dock">
-            <button type="button" class="gmap-layer-btn ${this.currentMapType === 'roadmap' ? 'active' : ''}" onclick="window.publicView.setMapLayer('roadmap')" title="Roadmap View (Default Street Network)">
-              <span>Map</span>
-            </button>
-            <button type="button" class="gmap-layer-btn ${this.currentMapType === 'satellite' ? 'active' : ''}" onclick="window.publicView.setMapLayer('satellite')" title="Satellite / Actual Photographic Aerial View">
-              <span>Satellite</span>
-            </button>
-            <button type="button" class="gmap-layer-btn ${this.currentMapType === 'hybrid' ? 'active' : ''}" onclick="window.publicView.setMapLayer('hybrid')" title="Hybrid View (Satellite + Street Labels)">
-              <span>Hybrid</span>
-            </button>
-            <button type="button" class="gmap-layer-btn ${this.currentMapType === 'dark' ? 'active' : ''}" onclick="window.publicView.setMapLayer('dark')" title="Dark Theme Style">
-              <span>Dark</span>
-            </button>
-          </div>
-
           <!-- Quick Navigation & View Control Tools -->
           <div class="gmap-quick-tools">
             <button type="button" class="gmap-tool-btn" onclick="window.publicView.locateMe()" title="Recenter to My Location (GPS)">
@@ -104,6 +112,9 @@ class PublicView {
               </svg>
             </button>
           </div>
+
+          <!-- Layer selector: choose exactly what the map shows -->
+          <div class="map-layers" id="map-layers">${this.renderLayersPanel()}</div>
 
           <!-- Container for Directions & Actual Place Drawer -->
           <div id="gmap-directions-hud-container"></div>
@@ -123,21 +134,26 @@ class PublicView {
     const sightings = window.pawStore.getSightings();
     const lostCount = pets.filter(p => p.status === 'lost').length;
     const sightedCount = sightings.length;
+    const lastSeenCount = (this.lastSeenItems || []).length;
     const impoundedCount = pets.filter(p => p.status === 'impounded' || p.status === 'active_impounded').length;
     const reunitedCount = pets.filter(p => p.status === 'reunited' || p.status === 'safe').length;
 
     const isAll = this.currentFilter === 'all';
     const isLost = this.currentFilter === 'lost';
+    const isLastSeen = this.currentFilter === 'lastseen';
     const isSighted = this.currentFilter === 'sighted';
     const isImpounded = this.currentFilter === 'impounded';
     const isReunited = this.currentFilter === 'reunited';
 
     return `
       <button type="button" class="btn btn-sm ${isAll ? 'btn-primary active' : 'btn-outline'}" onclick="window.publicView.setFilter('all')">
-        ${t('map.filterAll', 'All Records')} (${pets.length + sightings.length})
+        ${t('map.filterAll', 'All Records')} (${pets.length + sightings.length + lastSeenCount})
       </button>
       <button type="button" class="btn btn-sm ${isLost ? 'btn-danger active' : 'btn-outline'}" onclick="window.publicView.setFilter('lost')">
         ${t('map.filterLost', 'Missing')} (${lostCount})
+      </button>
+      <button type="button" class="btn btn-sm ${isLastSeen ? 'btn-danger active' : 'btn-outline'}" onclick="window.publicView.setFilter('lastseen')" title="Where each missing pet was last seen">
+        Last Seen (${lastSeenCount})
       </button>
       <button type="button" class="btn btn-sm ${isSighted ? 'btn-primary active' : 'btn-outline'}" onclick="window.publicView.setFilter('sighted')" style="${isSighted ? 'background:#ea9d1e; color:#180d07;' : ''}">
         ${t('map.filterSightings', 'Sightings')} (${sightedCount})
@@ -219,16 +235,55 @@ class PublicView {
   }
 
   renderFilteredList(pets) {
+    return this.focusBanner() + this.renderFilteredListBody(pets);
+  }
+
+  // Where an item sits on the map, as [lat, lng] (null when unknown)
+  itemLatLng(item) {
+    if (item.type === 'pet') {
+      const m = this.petMarkers && this.petMarkers[item.data.id];
+      if (m) { const ll = m.getLatLng(); return [ll.lat, ll.lng]; }
+    } else if (item.type === 'lastseen') {
+      const found = (this.lastSeenItems || []).find(i => i.row.id === item.data.id);
+      if (found) return found.coords;
+    } else if (item.type === 'sighting') {
+      const found = (this.sightingMarkers || []).find(i => i.id === item.data.id);
+      if (found) return found.coords;
+    }
+    return null;
+  }
+
+  focusBanner() {
+    if (!this.focusPoint) return '';
+    const count = this.focusCount || 0;
+    return `
+      <div class="map-focus-chip" role="status">
+        <span><strong>${count}</strong> ${count === 1 ? 'record' : 'records'} at <strong>${this.escapeHtml(this.focusPoint.label)}</strong></span>
+        <button type="button" onclick="window.publicView.clearFocus()">Show all</button>
+      </div>`;
+  }
+
+  // A pin was tapped: the list narrows to the pets and records at that spot
+  focusPlace(coords, label) {
+    this.focusPoint = { lat: coords[0], lng: coords[1], label: label || 'this spot' };
+    this.updateFilterUI(false);
+    document.getElementById('public-pets-list')?.scrollTo({ top: 0 });
+  }
+
+  clearFocus() {
+    if (!this.focusPoint) return;
+    this.focusPoint = null;
+    this.updateFilterUI(false);
+  }
+
+  renderFilteredListBody(pets) {
     const sightings = window.pawStore.getSightings();
     let items = [];
 
     // 1. Add Pet items
     pets.forEach(p => {
       if (!this.isInSelectedCommunity(p)) return;
-      if (this.currentFilter === 'lost' && p.status !== 'lost') return;
-      if (this.currentFilter === 'sighted') return;
-      if (this.currentFilter === 'impounded' && p.status !== 'impounded' && p.status !== 'active_impounded') return;
-      if (this.currentFilter === 'reunited' && p.status !== 'reunited' && p.status !== 'safe') return;
+      if (!this.layers[this.layerFor(p)]) return;
 
       if (this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
@@ -243,7 +298,20 @@ class PublicView {
     });
 
     // 2. Add Sighting items
-    if (this.currentFilter === 'all' || this.currentFilter === 'sighted') {
+    // 2a. Last seen locations of missing pets
+    if (this.layers.lastSeen) {
+      (this.lastSeenItems || []).forEach(item => {
+        if (this.searchQuery) {
+          const q = this.searchQuery.toLowerCase();
+          const hay = [item.row.pet_name, item.row.breed, item.row.species, item.row.last_seen_location];
+          if (!hay.some(v => (v || '').toLowerCase().includes(q))) return;
+        }
+        items.push({ type: 'lastseen', data: item.row, date: item.row.last_seen_at });
+      });
+    }
+
+    // 2b. Sighting items
+    if (this.layers.sightings) {
       sightings.forEach(s => {
         if (s.status === 'dismissed' || s.status === 'archived' || !this.isInSelectedCommunity(s)) return;
         if (this.searchQuery) {
@@ -257,16 +325,42 @@ class PublicView {
       });
     }
 
+    if (this.focusPoint) {
+      const f = this.focusPoint;
+      items = items.filter(item => {
+        const at = this.itemLatLng(item);
+        return at && this.calculateDistance(f.lat, f.lng, at[0], at[1]) <= 0.06; // within about 60 m
+      });
+      this.focusCount = items.length;
+    }
+
     if (items.length === 0) {
       return `
         <div class="glass-card" style="padding:2rem; text-align:center; color:var(--text-muted);">
           <i data-lucide="search-x" style="width:40px; height:40px; margin-bottom:0.75rem; opacity:0.5;"></i>
-          <div>No incident records matching "${this.currentFilter.toUpperCase()}" criteria.</div>
+          <div>${Object.values(this.layers).some(Boolean) ? 'No records match the current layers and search.' : 'No layers selected. Turn one on in the Layers panel on the map.'}</div>
         </div>
       `;
     }
 
     return items.map(item => {
+      if (item.type === 'lastseen') {
+        const r = item.data;
+        return `
+          <div class="glass-card last-seen-card" onclick="window.publicView.focusLastSeen('${r.id}')">
+            <div class="last-seen-card-icon" aria-hidden="true"><span></span></div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:2px;">
+                <h4 style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">${this.escapeHtml(r.pet_name)}</h4>
+                <span style="font-size:0.68rem; font-weight:700; color:#e11d48; text-transform:uppercase; white-space:nowrap;">Last seen</span>
+              </div>
+              <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(r.last_seen_location)}</div>
+              <div style="font-size:0.72rem; color:var(--primary); font-weight:700;">${this.getTimeAgo(r.last_seen_at)} &middot; ${this.escapeHtml(r.species)}${r.breed ? ' &middot; ' + this.escapeHtml(r.breed) : ''}</div>
+            </div>
+          </div>
+        `;
+      }
+
       if (item.type === 'sighting') {
         const s = item.data;
         const sLat = (s.lat || 14.6360);
@@ -340,7 +434,8 @@ class PublicView {
     }).join('');
   }
 
-  initMap(pets, shelters) {
+  async initMap(pets, shelters) {
+    await window.PawMapsReady; // Google Maps adapter (falls back to Leaflet when no key is set)
     const container = document.getElementById('public-map-container');
     if (!container || !window.L) return;
 
@@ -357,6 +452,7 @@ class PublicView {
 
     // Apply active tile layer (Roadmap default)
     this.setMapLayer(this.currentMapType || 'roadmap', false);
+    this.map.on('click', () => this.clearFocus());
 
     this.petMarkers = {};
     this.shelterMarkers = [];
@@ -407,31 +503,19 @@ class PublicView {
           opacity: 0.98
         })
         .bindPopup(`
-          <div class="map-popup-card">
-            <div style="font-size:0.72rem; font-weight:700; color:var(--secondary); text-transform:uppercase; margin-bottom:2px;">Official Animal Facility</div>
-            <h4 style="font-size:0.98rem; font-weight:700; margin-bottom:0.35rem; color:var(--text-main); line-height:1.25;">${s.name}</h4>
-            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.35; margin-bottom:0.45rem;">
-              <strong>Address:</strong> ${s.address}
-            </div>
-            ${s.photoUrl ? `
-              <div style="width:100%; height:115px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:0.55rem; border:1px solid var(--border-subtle);">
-                <img src="${s.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${s.name}" style="width:100%; height:100%; object-fit:cover;" />
-              </div>
-            ` : ''}
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; padding-top:0.4rem; border-top:1px solid var(--border-subtle); margin-bottom:0.55rem;">
-              <span style="color:var(--text-muted);">Hotline:</span>
-              <strong style="color:var(--primary); font-weight:700;">${s.phone}</strong>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.publicView.showDirections(${s.lat}, ${s.lng}, '${s.name.replace(/'/g, "\\'")}', '${s.address.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'shelter')">
-                Directions & Place View
-              </button>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}" target="_blank" class="btn btn-outline btn-sm" title="Open directly in Google Maps">
-                Google Maps ↗
-              </a>
-            </div>
-          </div>
-        `);
+        ${this.popupCard({
+          badge: 'Animal facility',
+          tone: '#54280e',
+          photo: s.photoUrl,
+          placeholderIcon: 'building',
+          title: s.name,
+          rows: [
+            { icon: 'pin', label: 'Address', value: s.address },
+            { icon: 'phone', label: 'Hotline', value: s.phone }
+          ],
+          actions: `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${s.lat}, ${s.lng}, '${this.jsArg(s.name)}', '${this.jsArg(s.address)}', '${this.jsArg(s.photoUrl || '')}', 'shelter')">Directions</button>${this.popupMapsLink(s.lat, s.lng)}`
+        })}
+      `);
 
       this.shelterMarkers.push(sMarker);
       markerGroup.push([s.lat, s.lng]);
@@ -475,41 +559,22 @@ class PublicView {
       const marker = window.L.marker(coords, { icon: petPin })
         .addTo(this.map)
         .bindPopup(`
-          <div class="map-popup-card">
-            <div style="width:100%; height:110px; border-radius:var(--radius-md); overflow:hidden; margin-bottom:0.6rem; border:1px solid var(--border-glass);">
-              <img src="${p.photoUrl || window.PET_PHOTO_PLACEHOLDER}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; gap:0.5rem;">
-              <h4 style="font-size:1.05rem; font-weight:800; color:var(--text-main); margin:0;">${p.name}</h4>
-              <span class="badge ${p.status === 'lost' ? 'badge-lost' : (p.status === 'impounded' || p.status === 'active_impounded') ? 'badge-impounded' : 'badge-safe'}" style="font-size:0.68rem; flex-shrink:0;">
-                ${p.status.toUpperCase()}
-              </span>
-            </div>
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">${p.breed} • ${p.gender}</div>
-            
-            <div style="background:var(--bg-surface-elevated); padding:6px 10px; border-radius:var(--radius-sm); font-size:0.78rem; margin-bottom:0.5rem; border:1px solid var(--border-subtle);">
-              <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                <span style="color:var(--text-muted);">RFID Tag:</span>
-                <strong style="color:var(--primary); font-family:monospace;">${p.rfidTag}</strong>
-              </div>
-              <div style="display:flex; justify-content:space-between;">
-                <span style="color:var(--text-muted);">Microchip:</span>
-                <span>${p.microchipNo ? p.microchipNo.slice(-6) : 'N/A'}</span>
-              </div>
-            </div>
+        ${this.popupCard({
+          badge: statusDisplay,
+          tone: p.status === 'lost' ? '#ba3820' : (p.status === 'impounded' || p.status === 'active_impounded') ? '#b85410' : '#16a34a',
+          photo: p.photoUrl || window.PET_PHOTO_PLACEHOLDER,
+          title: p.name,
+          subtitle: [p.breed, p.gender].filter(Boolean).join(' · '),
+          rows: [
+            { icon: 'pin', label: p.status === 'lost' ? 'Last seen at' : 'Location', value: p.lastSeenLocation, hint: p.lastSeenDate ? this.getTimeAgo(p.lastSeenDate) : '' },
+            { icon: 'tag', label: 'RFID tag', value: p.rfidTag, mono: true },
+            { icon: 'chip', label: 'Microchip', value: p.microchipNo ? '…' + String(p.microchipNo).slice(-6) : '', mono: true }
+          ],
+          actions: `${p.status === 'lost' ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Have you seen this pet?</button><button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
+        })}
+      `);
 
-            <div style="display:flex; gap:6px; margin-top:0.4rem;">
-              ${p.status === 'lost' ? `<button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Report Sighting</button>` : ''}
-              <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${p.name.replace(/'/g, "\\'")}', '${(p.lastSeenLocation || 'Metro Manila').replace(/'/g, "\\'")}', '${p.photoUrl}', 'pet')">
-                Directions & Place View
-              </button>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}" target="_blank" class="btn btn-outline btn-sm" title="Open in Google Maps">
-                Google Maps ↗
-              </a>
-            </div>
-          </div>
-        `);
-
+      marker.on('click', () => this.focusPlace(coords, p.name));
       this.petMarkers[p.id] = marker;
       markerGroup.push(coords);
     });
@@ -535,31 +600,23 @@ class PublicView {
       const sMarker = window.L.marker(sCoords, { icon: sightingPin })
         .addTo(this.map)
         .bindPopup(`
-          <div class="map-popup-card">
-            <div style="font-size:0.72rem; font-weight:700; color:#ea9d1e; text-transform:uppercase; margin-bottom:2px;">Community Pet Sighting</div>
-            <h4 style="font-size:1.02rem; font-weight:800; margin-bottom:0.25rem; color:var(--text-main);">${s.breed || 'Spotted Pet'}</h4>
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">Location: ${s.location}</div>
-            ${s.photoUrl ? `<img src="${s.photoUrl}" style="width:100%; height:110px; border-radius:var(--radius-sm); object-fit:cover; margin-bottom:0.5rem;" />` : ''}
-            <div style="font-size:0.78rem; color:var(--text-main); margin-bottom:0.4rem;">
-              <strong>Date &amp; time seen:</strong> ${this.formatSightingDate(s.dateTimeSeen || s.createdAt)}
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">
-              <strong>Comments:</strong> ${s.comments || s.notes || 'No comments provided.'}
-            </div>
-            <div style="font-size:0.78rem; background:rgba(22, 163, 74, 0.1); padding:6px 10px; border-radius:var(--radius-sm); border:1px solid rgba(22, 163, 74, 0.3); margin-bottom:0.5rem; color:var(--text-main);">
-              <strong>Status:</strong> ${s.status === 'confirmed_sighting' ? 'Confirmed by registered guardian' : 'Possible Sighting · Awaiting owner verification'}
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="window.publicView.showDirections(${sCoords[0]}, ${sCoords[1]}, '${(s.breed || 'Pet').replace(/'/g, "\\'")}', '${s.location.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'sighting')">
-                Directions & Place View
-              </button>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${sCoords[0]},${sCoords[1]}" target="_blank" class="btn btn-outline btn-sm" title="Open in Google Maps">
-                Google Maps ↗
-              </a>
-            </div>
-          </div>
-        `);
+        ${this.popupCard({
+          badge: s.status === 'confirmed_sighting' ? 'Confirmed sighting' : 'Possible sighting',
+          tone: s.status === 'confirmed_sighting' ? '#16a34a' : '#ea9d1e',
+          photo: s.photoUrl,
+          title: s.breed || 'Spotted pet',
+          subtitle: this.getTimeAgo(s.dateTimeSeen || s.createdAt),
+          rows: [
+            { icon: 'pin', label: 'Location', value: s.location },
+            { icon: 'clock', label: 'Date and time seen', value: this.formatSightingDate(s.dateTimeSeen || s.createdAt) },
+            { icon: 'info', label: 'Status', value: s.status === 'confirmed_sighting' ? 'Confirmed by the registered guardian' : 'Awaiting owner verification' }
+          ],
+          note: s.comments || s.notes || '',
+          actions: `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${sCoords[0]}, ${sCoords[1]}, '${this.jsArg(s.breed || 'Pet')}', '${this.jsArg(s.location)}', '${this.jsArg(s.photoUrl || '')}', 'sighting')">Directions</button>${this.popupMapsLink(sCoords[0], sCoords[1])}`
+        })}
+      `);
 
+      sMarker.on('click', () => this.focusPlace(sCoords, s.location || s.breed || 'Sighting'));
       this.sightingMarkers.push({ id: s.id, marker: sMarker, data: s, coords: sCoords });
       markerGroup.push(sCoords);
     });
@@ -584,12 +641,162 @@ class PublicView {
     }
 
     this.updateMapMarkers();
+    this.loadLastSeenLocations();
 
     setTimeout(() => {
       if (this.map) {
         this.map.invalidateSize();
       }
     }, 250);
+  }
+
+  // "Last seen" pins for missing pets, read from the Supabase table missing_pet_last_seen
+  async loadLastSeenLocations() {
+    const map = this.map;
+    const client = window.pawApp && window.pawApp.supabase;
+    if (!map || !client || !window.L) return;
+
+    const { data, error } = await client
+      .from('missing_pet_last_seen')
+      .select('*')
+      .order('last_seen_at', { ascending: false });
+    if (error) {
+      console.warn('[Map] Could not load last seen locations:', error.message);
+      return;
+    }
+    if (this.map !== map) return; // the map was rebuilt while the request was in flight
+
+
+    this.lastSeenItems = (data || []).map(row => {
+      const coords = [row.lat, row.lng];
+      const name = this.escapeHtml(row.pet_name);
+      const ago = this.getTimeAgo(row.last_seen_at);
+
+      const icon = window.L.divIcon({
+        className: 'custom-map-icon-wrap',
+        html: `
+          <div class="last-seen-pin">
+            <span class="last-seen-pulse"></span>
+            <span class="last-seen-dot"></span>
+            <div class="last-seen-label"><strong>${name}</strong><small>Last seen ${ago}</small></div>
+          </div>
+        `,
+        iconSize: null,
+        iconAnchor: [9, 9]
+      });
+
+      const marker = window.L.marker(coords, { icon, zIndexOffset: 500 }).bindPopup(`
+        ${this.popupCard({
+          badge: 'Last seen here',
+          tone: '#e11d48',
+          photo: row.photo_url,
+          title: row.pet_name,
+          subtitle: `${row.species}${row.breed ? ' · ' + row.breed : ''}`,
+          rows: [
+            { icon: 'pin', label: 'Last seen at', value: row.last_seen_location },
+            { icon: 'clock', label: 'When', value: this.formatSightingDate(row.last_seen_at), hint: ago }
+          ],
+          note: row.description,
+          actions: `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.haveYouSeen('${row.id}')">Have you seen this pet?</button>${this.popupMapsLink(row.lat, row.lng)}`
+        })}
+      `);
+
+      // Soft circle: the pet was somewhere around here, not exactly on the pin
+      const area = window.L.circle(coords, {
+        radius: 300, color: '#ba3820', weight: 1.5, opacity: 0.7, dashArray: '6 6', fillColor: '#ba3820', fillOpacity: 0.08
+      });
+
+      marker.on('click', () => this.focusPlace(coords, row.last_seen_location || row.pet_name));
+      return { row, marker, area, coords };
+    });
+
+    this.updateFilterUI();
+  }
+
+  // "Have you seen this pet?" on a last-seen record: open the sighting form pre-filled with that pet
+  haveYouSeen(id) {
+    const item = (this.lastSeenItems || []).find(i => i.row.id === id);
+    if (!item || !window.reportManager) return;
+    const r = item.row;
+    this.map?.closePopup();
+    window.reportManager.openSightingModal(null, null, {
+      name: r.pet_name, breed: r.breed, photoUrl: r.photo_url,
+      place: r.last_seen_location, lat: r.lat, lng: r.lng, seenAt: r.last_seen_at
+    });
+  }
+
+  focusLastSeen(id) {
+    const item = (this.lastSeenItems || []).find(i => i.row.id === id);
+    if (!item || !this.map) return;
+    if (!this.layers.lastSeen) this.toggleLayer('lastSeen');
+    this.map.flyTo(item.coords, 16, { duration: 0.8 });
+    setTimeout(() => item.marker.openPopup(), 850);
+    document.getElementById('public-map-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Shows the last seen pins for the 'all' and 'lost' filters and for the current search; returns their coordinates
+  applyLastSeenFilter() {
+    const shown = [];
+    (this.lastSeenItems || []).forEach(item => {
+      let visible = this.layers.lastSeen;
+      if (visible && this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        visible = [item.row.pet_name, item.row.breed, item.row.species, item.row.last_seen_location]
+          .some(v => (v || '').toLowerCase().includes(q));
+      }
+      [item.marker, item.area].forEach(layer => {
+        if (visible && !this.map.hasLayer(layer)) this.map.addLayer(layer);
+        if (!visible && this.map.hasLayer(layer)) this.map.removeLayer(layer);
+      });
+      if (visible) shown.push(item.coords);
+    });
+    return shown;
+  }
+
+  // Shared look for every map popup: photo header with a status badge, key facts with icons, action buttons
+  popupCard({ badge, tone = '#ba3820', photo = '', placeholderIcon = 'paw', title, subtitle = '', rows = [], note = '', actions = '' }) {
+    const e = (v) => this.escapeHtml(String(v ?? ''));
+    const icons = {
+      pin: '<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      tag: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.5"/>',
+      chip: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>',
+      phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+      info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+      paw: '<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.8 1.2c-.5-1.5-1.8-2.2-3.2-2.7a3 3 0 0 1-.7-5.3A5 5 0 0 1 9 10z"/>',
+      building: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/>'
+    };
+    const svg = (name) => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.info}</svg>`;
+
+    const hero = photo
+      ? `<img class="pt-card-hero-bg" src="${e(photo)}" alt="" aria-hidden="true" onerror="this.remove()" /><img class="pt-card-hero-img" src="${e(photo)}" alt="${e(title)}" onerror="this.remove()" />`
+      : `<span class="pt-card-hero-icon">${svg(placeholderIcon).replace('width="15" height="15"', 'width="38" height="38"')}</span>`;
+    const rowsHtml = rows.filter(r => r && r.value).map(r => `
+      <li>
+        <span class="pt-card-ico">${svg(r.icon)}</span>
+        <span class="pt-card-row-text"><small>${e(r.label)}</small><strong${r.mono ? ' class="pt-mono"' : ''}>${e(r.value)}</strong>${r.hint ? `<em>${e(r.hint)}</em>` : ''}</span>
+      </li>`).join('');
+
+    return `
+      <div class="pt-card" style="--tone:${tone};">
+        <div class="pt-card-hero${photo ? ' is-zoomable' : ''}"${photo ? ` role="button" tabindex="0" title="View full photo" aria-label="View full photo of ${e(title)}" onclick="window.pawApp.openLightbox('${this.jsArg(photo)}', '${this.jsArg(title)}', '${this.jsArg(subtitle)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"` : ''}>${hero}${photo ? '<span class="pt-card-zoom" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>' : ''}<span class="pt-card-badge">${e(badge)}</span></div>
+        <div class="pt-card-body">
+          <h4 class="pt-card-title">${e(title)}</h4>
+          ${subtitle ? `<div class="pt-card-sub">${e(subtitle)}</div>` : ''}
+          ${rowsHtml ? `<ul class="pt-card-rows">${rowsHtml}</ul>` : ''}
+          ${note ? `<div class="pt-card-note">${e(note)}</div>` : ''}
+          <div class="pt-card-actions">${actions}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  popupMapsLink(lat, lng) {
+    return `<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener" class="pt-btn pt-btn-icon" title="Open in Google Maps" aria-label="Open in Google Maps"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+  }
+
+  jsArg(value) {
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
   }
 
   getTimeAgo(value) {
@@ -968,17 +1175,86 @@ class PublicView {
     }
   }
 
+  layerFor(pet) {
+    if (pet.status === 'lost') return 'missing';
+    if (pet.status === 'impounded' || pet.status === 'active_impounded') return 'impounded';
+    return 'reunited';
+  }
+
+  layerCounts() {
+    const pets = window.pawStore.getPets();
+    const countBy = (key) => pets.filter(p => this.layerFor(p) === key).length;
+    return {
+      missing: countBy('missing'),
+      lastSeen: (this.lastSeenItems || []).length,
+      sightings: window.pawStore.getSightings().filter(x => x.status !== 'dismissed' && x.status !== 'archived').length,
+      impounded: countBy('impounded'),
+      reunited: countBy('reunited'),
+      shelters: window.pawStore.getShelters().length
+    };
+  }
+
+  renderLayersPanel() {
+    const counts = this.layerCounts();
+    const active = MAP_LAYER_DEFS.filter(d => this.layers[d.key]).length;
+    const rows = MAP_LAYER_DEFS.map(d => `
+      <label class="map-layer-row">
+        <input type="checkbox" ${this.layers[d.key] ? 'checked' : ''} onchange="window.publicView.toggleLayer('${d.key}')" />
+        <span class="map-layer-swatch" style="--swatch:${d.color};"></span>
+        <span class="map-layer-name">${d.label}</span>
+        <span class="map-layer-count">${counts[d.key]}</span>
+      </label>
+    `).join('');
+
+    return `
+      <button type="button" class="map-layers-toggle" onclick="window.publicView.toggleLayersPanel()" aria-expanded="${this.layersPanelOpen}" aria-controls="map-layers-body">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>Layers</span>
+        <span class="map-layers-badge">${active}/${MAP_LAYER_DEFS.length}</span>
+      </button>
+      <div class="map-layers-body" id="map-layers-body" ${this.layersPanelOpen ? '' : 'hidden'}>
+        ${rows}
+        <div class="map-layers-actions">
+          <button type="button" onclick="window.publicView.setFilter('all')">Show all</button>
+          <button type="button" onclick="window.publicView.setFilter('lost')">Missing only</button>
+          <button type="button" onclick="window.publicView.setFilter('lastseen')">Last seen only</button>
+        </div>
+      </div>
+    `;
+  }
+
+  toggleLayersPanel() {
+    this.layersPanelOpen = !this.layersPanelOpen;
+    this.refreshLayersPanel();
+  }
+
+  refreshLayersPanel() {
+    const el = document.getElementById('map-layers');
+    if (el) el.innerHTML = this.renderLayersPanel();
+  }
+
+  // One layer on or off; the quick filter highlights a preset only while the layers still match it
+  toggleLayer(key) {
+    this.layers[key] = !this.layers[key];
+    const same = (a, b) => Object.keys(a).every(k => a[k] === b[k]);
+    this.currentFilter = Object.keys(MAP_LAYER_PRESETS).find(name => same(this.layers, MAP_LAYER_PRESETS[name])) || 'custom';
+    this.updateFilterUI(false);
+  }
+
   setFilter(filter) {
+    this.focusPoint = null;
     this.currentFilter = filter;
+    this.layers = { ...(MAP_LAYER_PRESETS[filter] || MAP_LAYER_PRESETS.all) };
     this.updateFilterUI();
   }
 
   handleSearch(query) {
+    this.focusPoint = null;
     this.searchQuery = query;
     this.updateFilterUI();
   }
 
-  updateFilterUI() {
+  updateFilterUI(fit = true) {
     const btnGroup = document.getElementById('public-filter-btn-group');
     if (btnGroup) {
       btnGroup.innerHTML = this.renderFilterButtons();
@@ -990,10 +1266,11 @@ class PublicView {
       if (window.lucide) window.lucide.createIcons({ root: listElem });
     }
 
-    this.updateMapMarkers();
+    this.refreshLayersPanel();
+    this.updateMapMarkers(fit);
   }
 
-  updateMapMarkers() {
+  updateMapMarkers(fit = true) {
     if (!this.map || !this.petMarkers) return;
     const pets = window.pawStore.getPets();
     const visibleCoords = [];
@@ -1003,16 +1280,7 @@ class PublicView {
       const marker = this.petMarkers[p.id];
       if (!marker) return;
 
-      let isMatch = true;
-      if (this.currentFilter === 'lost') {
-        isMatch = (p.status === 'lost');
-      } else if (this.currentFilter === 'sighted') {
-        isMatch = false;
-      } else if (this.currentFilter === 'impounded') {
-        isMatch = (p.status === 'impounded' || p.status === 'active_impounded');
-      } else if (this.currentFilter === 'reunited') {
-        isMatch = (p.status === 'reunited' || p.status === 'safe');
-      }
+      let isMatch = this.layers[this.layerFor(p)];
 
       if (isMatch && this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
@@ -1037,7 +1305,7 @@ class PublicView {
     // Filter community sighting markers
     if (this.sightingMarkers) {
       this.sightingMarkers.forEach(sItem => {
-        let isMatch = (this.currentFilter === 'all' || this.currentFilter === 'sighted');
+        let isMatch = this.layers.sightings;
         if (isMatch && this.searchQuery) {
           const q = this.searchQuery.toLowerCase();
           const matchBreed = (sItem.data.breed || '').toLowerCase().includes(q);
@@ -1058,12 +1326,16 @@ class PublicView {
       });
     }
 
-    const shelters = window.pawStore.getShelters();
-    shelters.forEach(s => {
-      visibleCoords.push([s.lat, s.lng]);
+    visibleCoords.push(...this.applyLastSeenFilter());
+
+    (this.shelterMarkers || []).forEach(marker => {
+      const onMap = this.map.hasLayer(marker);
+      if (this.layers.shelters && !onMap) this.map.addLayer(marker);
+      if (!this.layers.shelters && onMap) this.map.removeLayer(marker);
+      if (this.layers.shelters) visibleCoords.push(marker.getLatLng());
     });
 
-    if (visibleCoords.length > 0 && window.L.latLngBounds) {
+    if (fit && visibleCoords.length > 0 && window.L.latLngBounds) {
       try {
         const bounds = window.L.latLngBounds(visibleCoords);
         this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
