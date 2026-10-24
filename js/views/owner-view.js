@@ -22,7 +22,7 @@ class OwnerView {
               <i data-lucide="alert-triangle" style="width:22px; height:22px; color:var(--danger); flex-shrink:0;"></i>
               <div>
                 <div style="font-weight:700;">${t('owner.heroImpoundTitle', 'IMPOUNDMENT NOTICE')}: "${impoundedPet.name.toUpperCase()}" RECORDED</div>
-                <div style="font-size:0.78rem; font-weight:400; color:var(--text-muted);">RFID Tag: ${impoundedPet.rfidTag} · Intake Officer: ${activeImpoundment.intakeOfficer || 'Animal Control Personnel'}</div>
+                <div style="font-size:0.78rem; font-weight:400; color:var(--text-muted);">NFC Tag: ${impoundedPet.nfcTag} · Intake Officer: ${activeImpoundment.intakeOfficer || 'Animal Control Personnel'}</div>
               </div>
             </div>
             <div class="countdown-timer-box">
@@ -66,7 +66,7 @@ class OwnerView {
             <ul>
               <li><i data-lucide="check" style="width:13px; height:13px;"></i> Valid Government Issued ID</li>
               <li><i data-lucide="check" style="width:13px; height:13px;"></i> Pet Registration / Vaccination Book</li>
-              <li><i data-lucide="check" style="width:13px; height:13px;"></i> RFID Tag Verification Proof</li>
+              <li><i data-lucide="check" style="width:13px; height:13px;"></i> NFC Tag Verification Proof</li>
               <li><i data-lucide="check" style="width:13px; height:13px;"></i> Standard Daily Care Fee</li>
             </ul>
             <div style="margin-top: 0.85rem; display:flex; gap:0.65rem; flex-wrap:wrap;">
@@ -79,7 +79,7 @@ class OwnerView {
               <button class="btn btn-outline btn-sm" onclick="window.notifManager.showSmsSimulation({
                 ownerPhone: '${impoundedPet.owner ? impoundedPet.owner.phone : '+63 917 555 3829'}',
                 petName: '${impoundedPet.name}',
-                rfidTag: '${impoundedPet.rfidTag}',
+                nfcTag: '${impoundedPet.nfcTag}',
                 shelterName: '${activeImpoundment.shelterName}',
                 shelterAddress: '${activeImpoundment.shelterAddress}',
                 shelterPhone: '${activeImpoundment.shelterPhone}',
@@ -126,9 +126,9 @@ class OwnerView {
             <span class="owner-summary-value">${safeCount}</span>
             <span class="owner-summary-label">${t('owner.statSafePets', 'Safe / Reunited')}</span>
           </button>
-          <button type="button" class="owner-summary-stat" onclick="window.location.hash='#hardware'" title="${t('owner.statActiveRfid', 'Active RFID Transponders')}">
-            <span class="owner-summary-value">${pets.filter(p => p.rfidTag).length}</span>
-            <span class="owner-summary-label">${t('owner.summaryTags', 'RFID Tags')}</span>
+          <button type="button" class="owner-summary-stat" onclick="window.location.hash='#hardware'" title="${t('owner.statActiveNfc', 'Active NFC Transponders')}">
+            <span class="owner-summary-value">${pets.filter(p => p.nfcTag).length}</span>
+            <span class="owner-summary-label">${t('owner.summaryTags', 'NFC Tags')}</span>
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ class OwnerView {
       <div class="view-header">
         <div class="view-title-group">
           <h1>${t('owner.title', 'Pet Owner Portal')}</h1>
-          <div class="view-subtitle">${t('owner.subtitle', 'Monitor registered pets, manage RFID tags, and receive immediate impoundment notifications.')}</div>
+          <div class="view-subtitle">${t('owner.subtitle', 'Monitor registered pets, manage NFC tags, and receive immediate impoundment notifications.')}</div>
         </div>
         <div style="display:flex; gap:0.6rem; align-items:center; width:auto;">
           <button class="btn-help-circle" id="owner-guide-header-btn" onclick="window.ownerView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
@@ -267,13 +267,13 @@ class OwnerView {
             </div>
           </div>
 
-          <div class="stat-card glass-card" data-label="${t('owner.statActiveRfid', 'Active RFID Transponders')}" title="Click to view hardware transponder specs" style="cursor:pointer;" onclick="window.location.hash='#hardware'">
+          <div class="stat-card glass-card" data-label="${t('owner.statActiveNfc', 'Active NFC Transponders')}" title="Click to view hardware transponder specs" style="cursor:pointer;" onclick="window.location.hash='#hardware'">
             <div class="stat-icon" style="background:linear-gradient(135deg, #b85410, #54280e); color:#ffffff;">
               <i data-lucide="radio"></i>
             </div>
             <div class="stat-info">
-              <div class="stat-value">${pets.filter(p => p.rfidTag).length}</div>
-              <div class="stat-label">${t('owner.statActiveRfid', 'Active RFID Transponders')}</div>
+              <div class="stat-value">${pets.filter(p => p.nfcTag).length}</div>
+              <div class="stat-label">${t('owner.statActiveNfc', 'Active NFC Transponders')}</div>
             </div>
           </div>
 
@@ -304,11 +304,11 @@ class OwnerView {
     let badgeClass = 'badge-safe';
     let badgeText = t('owner.statusSafe', 'Safe');
 
-    // Check if a community founder submitted a Found report matching this pet's RFID
+    // Check if a community founder submitted a Found report matching this pet's NFC
     const sightings = window.pawStore ? (window.pawStore.getSightings() || []) : [];
-    const cleanPetRfid = (pet.rfidTag || '').trim().toUpperCase();
+    const cleanPetNfc = (pet.nfcTag || '').trim().toUpperCase();
     const matchingSighting = sightings.find(s => 
-      (cleanPetRfid && s.rfidTag && s.rfidTag.trim().toUpperCase() === cleanPetRfid) ||
+      (cleanPetNfc && s.nfcTag && s.nfcTag.trim().toUpperCase() === cleanPetNfc) ||
       (s.matchedPetId && s.matchedPetId === pet.id)
     );
 
@@ -327,7 +327,7 @@ class OwnerView {
     }
 
     const safePetName = (pet.name || 'Pet').replace(/'/g, "\\'");
-    const safeCaption = `${pet.breed} · ${pet.species} | RFID: ${pet.rfidTag}`.replace(/'/g, "\\'");
+    const safeCaption = `${pet.breed} · ${pet.species} | NFC: ${pet.nfcTag}`.replace(/'/g, "\\'");
 
     return `
       <div class="pet-card glass-card ${matchingSighting ? 'pet-card-matched-pending' : ''}">
@@ -356,12 +356,12 @@ class OwnerView {
               <div class="pet-meta">${pet.breed} · ${pet.gender} · ${pet.species}</div>
             </div>
             <div style="text-align:right;">
-              <span class="badge badge-outline" style="font-family:var(--font-mono); font-size:0.75rem;">${pet.rfidTag}</span>
+              <span class="badge badge-outline" style="font-family:var(--font-mono); font-size:0.75rem;">${pet.nfcTag}</span>
             </div>
           </div>
 
           ${matchingSighting ? `
-            <!-- Pending Founder Sighting Banner (Visible strictly to registered owner with matching RFID) -->
+            <!-- Pending Founder Sighting Banner (Visible strictly to registered owner with matching NFC) -->
             <div class="pending-founder-banner">
               <div style="display:flex; align-items:center; gap:8px; min-width:0;">
                 <span class="pending-pulse-dot"></span>
@@ -433,7 +433,7 @@ class OwnerView {
                 <span>${t('owner.btnReportLost', 'Report Missing')}</span>
               </button>
             `}
-            <button class="btn btn-outline btn-sm" style="flex-shrink:0; display:flex; align-items:center; gap:4px;" onclick="window.ownerView.showDigitalTagPass('${pet.id}')" title="View Digital RFID & QR Tag Pass">
+            <button class="btn btn-outline btn-sm" style="flex-shrink:0; display:flex; align-items:center; gap:4px;" onclick="window.ownerView.showDigitalTagPass('${pet.id}')" title="View Digital NFC & QR Tag Pass">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect width="5" height="5" x="3" y="3" rx="1"/>
                 <rect width="5" height="5" x="16" y="3" rx="1"/>
@@ -485,7 +485,7 @@ class OwnerView {
     this.timerInterval = setInterval(updateDisplay, 1000);
   }
 
-  openRegisterModal(prefillRfid = null) {
+  openRegisterModal(prefillNfc = null) {
     if (!window.pawStore.isLoggedIn()) {
       const onetap = document.getElementById('google-onetap-prompt');
       if (onetap) onetap.style.display = 'block';
@@ -499,14 +499,14 @@ class OwnerView {
     const modal = document.getElementById('register-pet-modal');
     const form = document.getElementById('register-pet-form');
     if (form) {
-      if (prefillRfid) {
-        form.dataset.prefillRfid = prefillRfid;
+      if (prefillNfc) {
+        form.dataset.prefillNfc = prefillNfc;
         const notes = document.getElementById('reg-pet-notes');
         if (notes && !notes.value) {
-          notes.value = `Assigned Tag UID: ${prefillRfid}`;
+          notes.value = `Assigned Tag UID: ${prefillNfc}`;
         }
       } else {
-        delete form.dataset.prefillRfid;
+        delete form.dataset.prefillNfc;
       }
     }
     if (modal) modal.classList.add('active');
@@ -575,9 +575,9 @@ class OwnerView {
     if (!pet) return;
 
     const sightings = window.pawStore ? (window.pawStore.getSightings() || []) : [];
-    const cleanPetRfid = (pet.rfidTag || '').trim().toUpperCase();
+    const cleanPetNfc = (pet.nfcTag || '').trim().toUpperCase();
     const match = sightings.find(s => 
-      (cleanPetRfid && s.rfidTag && s.rfidTag.trim().toUpperCase() === cleanPetRfid) ||
+      (cleanPetNfc && s.nfcTag && s.nfcTag.trim().toUpperCase() === cleanPetNfc) ||
       (s.matchedPetId && s.matchedPetId === pet.id)
     );
 
@@ -588,7 +588,7 @@ class OwnerView {
         petName: pet.name,
         breed: pet.breed || match.breed,
         species: pet.species || match.species,
-        rfidTag: pet.rfidTag,
+        nfcTag: pet.nfcTag,
         photoUrl: match.photoUrl || match.photo || pet.photoUrl,
         finderName: match.reporterName || 'Community Good Samaritan',
         finderPhone: match.reporterPhone || '+63 9XX XXX XXXX',
@@ -602,7 +602,7 @@ class OwnerView {
       }
     } else {
       const notifs = window.pawStore ? (window.pawStore.getNotifications() || []) : [];
-      const notifMatch = notifs.find(n => (n.petId === pet.id || (cleanPetRfid && n.rfidTag && n.rfidTag.toUpperCase() === cleanPetRfid)) && n.type === 'pet_found_match');
+      const notifMatch = notifs.find(n => (n.petId === pet.id || (cleanPetNfc && n.nfcTag && n.nfcTag.toUpperCase() === cleanPetNfc)) && n.type === 'pet_found_match');
       if (notifMatch && window.notifManager) {
         window.notifManager.showFinderInfo(notifMatch);
       } else if (window.notifManager) {
@@ -650,8 +650,8 @@ class OwnerView {
 
         <div style="background:var(--bg-surface-elevated); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-glass); margin-bottom:1.25rem; text-align:left;">
           <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-            <span style="color:var(--text-muted); font-size:0.8rem;">RFID Transponder ID</span>
-            <strong style="color:var(--primary); font-family:monospace;">${pet.rfidTag}</strong>
+            <span style="color:var(--text-muted); font-size:0.8rem;">NFC Transponder ID</span>
+            <strong style="color:var(--primary); font-family:monospace;">${pet.nfcTag}</strong>
           </div>
           <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
             <span style="color:var(--text-muted); font-size:0.8rem;">ISO 11784 Microchip</span>
@@ -669,9 +669,9 @@ class OwnerView {
 
         <div style="background:#ffffff; padding:1rem; border-radius:var(--radius-md); display:inline-block; margin-bottom:1rem; box-shadow:var(--shadow-sm);">
           <div style="font-family:monospace; font-weight:900; font-size:1.15rem; color:#180d07; letter-spacing:2px; border:2px dashed #180d07; padding:0.6rem 1.2rem; border-radius:var(--radius-sm);">
-            * ${pet.rfidTag} *
+            * ${pet.nfcTag} *
           </div>
-          <div style="font-size:0.65rem; color:#666; margin-top:0.4rem; text-transform:uppercase;">134.2 kHz FDX-B RFID Encoded</div>
+          <div style="font-size:0.65rem; color:#666; margin-top:0.4rem; text-transform:uppercase;">13.56 MHz NFC Encoded</div>
         </div>
 
         <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;">

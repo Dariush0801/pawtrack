@@ -8,6 +8,7 @@ if (fs.existsSync(path.join(__dirname, '.env'))) {
   process.loadEnvFile(path.join(__dirname, '.env'));
 }
 const photoMatch = require('./api/photo-match');
+const { migrateLegacyNfc } = require('./js/legacy-nfc');
 const mailer = require('./api/mailer');
 
 const PORT = process.env.PORT || 3000;
@@ -78,15 +79,15 @@ const SEED_SHELTERS = [
   }
 ];
 
-const SEED_RFID_TAGS = [
-  { id: 'tag-1', code: 'RFID-882194', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-2', code: 'RFID-449102', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-3', code: 'RFID-109283', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-4', code: 'RFID-331908', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-5', code: 'RFID-771829', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-6', code: 'RFID-904123', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-7', code: 'RFID-662310', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-8', code: 'RFID-551980', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null }
+const SEED_NFC_TAGS = [
+  { id: 'tag-1', code: 'NFC-882194', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-2', code: 'NFC-449102', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-3', code: 'NFC-109283', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-4', code: 'NFC-331908', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-5', code: 'NFC-771829', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-6', code: 'NFC-904123', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-7', code: 'NFC-662310', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-8', code: 'NFC-551980', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null }
 ];
 
 const SEED_SETTINGS = {
@@ -97,7 +98,7 @@ const SEED_SETTINGS = {
   autoNotifyOwnerOnIntake: true,
   autoNotifyOwnerOnExpiryWarning: true,
   expiryWarningHours: 12,
-  rfidScannerBaudRate: 9600,
+  nfcScannerBaudRate: 9600,
   municipalJurisdiction: 'National Capital Region (Metro Manila)',
   syncStatus: 'Active Multi-Tab Shared'
 };
@@ -136,7 +137,7 @@ function getDefaultDatabase() {
     cases: [],
     missingReports: [],
     shelters: SEED_SHELTERS,
-    rfidTags: SEED_RFID_TAGS,
+    nfcTags: SEED_NFC_TAGS,
     settings: SEED_SETTINGS
   };
 }
@@ -147,7 +148,7 @@ function getDatabase() {
       let raw = fs.readFileSync(SHARED_DB_PATH, 'utf8');
       raw = raw.replace(/^\uFEFF/, '').trim();
       if (raw) {
-        const parsed = JSON.parse(raw);
+        const parsed = migrateLegacyNfc(JSON.parse(raw));
         if (parsed && typeof parsed === 'object') {
           if (!Array.isArray(parsed.pets)) parsed.pets = [];
           if (!Array.isArray(parsed.impoundments)) parsed.impoundments = [];
@@ -156,7 +157,7 @@ function getDatabase() {
           if (!Array.isArray(parsed.cases)) parsed.cases = [];
           if (!Array.isArray(parsed.missingReports)) parsed.missingReports = [];
           if (!Array.isArray(parsed.shelters) || parsed.shelters.length === 0) parsed.shelters = SEED_SHELTERS;
-          if (!Array.isArray(parsed.rfidTags) || parsed.rfidTags.length === 0) parsed.rfidTags = SEED_RFID_TAGS;
+          if (!Array.isArray(parsed.nfcTags) || parsed.nfcTags.length === 0) parsed.nfcTags = SEED_NFC_TAGS;
           if (!parsed.settings) parsed.settings = SEED_SETTINGS;
           return parsed;
         }
@@ -257,7 +258,7 @@ const server = http.createServer((req, res) => {
         pets: (db.pets || []).length,
         impoundments: (db.impoundments || []).length,
         shelters: (db.shelters || []).length,
-        rfidTags: (db.rfidTags || []).length,
+        nfcTags: (db.nfcTags || []).length,
         sightings: (db.sightings || []).length,
         cases: (db.cases || []).length
       },
@@ -352,7 +353,7 @@ const server = http.createServer((req, res) => {
                   </div>
                   <p style="font-size: 13px; color: #64748b;">This PIN is valid for 10 minutes. If you did not request this code, please disregard this email.</p>
                   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                  <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack RFID Pet Recovery &amp; Municipal Pound Network</p>
+                  <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack NFC Pet Recovery &amp; Municipal Pound Network</p>
                 </div>
               `
             }).catch(e => console.warn('[Brevo Warn]:', e.message));
@@ -434,7 +435,7 @@ const server = http.createServer((req, res) => {
                     <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.7; color: #334155;">
                       <li><strong>Google Profile Access:</strong> Verified your name and email address for guardian record keeping.</li>
                       <li><strong>Verified Guardian Identity:</strong> Activated pet registration privileges and digital tag passes.</li>
-                      <li><strong>Urgent Municipal Alerts:</strong> Subscribed to instant 72-hour impound countdowns &amp; community RFID sighting alerts.</li>
+                      <li><strong>Urgent Municipal Alerts:</strong> Subscribed to instant 72-hour impound countdowns &amp; community NFC sighting alerts.</li>
                     </ul>
                   </div>
 
@@ -539,7 +540,7 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const payload = JSON.parse(body);
+        const payload = migrateLegacyNfc(JSON.parse(body)); // older clients still send rfid* fields
         const db = getDatabase();
         if (!Array.isArray(db.pets)) db.pets = [];
         if (!Array.isArray(db.impoundments)) db.impoundments = [];
@@ -547,7 +548,7 @@ const server = http.createServer((req, res) => {
         if (!Array.isArray(db.sightings)) db.sightings = [];
         if (!Array.isArray(db.cases)) db.cases = [];
         if (!Array.isArray(db.missingReports)) db.missingReports = [];
-        if (!Array.isArray(db.rfidTags)) db.rfidTags = [];
+        if (!Array.isArray(db.nfcTags)) db.nfcTags = [];
 
         if (payload.action === 'save_pet') {
           const pet = payload.pet;
@@ -555,9 +556,9 @@ const server = http.createServer((req, res) => {
           if (idx >= 0) db.pets[idx] = pet;
           else db.pets.unshift(pet);
 
-          if (pet.rfidTag) {
-            const cleanTag = pet.rfidTag.trim().toUpperCase();
-            const tagItem = db.rfidTags.find(t => (t.code || t.tag || '').toUpperCase() === cleanTag);
+          if (pet.nfcTag) {
+            const cleanTag = pet.nfcTag.trim().toUpperCase();
+            const tagItem = db.nfcTags.find(t => (t.code || t.tag || '').toUpperCase() === cleanTag);
             if (tagItem) {
               tagItem.status = 'assigned';
               tagItem.petId = pet.id;
@@ -569,13 +570,13 @@ const server = http.createServer((req, res) => {
           const sighting = payload.sighting;
           db.sightings.unshift(sighting);
 
-          // If rfidTag or matchedPetId is present, check against registered pets
+          // If nfcTag or matchedPetId is present, check against registered pets
           let pet = null;
           if (sighting.matchedPetId) {
             pet = db.pets.find(p => p.id === sighting.matchedPetId);
-          } else if (sighting.rfidTag) {
-            const cleanTag = sighting.rfidTag.trim().toUpperCase();
-            pet = db.pets.find(p => (p.rfidTag || '').trim().toUpperCase() === cleanTag);
+          } else if (sighting.nfcTag) {
+            const cleanTag = sighting.nfcTag.trim().toUpperCase();
+            pet = db.pets.find(p => (p.nfcTag || '').trim().toUpperCase() === cleanTag);
             if (pet) {
               sighting.matchedPetId = pet.id;
             }
@@ -590,7 +591,7 @@ const server = http.createServer((req, res) => {
               message: `Your pet was found and reported near ${sighting.location || 'Metro Manila'}. Finder Contact: ${sighting.reporterPhone || 'Available in details'}. Notes: "${sighting.comments || 'Pet is safe with community finder.'}"`,
               petId: pet.id,
               petName: pet.name,
-              rfidTag: pet.rfidTag,
+              nfcTag: pet.nfcTag,
               finderName: sighting.reporterName || 'Community Good Samaritan',
               finderPhone: sighting.reporterPhone || '+63 9XX XXX XXXX',
               finderNotes: sighting.comments || 'Pet is safe with community finder.',
@@ -609,7 +610,7 @@ const server = http.createServer((req, res) => {
                 id: 'CASE-' + new Date().getFullYear() + '-' + String(db.cases.length + 1).padStart(4, '0'),
                 petId: pet.id,
                 petName: pet.name,
-                rfidTag: pet.rfidTag,
+                nfcTag: pet.nfcTag,
                 status: 'sighted',
                 createdAt: pet.lastSeenDate || new Date().toISOString(),
                 lastUpdated: new Date().toISOString(),
@@ -720,7 +721,7 @@ const server = http.createServer((req, res) => {
                 location: payload.impoundment.shelterName,
                 kennelId: payload.impoundment.cageNumber,
                 officer: payload.impoundment.intakeOfficer,
-                notes: `RFID ${payload.impoundment.rfidTag} verified at intake terminal.`
+                notes: `NFC ${payload.impoundment.nfcTag} verified at intake terminal.`
               });
             }
           }
@@ -732,7 +733,7 @@ const server = http.createServer((req, res) => {
             imp.redemptionDocs = payload.documents || {
               govIdVerified: true,
               vaccineBookVerified: true,
-              rfidPassVerified: true,
+              nfcPassVerified: true,
               feeReceiptNo: payload.receiptNo || 'OR-' + Math.floor(100000 + Math.random() * 900000)
             };
             const pet = db.pets.find(p => p.id === imp.petId);
@@ -754,9 +755,9 @@ const server = http.createServer((req, res) => {
         } else if (payload.action === 'delete_pet') {
           const target = db.pets.find(p => p.id === payload.petId);
           db.pets = db.pets.filter(p => p.id !== payload.petId);
-          if (target && target.rfidTag) {
-            const cleanTag = target.rfidTag.trim().toUpperCase();
-            const tagItem = db.rfidTags.find(t => (t.code || t.tag || '').toUpperCase() === cleanTag);
+          if (target && target.nfcTag) {
+            const cleanTag = target.nfcTag.trim().toUpperCase();
+            const tagItem = db.nfcTags.find(t => (t.code || t.tag || '').toUpperCase() === cleanTag);
             if (tagItem) {
               tagItem.status = 'available';
               tagItem.petId = null;

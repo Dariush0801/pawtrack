@@ -9,12 +9,12 @@ console.log('=== Running Test: Hardware Scan to Landing Page & Report Pet ===\n'
 
 // Read files
 const appJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
-const rfidScannerJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'rfid-scanner.js'), 'utf8');
+const nfcScannerJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'nfc-scanner.js'), 'utf8');
 const hardwareViewJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'hardware-view.js'), 'utf8');
 const reportManagerJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'report-manager.js'), 'utf8');
 
 // 1. Verify methods exist in code
-assert(rfidScannerJs.includes('scanAndReportTag'), 'rfid-scanner.js must include scanAndReportTag');
+assert(nfcScannerJs.includes('scanAndReportTag'), 'nfc-scanner.js must include scanAndReportTag');
 assert(hardwareViewJs.includes('scanAndReport'), 'hardware-view.js must include scanAndReport');
 assert(appJs.includes('checkHardwareScanUrl'), 'app.js must include checkHardwareScanUrl');
 assert(appJs.includes('pawtrack:hardware-scan'), 'app.js must listen for pawtrack:hardware-scan');
@@ -38,7 +38,7 @@ const mockDom = {
       remove(c) { this.classes.delete(c); modalOpened = false; }
     }
   },
-  'report-found-rfid': { value: '' },
+  'report-found-nfc': { value: '' },
   'report-found-location': { value: '' }
 };
 
@@ -63,17 +63,17 @@ global.window = {
     openReportModal: (type = 'found', petId = null, prefill = {}) => {
       modalOpened = true;
       openedModalType = type;
-      if (prefill && prefill.rfidTag) {
-        prefilledTag = prefill.rfidTag;
-        mockDom['report-found-rfid'].value = prefill.rfidTag;
+      if (prefill && prefill.nfcTag) {
+        prefilledTag = prefill.nfcTag;
+        mockDom['report-found-nfc'].value = prefill.nfcTag;
       }
     }
   },
-  rfidScanner: {
+  nfcScanner: {
     playSuccessChirp: () => {},
-    scanAndReportTag: function(rfidTagCode = 'RFID-882194') {
+    scanAndReportTag: function(nfcTagCode = 'NFC-882194') {
       window.location.hash = 'owner';
-      window.reportManager.openReportModal('found', null, { rfidTag: rfidTagCode });
+      window.reportManager.openReportModal('found', null, { nfcTag: nfcTagCode });
     }
   }
 };
@@ -91,32 +91,32 @@ modalOpened = false;
 prefilledTag = null;
 
 // Execute simulated hardwareView.scanAndReport
-window.rfidScanner.scanAndReportTag('RFID-882194');
+window.nfcScanner.scanAndReportTag('NFC-882194');
 
 assert.strictEqual(window.location.hash, '#owner', 'Must navigate directly to owner landing page');
 assert.strictEqual(modalOpened, true, 'Report Pet modal must pop up');
 assert.strictEqual(openedModalType, 'found', 'Report Pet modal must open in found pet mode');
-assert.strictEqual(prefilledTag, 'RFID-882194', 'Scanned RFID tag must be prefilled in report form');
+assert.strictEqual(prefilledTag, 'NFC-882194', 'Scanned NFC tag must be prefilled in report form');
 console.log('[PASS] Hardware view scan redirected to owner landing page and opened Report Pet modal!');
 
 // TEST 2: URL Query parameter hardware scan simulation (e.g. scanning QR code on phone)
-console.log('\n--- Test 2: URL Query Parameter Hardware Scan (?scan=1&rfid=RFID-449102) ---');
-searchParamsString = '?scan=1&rfid=RFID-449102';
+console.log('\n--- Test 2: URL Query Parameter Hardware Scan (?scan=1&nfc=NFC-449102) ---');
+searchParamsString = '?scan=1&nfc=NFC-449102';
 modalOpened = false;
 prefilledTag = null;
 currentHash = '';
 
 // Test checkHardwareScanUrl logic
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('scan') || urlParams.has('rfid')) {
-  const scannedTag = urlParams.get('rfid') || '';
+if (urlParams.has('scan') || urlParams.has('nfc')) {
+  const scannedTag = urlParams.get('nfc') || '';
   window.location.hash = 'owner';
-  window.reportManager.openReportModal('found', null, { rfidTag: scannedTag });
+  window.reportManager.openReportModal('found', null, { nfcTag: scannedTag });
 }
 
 assert.strictEqual(window.location.hash, '#owner', 'Must navigate to #owner when scan param is present');
 assert.strictEqual(modalOpened, true, 'Report Pet modal must pop up automatically');
-assert.strictEqual(prefilledTag, 'RFID-449102', 'RFID tag from QR/NFC link must be prefilled');
+assert.strictEqual(prefilledTag, 'NFC-449102', 'NFC tag from QR/NFC link must be prefilled');
 console.log('[PASS] URL Query parameter hardware scan successfully popped up Report Pet on owner page!');
 
 console.log('\n=== All Hardware Scan Direct Tests Passed Successfully! ===\n');

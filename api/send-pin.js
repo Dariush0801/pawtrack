@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
               </div>
               <p style="font-size: 13px; color: #64748b;">This PIN is valid for 10 minutes. If you did not request this code, please disregard this email.</p>
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-              <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack RFID Pet Recovery &amp; Municipal Pound Network</p>
+              <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack NFC Pet Recovery &amp; Municipal Pound Network</p>
             </div>
           `
         });

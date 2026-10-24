@@ -60,7 +60,7 @@ const goodSamaritanItem = {
   type: 'pet_found_match',
   title: 'GOOD SAMARITAN FOUND YOUR PET: "BUSTER TEST" !',
   message: 'Your pet was found and reported near Katipunan Ave...',
-  rfidTag: 'TEST-RFID-998811',
+  nfcTag: 'TEST-NFC-998811',
   finderPhone: '+63 918 777 4321'
 };
 
@@ -89,7 +89,7 @@ global.pawStore = {
     const item = [goodSamaritanItem, impoundItem, sightingItem].find(n => n.id === id);
     if (item) item.read = true;
   },
-  getPetByRFID: () => null,
+  getPetByNFC: () => null,
   getPetById: () => null,
   getSightings: () => [],
   getCases: () => [],

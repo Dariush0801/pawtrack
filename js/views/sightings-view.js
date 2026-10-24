@@ -101,7 +101,7 @@ class SightingsView {
               <span class="badge badge-outline" style="font-size:0.8rem; font-weight:700;">(${pets.length})</span>
             </h2>
             <div class="ux-collapsible-hint">
-              Track RFID collar statuses, report missing pets, or view pending founder matches.
+              Track NFC collar statuses, report missing pets, or view pending founder matches.
             </div>
           </div>
           <i data-lucide="chevron-down" class="ux-collapsible-chevron"></i>
@@ -114,7 +114,7 @@ class SightingsView {
                 <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
               </div>
               <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
+              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an NFC collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
             </div>
           ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
         </div>
@@ -381,7 +381,7 @@ class SightingsView {
             <div>
               <div style="font-size:0.7rem; color:var(--primary); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Linked Missing Pet</div>
               <div style="font-size:0.85rem; font-weight:700; color:var(--text-main);">${this._esc(pet.name)}</div>
-              <div style="font-size:0.72rem; color:var(--text-muted);">${this._esc(pet.breed || '')} · RFID: ${this._esc(pet.rfidTag || 'N/A')}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${this._esc(pet.breed || '')} · NFC: ${this._esc(pet.nfcTag || 'N/A')}</div>
             </div>
           </div>
         `;
@@ -523,9 +523,9 @@ class SightingsView {
   // ─────────────────────────────────────────────────
   // OWNER / PET MANAGEMENT DELEGATION
   // ─────────────────────────────────────────────────
-  openRegisterModal(prefillRfid) {
+  openRegisterModal(prefillNfc) {
     if (window.ownerView) {
-      window.ownerView.openRegisterModal(prefillRfid);
+      window.ownerView.openRegisterModal(prefillNfc);
     }
   }
 

@@ -62,7 +62,7 @@ module.exports = async function handler(req, res) {
                 <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.7; color: #334155;">
                   <li><strong>Google Profile Access:</strong> Verified your name and email address for guardian record keeping.</li>
                   <li><strong>Verified Guardian Identity:</strong> Activated pet registration privileges and digital tag passes.</li>
-                  <li><strong>Urgent Municipal Alerts:</strong> Subscribed to instant 72-hour impound countdowns &amp; community RFID sighting alerts.</li>
+                  <li><strong>Urgent Municipal Alerts:</strong> Subscribed to instant 72-hour impound countdowns &amp; community NFC sighting alerts.</li>
                 </ul>
               </div>
 

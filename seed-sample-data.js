@@ -8,7 +8,7 @@ const pets = [
     breed: 'Golden Retriever',
     gender: 'Male',
     color: 'Golden brown with white chest patch',
-    rfidTag: 'RFID-882194',
+    nfcTag: 'NFC-882194',
     microchipNo: '98514100882194',
     status: 'lost',
     medicalNotes: 'Friendly, microchipped, floppy ears, distinctive white patch on chest.',
@@ -32,7 +32,7 @@ const pets = [
     breed: 'Calico / Domestic Shorthair',
     gender: 'Female',
     color: 'Tri-color (Orange, Black, White)',
-    rfidTag: 'RFID-441920',
+    nfcTag: 'NFC-441920',
     microchipNo: '98514100441920',
     status: 'impounded',
     medicalNotes: 'Spayed, calico coat pattern, wearing blue collar with bell.',
@@ -56,7 +56,7 @@ const pets = [
     breed: 'Beagle',
     gender: 'Male',
     color: 'Tricolor (White, Brown, Black)',
-    rfidTag: 'RFID-912044',
+    nfcTag: 'NFC-912044',
     microchipNo: '98514100912044',
     status: 'safe',
     medicalNotes: 'Fully vaccinated, active tracker collar, highly energetic.',
@@ -87,7 +87,7 @@ const missingReports = [
     lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
     lastSeenCoords: [14.6360, 121.0370],
     lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
-    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with RFID-882194.',
+    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with NFC-882194.',
     status: 'active',
     createdAt: new Date(Date.now() - 5 * 3600000).toISOString()
   }
@@ -161,7 +161,7 @@ const impoundments = [
     petName: 'Luna',
     species: 'Cat',
     breed: 'Calico / Domestic Shorthair',
-    rfidTag: 'RFID-441920',
+    nfcTag: 'NFC-441920',
     photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
     shelterId: 'sh-1',
     shelterName: 'Quezon City Animal Care & Adoption Facility',
@@ -181,7 +181,7 @@ const cases = [
     id: 'CASE-2026-0001',
     petId: 'pet-seed-01',
     petName: 'Max',
-    rfidTag: 'RFID-882194',
+    nfcTag: 'NFC-882194',
     status: 'sighted',
     createdAt: new Date(Date.now() - 6 * 3600000).toISOString(),
     lastUpdated: new Date(Date.now() - 3 * 3600000).toISOString(),
@@ -200,7 +200,7 @@ const cases = [
         type: 'missing',
         title: 'Emergency Missing Alert Broadcast Activated',
         location: 'Scout Gandia, Brgy. South Triangle, Quezon City',
-        notes: 'Guardian reported missing. RFID-882194 tagged on all patrol scanners.'
+        notes: 'Guardian reported missing. NFC-882194 tagged on all patrol scanners.'
       }
     ]
   },
@@ -208,7 +208,7 @@ const cases = [
     id: 'CASE-2026-0002',
     petId: 'pet-seed-02',
     petName: 'Luna',
-    rfidTag: 'RFID-441920',
+    nfcTag: 'NFC-441920',
     status: 'impounded',
     createdAt: new Date(Date.now() - 20 * 3600000).toISOString(),
     lastUpdated: new Date(Date.now() - 16 * 3600000).toISOString(),
@@ -219,7 +219,7 @@ const cases = [
         title: 'Shelter Intake Logged (72-Hour Holding Window Active)',
         location: 'Quezon City Animal Care & Adoption Facility',
         officer: 'Officer J. Ramos',
-        notes: 'Admitted to Kennel Bay C-14. Verified RFID-441920.'
+        notes: 'Admitted to Kennel Bay C-14. Verified NFC-441920.'
       },
       {
         timestamp: new Date(Date.now() - 20 * 3600000).toISOString(),

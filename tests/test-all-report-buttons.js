@@ -230,10 +230,10 @@ verify(26, 'Found / Sighted Stray Pet selector provides Registered and Unregiste
   return hasFoundSelect && hasPopulateFound;
 });
 
-// 27. Collar RFID field removed from Found Pet form
-verify(27, 'Collar RFID Tag field removed from Found / Sighted Stray Pet form', () => {
-  return !indexHtml.includes('id="report-found-rfid"') &&
-         !indexHtml.includes('data-i18n="report.rfidTag"');
+// 27. Collar NFC field removed from Found Pet form
+verify(27, 'Collar NFC Tag field removed from Found / Sighted Stray Pet form', () => {
+  return !indexHtml.includes('id="report-found-nfc"') &&
+         !indexHtml.includes('data-i18n="report.nfcTag"');
 });
 
 // 28. Report Pet Sighting modal has Maps/Upload toggle, layer dock, and preserves green pinpoint icon

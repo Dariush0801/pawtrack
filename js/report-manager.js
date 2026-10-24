@@ -123,15 +123,15 @@ class ReportManager {
     this.populatePetsDropdown(petId);
     this.populateFoundPetsDropdown(petId);
 
-    if (prefill && prefill.rfidTag && window.pawStore) {
-      const matched = window.pawStore.getPetByRFID(prefill.rfidTag);
+    if (prefill && prefill.nfcTag && window.pawStore) {
+      const matched = window.pawStore.getPetByNFC(prefill.nfcTag);
       if (matched) {
         petId = matched.id;
         this.populatePetsDropdown(petId);
         this.populateFoundPetsDropdown(petId);
       }
-      const rfidInput = document.getElementById('report-found-rfid');
-      if (rfidInput) rfidInput.value = prefill.rfidTag;
+      const nfcInput = document.getElementById('report-found-nfc');
+      if (nfcInput) nfcInput.value = prefill.nfcTag;
     }
     if (prefill && prefill.location) {
       const locInput = document.getElementById('report-found-location');
@@ -425,7 +425,7 @@ class ReportManager {
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
-        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.nfcTag})</option>`;
       });
 
       options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
@@ -505,7 +505,7 @@ class ReportManager {
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
-        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.nfcTag})</option>`;
       });
 
       options += `<option value="unregistered" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
@@ -526,11 +526,11 @@ class ReportManager {
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
     const speciesSelect = document.getElementById('report-found-species');
     const breedInput = document.getElementById('report-found-breed');
-    const rfidInput = document.getElementById('report-found-rfid');
+    const nfcInput = document.getElementById('report-found-nfc');
 
     if (isUnregistered) {
-      if (rfidInput && !rfidInput.dataset.manual) {
-        rfidInput.value = '';
+      if (nfcInput && !nfcInput.dataset.manual) {
+        nfcInput.value = '';
       }
     } else {
       if (petId && petId !== 'registered' && window.pawStore) {
@@ -543,8 +543,8 @@ class ReportManager {
           if (breedInput && pet.breed) {
             breedInput.value = pet.breed;
           }
-          if (rfidInput && pet.rfidTag) {
-            rfidInput.value = pet.rfidTag;
+          if (nfcInput && pet.nfcTag) {
+            nfcInput.value = pet.nfcTag;
           }
           if (pet.photoUrl || pet.photo) {
             this.setUploadedPhoto(pet.photoUrl || pet.photo);
@@ -556,7 +556,7 @@ class ReportManager {
           const pet = pets[0];
           if (speciesSelect && pet.species) speciesSelect.value = (pet.species === 'Cat' ? 'Cat' : pet.species === 'Dog' ? 'Dog' : 'Other');
           if (breedInput && pet.breed) breedInput.value = pet.breed;
-          if (rfidInput && pet.rfidTag) rfidInput.value = pet.rfidTag;
+          if (nfcInput && pet.nfcTag) nfcInput.value = pet.nfcTag;
           if (pet.photoUrl || pet.photo) this.setUploadedPhoto(pet.photoUrl || pet.photo);
         }
       }
@@ -1173,10 +1173,10 @@ class ReportManager {
     const breed = (document.getElementById('report-found-breed')?.value || '').trim();
     const location = (document.getElementById('report-found-location')?.value || '').trim();
     const phone = (document.getElementById('report-found-phone')?.value || '').trim();
-    const rfid = (document.getElementById('report-found-rfid')?.value || '').trim();
+    const nfc = (document.getElementById('report-found-nfc')?.value || '').trim();
     const notes = (document.getElementById('report-found-notes')?.value || '').trim();
 
-    // Required fields validation (all except message/notes and rfid)
+    // Required fields validation (all except message/notes and nfc)
     if (!selectedPetId) {
       if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
       petSelect?.focus();
@@ -1207,13 +1207,13 @@ class ReportManager {
 
     const sightingId = 'SIGHT-' + Date.now().toString().slice(-6);
 
-    // Check if the selected registered pet or entered RFID matches any registered pet in the system BEFORE building sighting object
+    // Check if the selected registered pet or entered NFC matches any registered pet in the system BEFORE building sighting object
     let matchedPet = null;
     if (selectedPetId && selectedPetId !== 'unregistered' && selectedPetId !== 'custom' && selectedPetId !== 'registered' && window.pawStore) {
       matchedPet = window.pawStore.getPetById(selectedPetId);
     }
-    if (!matchedPet && rfid && window.pawStore) {
-      matchedPet = window.pawStore.getPetByRFID(rfid);
+    if (!matchedPet && nfc && window.pawStore) {
+      matchedPet = window.pawStore.getPetByNFC(nfc);
     }
 
     const sighting = {
@@ -1222,7 +1222,7 @@ class ReportManager {
       breed: breed,
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
-      rfidTag: rfid || (matchedPet ? matchedPet.rfidTag : ''),
+      nfcTag: nfc || (matchedPet ? matchedPet.nfcTag : ''),
       reporterPhone: phone,
       community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
       reporterName: 'Community Good Samaritan',
@@ -1245,7 +1245,7 @@ class ReportManager {
         type: 'pet_found_match',
         petId: matchedPet.id,
         petName: matchedPet.name,
-        rfidTag: matchedPet.rfidTag,
+        nfcTag: matchedPet.nfcTag,
         finderName: 'Community Good Samaritan',
         finderPhone: phone || '+63 9XX XXX XXXX',
         finderNotes: notes,
@@ -1270,7 +1270,7 @@ class ReportManager {
       });
 
       if (window.notifManager) {
-        window.notifManager.showToast(`MATCH CONFIRMED: Registered pet "${matchedPet.name}" (RFID: ${rfid}) found! Owner notification sent.`, 'success', 6000);
+        window.notifManager.showToast(`MATCH CONFIRMED: Registered pet "${matchedPet.name}" (NFC: ${nfc}) found! Owner notification sent.`, 'success', 6000);
         setTimeout(() => {
           window.notifManager.showFinderInfo(ownerNotif);
         }, 600);
@@ -1280,9 +1280,9 @@ class ReportManager {
       window.pawStore.addNotification({
         id: 'notif-sight-' + Date.now(),
         title: `Sighting Pinned: ${breed} (${species})`,
-        message: `Community sighting logged at ${location} [${this.pinnedLat}, ${this.pinnedLng}]. ${rfid ? 'Collar RFID: ' + rfid + '.' : ''} Notes: "${notes}"`,
+        message: `Community sighting logged at ${location} [${this.pinnedLat}, ${this.pinnedLng}]. ${nfc ? 'Collar NFC: ' + nfc + '.' : ''} Notes: "${notes}"`,
         type: 'sighting',
-        rfidTag: rfid,
+        nfcTag: nfc,
         location: location,
         coords: [this.pinnedLat, this.pinnedLng],
         finderPhone: phone,
@@ -1347,7 +1347,7 @@ class ReportManager {
     }
 
     let petName = 'Pet';
-    let rfid = 'RFID-TAG';
+    let nfc = 'NFC-TAG';
     let pet = null;
 
     if (petId && !isUnregistered) {
@@ -1356,7 +1356,7 @@ class ReportManager {
         pet = pets.find(p => String(p.id) === String(petId)) || (petId === 'registered' && pets.length > 0 ? pets[0] : null);
         if (pet) {
           petName = pet.name;
-          rfid = pet.rfidTag;
+          nfc = pet.nfcTag;
         } else {
           petName = 'Registered Pet';
         }
@@ -1403,7 +1403,7 @@ class ReportManager {
       petId: pet ? pet.id : 'pet-temp',
       missingReportId: missingReport.id,
       petName: petName,
-      rfidTag: rfid,
+      nfcTag: nfc,
       status: 'missing',
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
@@ -1426,7 +1426,7 @@ class ReportManager {
 
     window.pawStore.addNotification({
       title: `Emergency Alert: "${petName}" Missing`,
-      message: `Guardian reported ${petName} (${rfid}) missing near ${location}. Checkpoints & public map notified.`,
+      message: `Guardian reported ${petName} (${nfc}) missing near ${location}. Checkpoints & public map notified.`,
       type: 'missing',
       missingReportId: missingReport.id,
       petId: pet ? pet.id : null,

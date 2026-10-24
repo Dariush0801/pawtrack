@@ -206,8 +206,8 @@ class NotificationManager {
               
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                 <span style="font-size:0.68rem; font-family:monospace; color:var(--text-dim);">${new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                ${n.rfidTag ? `
-                  <span class="notif-rfid-pill" style="font-size:0.66rem; font-family:var(--font-mono); font-weight:700; color:${isRead ? 'var(--text-dim, #94a3b8)' : isFoundMatch ? '#22c55e' : 'var(--primary)'}; background:${isRead ? 'rgba(255,255,255,0.04)' : isFoundMatch ? 'rgba(34,197,94,0.12)' : 'rgba(234,157,30,0.12)'}; padding:1px 6px; border-radius:4px; border:1px solid ${isRead ? 'rgba(255,255,255,0.1)' : isFoundMatch ? 'rgba(34,197,94,0.3)' : 'rgba(234,157,30,0.3)'};">RFID: ${n.rfidTag}</span>
+                ${n.nfcTag ? `
+                  <span class="notif-nfc-pill" style="font-size:0.66rem; font-family:var(--font-mono); font-weight:700; color:${isRead ? 'var(--text-dim, #94a3b8)' : isFoundMatch ? '#22c55e' : 'var(--primary)'}; background:${isRead ? 'rgba(255,255,255,0.04)' : isFoundMatch ? 'rgba(34,197,94,0.12)' : 'rgba(234,157,30,0.12)'}; padding:1px 6px; border-radius:4px; border:1px solid ${isRead ? 'rgba(255,255,255,0.1)' : isFoundMatch ? 'rgba(34,197,94,0.3)' : 'rgba(234,157,30,0.3)'};">NFC: ${n.nfcTag}</span>
                 ` : ''}
               </div>
             </div>
@@ -298,7 +298,7 @@ class NotificationManager {
     // Look up pet info if available
     let pet = null;
     if (data.petId && window.pawStore) pet = window.pawStore.getPetById(data.petId);
-    if (!pet && data.rfidTag && window.pawStore) pet = window.pawStore.getPetByRFID(data.rfidTag);
+    if (!pet && data.nfcTag && window.pawStore) pet = window.pawStore.getPetByNFC(data.nfcTag);
     if (!pet && data.title && window.pawStore) {
       const nameMatch = data.title.match(/"([^"]+)"/);
       if (nameMatch) {
@@ -308,7 +308,7 @@ class NotificationManager {
     }
 
     const petNameElem = document.getElementById('finder-pet-name');
-    const petRfidElem = document.getElementById('finder-pet-rfid');
+    const petNfcElem = document.getElementById('finder-pet-nfc');
     const petPhotoElem = document.getElementById('finder-pet-photo');
     const sightingWrap = document.getElementById('finder-sighting-photo-wrap');
     const sightingImg = document.getElementById('finder-sighting-photo');
@@ -320,7 +320,7 @@ class NotificationManager {
     const timeElem = document.getElementById('finder-timestamp');
 
     const displayName = pet ? pet.name : (data.petName || data.breed || 'Community Pet');
-    const displayRfid = data.rfidTag || (pet ? pet.rfidTag : null);
+    const displayNfc = data.nfcTag || (pet ? pet.nfcTag : null);
     const photoSrc = (pet && pet.photoUrl) ? pet.photoUrl : (data.photoUrl || data.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80');
     const evidencePhoto = data.photoUrl || data.photo;
     
@@ -354,7 +354,7 @@ class NotificationManager {
     if (!loc) loc = 'Metro Manila, Philippines';
 
     if (petNameElem) petNameElem.textContent = displayName;
-    if (petRfidElem) petRfidElem.textContent = displayRfid ? `RFID: ${displayRfid}` : 'RFID: Not Detected';
+    if (petNfcElem) petNfcElem.textContent = displayNfc ? `NFC: ${displayNfc}` : 'NFC: Not Detected';
     if (petPhotoElem) petPhotoElem.src = photoSrc;
 
     if (sightingWrap && sightingImg) {
@@ -408,7 +408,7 @@ class NotificationManager {
     if (bodyElem) {
       bodyElem.innerHTML = `
         <div style="font-weight:700; color:#ea9d1e; margin-bottom:6px; letter-spacing:0.02em;">OFFICIAL NOTICE: PET IMPOUNDMENT</div>
-        Your registered pet <strong>"${data.petName}"</strong> (RFID: <code>${data.rfidTag}</code>) has been logged at <strong>${data.shelterName}</strong>.<br><br>
+        Your registered pet <strong>"${data.petName}"</strong> (NFC: <code>${data.nfcTag}</code>) has been logged at <strong>${data.shelterName}</strong>.<br><br>
         <strong>Facility Address:</strong> ${data.shelterAddress}<br>
         <strong>Holding Bay:</strong> ${data.cageNumber || 'Bay 01'}<br>
         <strong>Claim Window:</strong> 72 Hours from intake.<br><br>
@@ -523,7 +523,7 @@ class NotificationManager {
     const verifyRegName = document.getElementById('verify-reg-name');
     const verifyRegBreed = document.getElementById('verify-reg-breed');
     const verifyRegColor = document.getElementById('verify-reg-color');
-    const verifyRegRfid = document.getElementById('verify-reg-rfid');
+    const verifyRegNfc = document.getElementById('verify-reg-nfc');
     const verifyRegLastSeen = document.getElementById('verify-reg-last-seen');
     const verifyRegCommunity = document.getElementById('verify-reg-community');
 
@@ -532,7 +532,7 @@ class NotificationManager {
       if (verifyRegName) verifyRegName.textContent = pet.name;
       if (verifyRegBreed) verifyRegBreed.textContent = `${pet.species || 'Dog'} · ${pet.breed || 'Breed'}`;
       if (verifyRegColor) verifyRegColor.textContent = `${pet.gender || 'Unknown'} · ${pet.color || 'Standard markings'}`;
-      if (verifyRegRfid) verifyRegRfid.textContent = pet.rfidTag ? `RFID: ${pet.rfidTag}` : 'No RFID recorded';
+      if (verifyRegNfc) verifyRegNfc.textContent = pet.nfcTag ? `NFC: ${pet.nfcTag}` : 'No NFC recorded';
       if (verifyRegLastSeen) verifyRegLastSeen.textContent = pet.lastSeenLocation || (pet.owner ? pet.owner.address : 'Metro Manila');
       if (verifyRegCommunity) verifyRegCommunity.textContent = pet.community || (pet.owner ? pet.owner.address : 'Philam Homes, QC');
     } else {
@@ -540,7 +540,7 @@ class NotificationManager {
       if (verifyRegName) verifyRegName.textContent = sighting.breed || 'Registered Pet';
       if (verifyRegBreed) verifyRegBreed.textContent = `${sighting.species || 'Dog'} · ${sighting.breed || 'Mixed'}`;
       if (verifyRegColor) verifyRegColor.textContent = sighting.color || 'Observed coat color';
-      if (verifyRegRfid) verifyRegRfid.textContent = 'RFID verification pending';
+      if (verifyRegNfc) verifyRegNfc.textContent = 'NFC verification pending';
       if (verifyRegLastSeen) verifyRegLastSeen.textContent = 'Community Alert';
       if (verifyRegCommunity) verifyRegCommunity.textContent = 'Metro Manila';
     }

@@ -103,12 +103,12 @@ class App {
 
   checkHardwareScanUrl() {
     const searchParams = new URLSearchParams(window.location.search);
-    const hasScanParam = searchParams.has('scan') || searchParams.has('rfid') || searchParams.has('tag') || searchParams.has('action') || searchParams.has('hardware_scan');
-    const isReportAction = searchParams.get('action') === 'report' || searchParams.get('scan') === '1' || searchParams.get('scan') === 'true' || searchParams.has('rfid') || searchParams.has('tag') || window.location.hash === '#report';
+    const hasScanParam = searchParams.has('scan') || searchParams.has('nfc') || searchParams.has('rfid') || searchParams.has('tag') || searchParams.has('action') || searchParams.has('hardware_scan');
+    const isReportAction = searchParams.get('action') === 'report' || searchParams.get('scan') === '1' || searchParams.get('scan') === 'true' || searchParams.has('nfc') || searchParams.has('rfid') || searchParams.has('tag') || window.location.hash === '#report';
 
     if (hasScanParam || isReportAction) {
       this.setGuestMode(true);
-      const scannedTag = searchParams.get('rfid') || searchParams.get('tag') || '';
+      const scannedTag = searchParams.get('nfc') || searchParams.get('rfid') || searchParams.get('tag') || '';
       window.location.hash = 'owner';
 
       // Clean query parameters from URL address bar seamlessly
@@ -117,9 +117,9 @@ class App {
       }
 
       setTimeout(() => {
-        if (window.rfidScanner) window.rfidScanner.playSuccessChirp();
+        if (window.nfcScanner) window.nfcScanner.playSuccessChirp();
         if (window.reportManager) {
-          window.reportManager.openReportModal('found', null, { rfidTag: scannedTag });
+          window.reportManager.openReportModal('found', null, { nfcTag: scannedTag });
         }
       }, 300);
     }
@@ -1444,14 +1444,14 @@ class App {
 
     // Hardware collar scan global event listener
     document.addEventListener('pawtrack:hardware-scan', (e) => {
-      const tag = e.detail?.rfidTag || 'RFID-882194';
-      if (window.rfidScanner && typeof window.rfidScanner.scanAndReportTag === 'function') {
-        window.rfidScanner.scanAndReportTag(tag);
+      const tag = e.detail?.nfcTag || 'NFC-882194';
+      if (window.nfcScanner && typeof window.nfcScanner.scanAndReportTag === 'function') {
+        window.nfcScanner.scanAndReportTag(tag);
       } else {
         window.location.hash = 'owner';
         setTimeout(() => {
           if (window.reportManager) {
-            window.reportManager.openReportModal('found', null, { rfidTag: tag });
+            window.reportManager.openReportModal('found', null, { nfcTag: tag });
           }
         }, 200);
       }
@@ -1593,8 +1593,8 @@ class App {
         const ownerEmail = (user ? user.email : 'guardian@pawtrack.com');
         const ownerAddress = document.getElementById('reg-owner-address')?.value || 'Metro Manila, Philippines';
 
-        const rfidTag = regForm.dataset.prefillRfid || ('RFID-' + Math.floor(100000 + Math.random() * 900000));
-        delete regForm.dataset.prefillRfid;
+        const nfcTag = regForm.dataset.prefillNfc || ('NFC-' + Math.floor(100000 + Math.random() * 900000));
+        delete regForm.dataset.prefillNfc;
 
         const defaultPhotos = {
           Dog: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80',
@@ -1608,7 +1608,7 @@ class App {
           breed,
           gender,
           color,
-          rfidTag,
+          nfcTag,
           microchipNo: '98514100' + Math.floor(1000000 + Math.random() * 9000000),
           status: 'safe',
           medicalNotes: notes,
@@ -1628,7 +1628,7 @@ class App {
         window.notifManager.closeModal('register-pet-modal');
 
         if (window.notifManager) {
-          window.notifManager.showToast(`Pet "${name}" registered successfully with ${rfidTag}!`, 'success', 4000);
+          window.notifManager.showToast(`Pet "${name}" registered successfully with ${nfcTag}!`, 'success', 4000);
         }
       });
     }
@@ -1649,7 +1649,7 @@ class App {
           window.pawStore.addNotification({
             type: 'broadcast',
             title: `Missing Pet Alert: "${pet ? pet.name : 'Pet'}"`,
-            message: `Guardian reported ${pet ? pet.name : 'pet'} (${pet ? pet.rfidTag : 'RFID'}) missing near ${location}. All municipal scanners and responder patrols alerted.`,
+            message: `Guardian reported ${pet ? pet.name : 'pet'} (${pet ? pet.nfcTag : 'NFC'}) missing near ${location}. All municipal scanners and responder patrols alerted.`,
             petId
           });
 
@@ -1671,12 +1671,12 @@ class App {
         const species = document.getElementById('found-species')?.value || 'Dog';
         const breed = document.getElementById('found-breed')?.value || 'Aspin / Mixed';
         const location = document.getElementById('found-location')?.value || 'Metro Manila';
-        const rfid = (document.getElementById('found-rfid')?.value || '').trim().toUpperCase();
+        const nfc = (document.getElementById('found-nfc')?.value || '').trim().toUpperCase();
         const phone = document.getElementById('found-phone')?.value || '';
 
         let matchedPet = null;
-        if (rfid) {
-          matchedPet = window.pawStore.getPetByRFID(rfid);
+        if (nfc) {
+          matchedPet = window.pawStore.getPetByNFC(nfc);
         }
 
         // Create Sighting Record
@@ -1716,7 +1716,7 @@ class App {
           window.pawStore.addNotification({
             type: 'broadcast',
             title: `Community Stray Sighting: ${species} (${breed})`,
-            message: `Sighted near ${location}. Tag UID: ${rfid || 'None'}. Finder: ${phone || 'Community Member'}.`
+            message: `Sighted near ${location}. Tag UID: ${nfc || 'None'}. Finder: ${phone || 'Community Member'}.`
           });
 
           if (window.notifManager) {
@@ -1740,10 +1740,10 @@ class App {
 
         const govIdCheck = document.getElementById('claim-doc-govid')?.checked;
         const vaccineCheck = document.getElementById('claim-doc-vaccine')?.checked;
-        const rfidCheck = document.getElementById('claim-doc-rfid')?.checked;
+        const nfcCheck = document.getElementById('claim-doc-nfc')?.checked;
         const receiptNo = document.getElementById('claim-doc-receipt')?.value || 'OR-' + Math.floor(100000 + Math.random() * 900000);
 
-        if (!govIdCheck || !vaccineCheck || !rfidCheck) {
+        if (!govIdCheck || !vaccineCheck || !nfcCheck) {
           if (window.notifManager) {
             window.notifManager.showToast('Please verify and check all mandatory redemption credentials.', 'warning');
           }
@@ -1753,7 +1753,7 @@ class App {
         const documents = {
           govIdVerified: true,
           vaccineBookVerified: true,
-          rfidPassVerified: true,
+          nfcPassVerified: true,
           feeReceiptNo: receiptNo,
           verifiedAt: new Date().toISOString()
         };
