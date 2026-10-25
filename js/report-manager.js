@@ -122,6 +122,8 @@ class ReportManager {
     this.setViewMode('map');
     this.populatePetsDropdown(petId);
     this.populateFoundPetsDropdown(petId);
+    this.showKnownPet(type === 'missing' ? petId : null);
+    this.fillMissingPhone();
 
     if (prefill && prefill.nfcTag && window.pawStore) {
       const matched = window.pawStore.getPetByNFC(prefill.nfcTag);
@@ -301,12 +303,13 @@ class ReportManager {
     const modalSub = document.getElementById('report-modal-sub');
     const modeToggle = document.getElementById('report-view-mode-toggle');
 
-    if (modeToggle) modeToggle.style.display = 'flex';
+    if (modeToggle) modeToggle.style.display = type === 'missing' ? 'none' : 'flex';
+    if (type === 'missing') this.setViewMode('map');
 
     if (type === 'found') {
       tabFound?.classList.add('active');
       tabMissing?.classList.remove('active');
-      if (fieldsFound) fieldsFound.style.display = ''; // stylesheet decides (grid on phones)
+      if (fieldsFound) fieldsFound.style.display = 'block';
       if (fieldsMissing) fieldsMissing.style.display = 'none';
 
       // Set HTML5 required on Found fields, unset on Missing fields
@@ -352,7 +355,7 @@ class ReportManager {
       tabMissing?.classList.add('active');
       tabFound?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'none';
-      if (fieldsMissing) fieldsMissing.style.display = ''; // stylesheet decides (grid on phones)
+      if (fieldsMissing) fieldsMissing.style.display = 'block';
 
       // Set HTML5 required on Missing fields, unset on Found fields
       const foundPet = document.getElementById('report-found-pet-select');
@@ -440,6 +443,36 @@ class ReportManager {
 
       this.handlePetSelect(isCustomSelected ? 'custom' : 'registered');
     }
+  }
+
+  // Opened for a specific pet: show it instead of asking which pet is missing
+  showKnownPet(petId) {
+    const wrap = document.getElementById('report-missing-pet-select-wrap');
+    const card = document.getElementById('report-missing-pet-card');
+    if (!wrap || !card) return;
+    const pet = petId && petId !== 'custom' && petId !== 'unregistered' && window.pawStore ? window.pawStore.getPetById(petId) : null;
+    if (!pet) {
+      wrap.style.display = '';
+      card.hidden = true;
+      card.innerHTML = '';
+      return;
+    }
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const photo = pet.photoUrl || pet.photo;
+    card.innerHTML = `${photo ? `<img src="${esc(photo)}" alt="" />` : ''}
+      <div><span class="report-pet-card-label">Reporting missing</span><strong>${esc(pet.name)}</strong>
+      <small>${esc([pet.breed, pet.species].filter(Boolean).join(' · '))}${pet.nfcTag ? ` · ${esc(pet.nfcTag)}` : ''}</small></div>`;
+    const select = document.getElementById('report-missing-pet-select');
+    if (select) select.value = String(pet.id);
+    wrap.style.display = 'none';
+    card.hidden = false;
+  }
+
+  // The emergency contact starts as the number registered on the account
+  fillMissingPhone() {
+    const input = document.getElementById('report-missing-phone');
+    const user = window.pawStore && window.pawStore.getGoogleUser();
+    if (input && user && user.phone && !input.value.trim()) input.value = user.phone;
   }
 
   handlePetSelect(petId) {
