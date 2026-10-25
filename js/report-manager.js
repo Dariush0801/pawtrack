@@ -306,7 +306,7 @@ class ReportManager {
     if (type === 'found') {
       tabFound?.classList.add('active');
       tabMissing?.classList.remove('active');
-      if (fieldsFound) fieldsFound.style.display = 'block';
+      if (fieldsFound) fieldsFound.style.display = ''; // stylesheet decides (grid on phones)
       if (fieldsMissing) fieldsMissing.style.display = 'none';
 
       // Set HTML5 required on Found fields, unset on Missing fields
@@ -352,7 +352,7 @@ class ReportManager {
       tabMissing?.classList.add('active');
       tabFound?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'none';
-      if (fieldsMissing) fieldsMissing.style.display = 'block';
+      if (fieldsMissing) fieldsMissing.style.display = ''; // stylesheet decides (grid on phones)
 
       // Set HTML5 required on Missing fields, unset on Found fields
       const foundPet = document.getElementById('report-found-pet-select');

@@ -9008,3 +9008,88 @@ div.owner-summary-stat:hover {
   }
   .glass-card { transition: none; }
 }
+
+/* ==========================================================================
+   Report modal: the whole form fits in one frame, no scrolling.
+   The box is capped to the screen height; the map takes whatever room is left.
+   ========================================================================== */
+#report-pet-modal { overflow: hidden; }
+
+#report-pet-modal .report-modal-box {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow: hidden !important;
+}
+
+#report-pet-modal .report-modal-box > .modal-header { flex: none; padding: 10px 16px !important; }
+#report-pet-modal #report-modal-title { font-size: 1.08rem !important; }
+#report-pet-modal #report-modal-sub { margin-top: 1px !important; font-size: 0.74rem !important; line-height: 1.25 !important; }
+#report-pet-modal .report-type-toggle-bar { flex: none; padding: 8px 16px 0; }
+#report-pet-modal .report-type-tab-btn { padding: 7px 12px; font-size: 0.82rem; }
+#report-pet-modal .report-instructions-panel { flex: none; max-height: 30vh; overflow-y: auto; }
+
+#report-pet-modal #report-pet-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#report-pet-modal .report-modal-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 16px 0;
+  gap: 12px;
+  align-items: stretch;
+}
+
+#report-pet-modal .report-map-column { min-height: 0; gap: 6px; }
+#report-pet-modal .report-panel-container { flex: 1 1 auto; min-height: 0; }
+#report-pet-modal .report-map-wrapper { flex: 1 1 auto; height: auto; min-height: 90px; }
+
+#report-pet-modal .report-form-column { min-height: 0; gap: 4px; justify-content: flex-start; }
+#report-pet-modal .report-form-column .form-group { margin-bottom: 6px !important; }
+#report-pet-modal .report-form-column .form-label { font-size: 0.72rem !important; margin-bottom: 2px; }
+#report-pet-modal .report-form-column .form-control { padding: 5px 9px !important; font-size: 0.82rem !important; }
+#report-pet-modal .report-form-column textarea.form-control { height: 52px; min-height: 52px; resize: none !important; }
+#report-pet-modal .report-field-section { margin: 0 0 4px; font-size: 0.66rem; }
+#report-pet-modal .report-field-section:not(:first-child) { margin-top: 8px; padding-top: 6px; }
+
+#report-pet-modal .modal-footer {
+  flex: none;
+  margin-top: 8px !important;
+  padding: 8px 16px 10px !important;
+}
+
+/* Phones: one column, so the small fields pair up and the map shrinks to what is left */
+@media (max-width: 768px) {
+  #report-pet-modal { padding: 6px; }
+  #report-pet-modal .report-modal-box { width: 100% !important; height: calc(100dvh - 12px); max-height: calc(100dvh - 12px); border-radius: 16px !important; }
+  #report-pet-modal .report-modal-box > .modal-header { padding: 8px 12px !important; }
+  #report-pet-modal .report-modal-icon-badge { display: none; }
+  #report-pet-modal #report-modal-sub { display: none; }
+  #report-pet-modal .report-type-toggle-bar { padding: 6px 12px 0; }
+  #report-pet-modal .report-type-tab-btn { padding: 6px 10px; font-size: 0.78rem; }
+  #report-pet-modal .report-modal-layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; padding: 8px 12px 0; gap: 8px; }
+  #report-pet-modal .report-map-wrapper { min-height: 70px; }
+  #report-pet-modal #report-use-location-btn { padding: 5px 10px; font-size: 0.74rem; }
+  #report-pet-modal .report-pin-header { padding: 3px 8px; }
+  #report-pet-modal .report-form-column .form-label { margin-bottom: 1px; }
+  #report-pet-modal .report-form-column .form-control { padding: 4px 8px !important; }
+  #report-pet-modal .report-form-column textarea.form-control { height: 40px; min-height: 40px; }
+  #report-pet-modal .modal-footer { padding: 6px 12px 8px !important; margin-top: 6px !important; }
+
+  /* Date and phone share a row */
+  #report-pet-modal #report-fields-missing,
+  #report-pet-modal #report-fields-found { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
+  #report-pet-modal #report-fields-missing[style*="display: none"],
+  #report-pet-modal #report-fields-found[style*="display: none"] { display: none; }
+  #report-pet-modal #report-fields-missing > *,
+  #report-pet-modal #report-fields-found > * { grid-column: 1 / -1; }
+  #report-pet-modal .form-group:has(#report-missing-date),
+  #report-pet-modal .form-group:has(#report-missing-phone),
+  #report-pet-modal .form-group:has(#report-found-species),
+  #report-pet-modal .form-group:has(#report-found-breed) { grid-column: auto; }
+}
