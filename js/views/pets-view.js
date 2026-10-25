@@ -61,7 +61,7 @@ class PetsView {
       }
       const { data: pets, error } = await client
         .from('registered_pets')
-        .select('id, name, species, breed, gender, color, age_months, status, nfc_tag, photo_url, registered_on, created_at')
+        .select('id, name, species, breed, gender, color, age_months, status, nfc_tag, photo_url, registered_on, created_at, description')
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
 
@@ -243,6 +243,7 @@ class PetsView {
           <span class="pet-status pet-status-${this.esc(pet.status)} pet-status-inline">${this.statusLabel(pet.status)}</span>
         </div>
       </div>
+      ${pet.description ? `<p class="pet-detail-desc">${this.esc(pet.description)}</p>` : ''}
       ${this.statusActionHtml(pet)}
       <dl class="pet-detail-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${this.esc(v)}</dd></div>`).join('')}</dl>
 

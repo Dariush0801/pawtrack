@@ -99,3 +99,12 @@
 .report-pet-card strong { display: block; font-size: 1rem; }
 .report-pet-card small { display: block; font-size: 0.74rem; color: var(--text-muted); }
 .report-pet-card-label { display: block; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--danger); }
+
+/* AI description */
+.reg-desc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.reg-desc-head .form-label { margin: 0; }
+.reg-desc-head .btn i, .reg-desc-head .btn svg { width: 14px; height: 14px; }
+.reg-ai-status { display: block; min-height: 1.1em; margin-top: 4px; font-size: 0.74rem; color: var(--text-muted); }
+.reg-ai-status[data-kind="error"] { color: var(--danger); font-weight: 600; }
+.reg-ai-status[data-kind="ok"] { color: #15803d; }
+.pet-detail-desc { margin: 0 0 14px; padding: 11px 13px; border-radius: var(--radius-md); background: var(--bg-surface-elevated); font-size: 0.88rem; line-height: 1.5; }
