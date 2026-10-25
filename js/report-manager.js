@@ -112,7 +112,8 @@ class ReportManager {
     });
   }
 
-  openReportModal(type = 'found', petId = null, prefill = {}) {
+  openReportModal(type = 'missing', petId = null, prefill = {}) {
+    type = 'missing'; // this form only reports missing pets; there is no found-pet tab any more
     this.currentType = type;
     const modal = document.getElementById('report-pet-modal');
     if (!modal) return;
@@ -395,7 +396,7 @@ class ReportManager {
       if (missingPhone) missingPhone.required = true;
 
       if (modalTitle) {
-        modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report Pet as Missing') : 'Report Pet as Missing';
+        modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report a missing pet') : 'Report a missing pet';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleMissing');
       }
       if (modalSub) {

@@ -1226,7 +1226,7 @@
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 id="report-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;" data-i18n="report.modalTitleFound">Found this pet?</h3>
+              <h3 id="report-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;" data-i18n="report.modalTitleMissing">Report a missing pet</h3>
               <button type="button" class="report-help-btn" id="report-help-btn" onclick="window.reportManager ? window.reportManager.toggleInstructionGuide() : null" title="How to report instructions & guide" aria-label="Reporting instructions" data-i18n-title="report.helpBtnTitle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -1235,8 +1235,8 @@
                 </svg>
               </button>
             </div>
-            <p id="report-modal-sub" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.35;" data-i18n="report.modalSubFound">
-              Drop a pin at the spot where you found the pet, add a quick note if you'd like, and notify the owner.
+            <p id="report-modal-sub" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.35;" data-i18n="report.modalSubMissing">
+              Drop a pin where the pet was last seen, add details, and broadcast an emergency alert to shelters and public map.
             </p>
           </div>
         </div>
@@ -1266,16 +1266,6 @@
         <div class="report-instructions-grid" id="report-instructions-content">
           <!-- Dynamically populated via reportManager.updateInstructionsContent() -->
         </div>
-      </div>
-
-      <!-- Report Type Selector Toggle Tabs -->
-      <div class="report-type-toggle-bar">
-        <button type="button" class="report-type-tab-btn active" id="report-tab-found" onclick="window.reportManager.setType('found')">
-          <span data-i18n="report.tabFound">I Found a Pet</span>
-        </button>
-        <button type="button" class="report-type-tab-btn" id="report-tab-missing" onclick="window.reportManager.setType('missing')">
-          <span data-i18n="report.tabMissing">My Pet Is Missing</span>
-        </button>
       </div>
 
       <!-- Main Form with Two-Column Map & Form Layout -->
