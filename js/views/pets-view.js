@@ -80,6 +80,7 @@ class PetsView {
       rows.forEach((r) => { (grouped[r.pet_id] = grouped[r.pet_id] || []).push(r); });
 
       this.pets = pets || [];
+      this.mirrorToDevice(this.pets);
       this.vaccines = grouped;
       this.state = 'ready';
       this.attempts = 0;
@@ -91,6 +92,23 @@ class PetsView {
     }
     this.draw();
     if (this.openPetId) this.renderDetail();
+  }
+
+  // The missing-pet report lists pets from the copy saved on this device, so make sure every pet
+  // in the account is in it (a new phone, for instance, starts empty)
+  mirrorToDevice(pets) {
+    const store = window.pawStore;
+    const user = store.getGoogleUser() || {};
+    pets.forEach((p) => {
+      if (store.getPetById(p.id)) return;
+      store.savePet({
+        id: p.id, name: p.name, species: p.species, breed: p.breed, gender: p.gender, color: p.color,
+        age: this.formatAge(p.age_months), ageMonths: p.age_months, description: p.description || '',
+        nfcTag: p.nfc_tag || '', photoUrl: p.photo_url, status: p.status === 'missing' ? 'lost' : p.status,
+        registeredDate: p.registered_on,
+        owner: { name: user.name || '', phone: user.phone || '', email: user.email || '', address: '' }
+      });
+    });
   }
 
   // ---------- helpers ----------

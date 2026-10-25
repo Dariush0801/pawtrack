@@ -443,7 +443,7 @@ class ReportManager {
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
-        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.nfcTag})</option>`;
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species})</option>`;
       });
 
       options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
@@ -452,11 +452,10 @@ class ReportManager {
       const activeVal = select.value || (isCustomSelected ? 'custom' : pets[0].id);
       this.handlePetSelect(activeVal);
     } else {
-      options += `<option value="registered" ${!isCustomSelected ? 'selected' : ''}>${registeredLabel}</option>`;
-      options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      options += `<option value="custom" selected>${unregisteredLabel}</option>`;
       select.innerHTML = options;
 
-      this.handlePetSelect(isCustomSelected ? 'custom' : 'registered');
+      this.handlePetSelect('custom');
     }
   }
 
@@ -476,7 +475,7 @@ class ReportManager {
     const photo = pet.photoUrl || pet.photo;
     card.innerHTML = `${photo ? `<img src="${esc(photo)}" alt="" />` : ''}
       <div><span class="report-pet-card-label">Reporting missing</span><strong>${esc(pet.name)}</strong>
-      <small>${esc([pet.breed, pet.species].filter(Boolean).join(' · '))}${pet.nfcTag ? ` · ${esc(pet.nfcTag)}` : ''}</small></div>`;
+      <small>${esc([pet.breed, pet.species].filter(Boolean).join(' · '))}</small></div>`;
     const select = document.getElementById('report-missing-pet-select');
     if (select) select.value = String(pet.id);
     wrap.style.display = 'none';
@@ -490,10 +489,44 @@ class ReportManager {
     if (input && user && user.phone && !input.value.trim()) input.value = user.phone;
   }
 
+  // Pets as photo chips (a native list cannot show pictures); the hidden select keeps the value
+  renderPetPicker() {
+    const picker = document.getElementById('report-missing-pet-picker');
+    const select = document.getElementById('report-missing-pet-select');
+    if (!picker || !select) return;
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    const current = select.value;
+    const chip = (value, label, inner, selected) =>
+      `<button type="button" class="pet-pick${selected ? ' is-selected' : ''}" role="radio" aria-checked="${selected}" data-value="${esc(value)}" title="${esc(label)}">${inner}<span class="pet-pick-name">${esc(label)}</span></button>`;
+    const avatar = (pet) => {
+      const photo = pet.photoUrl || pet.photo;
+      return photo ? `<img class="pet-pick-img" src="${esc(photo)}" alt="" loading="lazy" decoding="async" />`
+        : '<span class="pet-pick-img pet-pick-blank"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg></span>';
+    };
+    const other = '<span class="pet-pick-img pet-pick-other"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>';
+    picker.innerHTML = pets.map((p) => chip(p.id, p.name, avatar(p), String(current) === String(p.id))).join('')
+      + chip('custom', 'Other pet', other, current === 'custom' || current === 'unregistered');
+    picker.querySelectorAll('.pet-pick').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        select.value = btn.dataset.value;
+        this.handlePetSelect(select.value);
+      });
+    });
+  }
+
   handlePetSelect(petId) {
     const customWrap = document.getElementById('report-missing-custom-name-wrap');
     const customInput = document.getElementById('report-missing-custom-name');
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
+
+    const select = document.getElementById('report-missing-pet-select');
+    if (select && select.value !== String(petId) && petId) select.value = String(petId);
+    this.renderPetPicker();
+    // A photo can only be added for a pet that is not registered: registered pets already have theirs
+    const photoRow = document.getElementById('report-missing-photo-row');
+    if (photoRow) photoRow.style.display = isUnregistered ? '' : 'none';
+    if (isUnregistered) this.removeUploadedPhoto(false);
 
     if (isUnregistered) {
       if (customWrap) customWrap.style.display = 'block';
@@ -628,7 +661,7 @@ class ReportManager {
     } else {
       statusText.textContent = 'No photo attached';
       statusText.style.color = 'var(--text-muted, #a89f91)';
-      if (statusBtn) statusBtn.textContent = 'Attach / Upload Photo';
+      if (statusBtn) statusBtn.textContent = 'Upload photo';
     }
   }
 
@@ -1188,6 +1221,8 @@ class ReportManager {
     if (placeholder) placeholder.style.display = 'none';
     if (previewWrap) previewWrap.style.display = 'block';
     if (previewImg) previewImg.src = dataUrl;
+    const thumb = document.getElementById('report-missing-photo-thumb');
+    if (thumb) { thumb.src = dataUrl; thumb.hidden = false; }
 
     this.updateMissingPhotoStatus();
   }
@@ -1205,6 +1240,8 @@ class ReportManager {
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
+    const thumb = document.getElementById('report-missing-photo-thumb');
+    if (thumb) { thumb.removeAttribute('src'); thumb.hidden = true; }
 
     this.updateMissingPhotoStatus();
 
