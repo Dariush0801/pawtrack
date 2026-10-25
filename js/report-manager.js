@@ -259,6 +259,17 @@ class ReportManager {
     }
   }
 
+  // The hint over the map tells people to drag the pin
+  updateMapHelper() {
+    const key = this.currentType === 'missing' ? 'report.mapHelperMissing' : 'report.mapHelper';
+    const fallback = this.currentType === 'missing' ? 'Drag the pin to where your pet was last seen' : 'Tap or drag pin to mark exact location';
+    const helper = document.querySelector('#report-map-view-container .report-map-overlay-helper span');
+    if (helper) {
+      helper.textContent = window.pawI18n ? window.pawI18n.t(key, fallback) : fallback;
+      helper.setAttribute('data-i18n', key);
+    }
+  }
+
   setViewMode(mode) {
     this.currentViewMode = mode;
     const mapBtn = document.getElementById('report-mode-map-btn');
@@ -273,9 +284,12 @@ class ReportManager {
       if (mapContainer) mapContainer.style.display = 'flex';
       if (uploadContainer) uploadContainer.style.display = 'none';
       if (headerTitle) {
-        headerTitle.textContent = window.pawI18n ? window.pawI18n.t('report.pinnedLoc', 'Pinned Location:') : 'Pinned Location:';
-        headerTitle.setAttribute('data-i18n', 'report.pinnedLoc');
+        const key = this.currentType === 'missing' ? 'report.lastSeenHeader' : 'report.pinnedLoc';
+        const fallback = this.currentType === 'missing' ? 'Last seen location' : 'Pinned Location:';
+        headerTitle.textContent = window.pawI18n ? window.pawI18n.t(key, fallback) : fallback;
+        headerTitle.setAttribute('data-i18n', key);
       }
+      this.updateMapHelper();
       setTimeout(() => {
         if (this.map) this.map.invalidateSize();
       }, 80);
@@ -645,12 +659,21 @@ class ReportManager {
       autoPan: true
     }).addTo(this.map);
 
+    const mapEl = () => document.getElementById('report-pin-map');
+    this.marker.on('dragstart', () => {
+      mapEl()?.classList.add('is-pin-dragging');
+      this.pinDragging = true;
+    });
     this.marker.on('dragend', (e) => {
       const pos = e.target.getLatLng();
+      mapEl()?.classList.remove('is-pin-dragging');
       this.updatePinnedCoords(pos.lat, pos.lng);
+      // The map also reports a click when a drag ends; ignore that one so the pin is not dropped twice
+      setTimeout(() => { this.pinDragging = false; }, 250);
     });
 
     this.map.on('click', (e) => {
+      if (this.pinDragging) return;
       this.updatePinnedCoords(e.latlng.lat, e.latlng.lng);
       if (this.marker) {
         this.marker.setLatLng(e.latlng);
@@ -777,7 +800,8 @@ class ReportManager {
     return window.L.divIcon({
       className: 'custom-report-pin',
       html: `
-        <div class="pin-drop" style="position:relative; transform:translate(-50%, -100%); cursor:grab;">
+        <div class="pin-drop" style="position:relative; transform:translate(-50%, -100%); cursor:grab; touch-action:none; -webkit-user-select:none; user-select:none;">
+          <div style="position:absolute; left:-14px; right:-14px; top:-14px; bottom:-14px;"></div>
           <div style="width:38px; height:38px; border-radius:50% 50% 50% 0; background:${bgGradient}; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(0,0,0,0.5); border:2px solid #ffffff;">
             <div style="transform:rotate(45deg); display:flex; align-items:center; justify-content:center;">${iconSvg}</div>
           </div>
