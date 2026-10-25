@@ -162,11 +162,20 @@ class NfcLinkFlow {
     return out;
   }
 
+  // Brave exposes NDEFReader but does not deliver tag reads, so a scan there never finishes and the phone opens the tag's link itself
+  isBrave() {
+    return !!(navigator.brave && typeof navigator.brave.isBrave === 'function');
+  }
+
   async startScan(auto = false) {
     if (this.busy) return;
-    if (!('NDEFReader' in window)) {
+    if (!('NDEFReader' in window) || this.isBrave()) {
+      if (auto) return;
+      const brave = this.isBrave();
       this.setState('error', this.t('nfc.unsupported', 'This device cannot read NFC tags'),
-        this.t('nfc.unsupportedDetail', 'Web NFC works on Android Chrome over HTTPS. Use Simulate scan to try the flow here.'));
+        brave
+          ? this.t('nfc.braveDetail', 'Brave does not support NFC scanning. Open this page in Chrome on Android to scan and write tags.')
+          : this.t('nfc.unsupportedDetail', 'Web NFC works on Android Chrome over HTTPS. Use Simulate scan to try the flow here.'));
       this.setButtons({ start: this.t('nfc.retry', 'Scan again'), demo: true, back: true });
       return;
     }
@@ -179,7 +188,15 @@ class NfcLinkFlow {
 
     try {
       const reader = new NDEFReader();
-      await reader.scan({ signal: this.abort.signal });
+      // scan() waits for the NFC permission prompt; if nothing happens, say so instead of showing Scanning forever
+      const started = reader.scan({ signal: this.abort.signal });
+      started.catch(() => {}); // a late rejection after the timeout below is already handled
+      const timedOut = await Promise.race([started.then(() => false), new Promise((resolve) => setTimeout(() => resolve(true), 8000))]);
+      if (timedOut) {
+        this.fail(this.t('nfc.noStart', 'NFC scanning did not start'),
+          this.t('nfc.noStartDetail', 'Allow NFC when Chrome asks, turn NFC on in your phone settings, and use Chrome on Android.'));
+        return;
+      }
       reader.addEventListener('reading', (event) => this.onTagRead(event, reader));
       reader.addEventListener('readingerror', () => {
         if (this.linking) return;
