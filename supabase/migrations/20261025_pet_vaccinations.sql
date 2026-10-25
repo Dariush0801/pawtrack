@@ -53,3 +53,19 @@ create policy "Owners delete vaccinations of their pets; admins all"
     where p.id = pet_id
       and (p.owner_id = (select auth.uid()) or (select private.is_approved_admin()))
   ));
+
+-- Tap page: the vaccine names and dates of the pet on a tag, without veterinarian, clinic or notes.
+create or replace function public.get_pet_vaccinations_by_nfc(p_tag text)
+returns table (vaccine_name text, date_given date, next_due_date date)
+language sql stable security definer set search_path = ''
+as $$
+  select v.vaccine_name, v.date_given, v.next_due_date
+  from public.pet_vaccinations v
+  join public.registered_pets p on p.id = v.pet_id
+  where lower(p.nfc_tag) = lower(btrim(p_tag))
+  order by v.date_given desc, v.created_at desc
+  limit 50;
+$$;
+
+revoke all on function public.get_pet_vaccinations_by_nfc(text) from public;
+grant execute on function public.get_pet_vaccinations_by_nfc(text) to anon, authenticated;
