@@ -243,6 +243,7 @@ class PetsView {
           <span class="pet-status pet-status-${this.esc(pet.status)} pet-status-inline">${this.statusLabel(pet.status)}</span>
         </div>
       </div>
+      ${this.statusActionHtml(pet)}
       <dl class="pet-detail-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${this.esc(v)}</dd></div>`).join('')}</dl>
 
       <section class="vax-section">
@@ -292,6 +293,70 @@ class PetsView {
 
     body.querySelector('#vax-form').addEventListener('submit', (e) => { e.preventDefault(); this.addVaccination(pet.id); });
     if (window.lucide) window.lucide.createIcons({ root: body });
+  }
+
+  // Report as missing (while safe) or mark as found (while missing)
+  statusActionHtml(pet) {
+    if (pet.status === 'safe') {
+      return `<div class="pet-detail-actions">
+        <button type="button" class="btn btn-danger" onclick="window.petsView.reportMissing('${this.esc(pet.id)}')"><i data-lucide="siren"></i> Report as missing</button>
+      </div>`;
+    }
+    if (pet.status === 'missing') {
+      return `<div class="pet-missing-note"><i data-lucide="triangle-alert"></i><span>${this.esc(pet.name)} is reported missing. Anyone who taps the tag sees an alert.</span></div>
+      <div class="pet-detail-actions">
+        <button type="button" class="btn btn-primary" id="pet-found-btn" onclick="window.petsView.markFound('${this.esc(pet.id)}')"><i data-lucide="check-circle-2"></i> Mark as found</button>
+      </div>`;
+    }
+    return '';
+  }
+
+  // Opens the missing-pet report (last seen place, time, contact) for this pet
+  reportMissing(petId) {
+    const pet = this.pets.find((p) => p.id === petId);
+    if (!pet || !window.reportManager) return;
+    this.close();
+    // The report form reads pets from the saved copy on this device, which may not have this one yet
+    if (!window.pawStore.getPetById(pet.id)) {
+      const user = window.pawStore.getGoogleUser() || {};
+      window.pawStore.savePet({
+        id: pet.id, name: pet.name, species: pet.species, breed: pet.breed, gender: pet.gender, color: pet.color,
+        age: this.formatAge(pet.age_months), ageMonths: pet.age_months, nfcTag: pet.nfc_tag || '', photoUrl: pet.photo_url,
+        status: 'safe', registeredDate: pet.registered_on,
+        owner: { name: user.name || '', phone: user.phone || '', email: user.email || '', address: '' }
+      });
+    }
+    window.reportManager.openReportModal('missing', pet.id);
+  }
+
+  async markFound(petId) {
+    const btn = document.getElementById('pet-found-btn');
+    if (btn) btn.disabled = true;
+    const ok = await this.setStatus(petId, 'safe');
+    if (!ok) { if (btn) btn.disabled = false; return; }
+    // Close the open report on this device too
+    const store = window.pawStore;
+    if (store.getPetById(petId)) store.updatePetStatus(petId, 'safe');
+    const report = store.getActiveMissingReportForPet && store.getActiveMissingReportForPet(petId);
+    if (report) store.updateMissingReport(report.id, { status: 'resolved' });
+    if (window.notifManager) window.notifManager.showToast('Marked as found. Glad they are safe.', 'success', 3500);
+  }
+
+  // Saves a pet's status (safe / missing) to the database so the tap page shows the right state
+  async setStatus(petId, status) {
+    const pet = this.pets.find((p) => p.id === petId);
+    const client = this.client();
+    if (!pet || !client || !/^[0-9a-f-]{36}$/i.test(petId)) return false;
+    const { error } = await client.from('registered_pets').update({ status }).eq('id', petId);
+    if (error) {
+      console.warn('[Pets] status update failed:', error.message);
+      if (window.notifManager) window.notifManager.showToast(`Could not update the status: ${error.message}`, 'error', 5000);
+      return false;
+    }
+    pet.status = status;
+    this.draw();
+    if (this.openPetId === petId) this.renderDetail();
+    return true;
   }
 
   vaxRowHtml(r) {

@@ -1438,6 +1438,9 @@ class ReportManager {
       window.notifManager.showToast(`Emergency Alert Broadcasted for "${petName}". Pinned on Incident Map.`, 'danger', 5000);
     }
 
+    // Save the missing status to the database too, so the pet's tap page shows the missing alert
+    if (pet && window.petsView) window.petsView.setStatus(pet.id, 'missing');
+
     this.closeModal();
 
     if (window.location.hash === '#map' && window.publicView) {
