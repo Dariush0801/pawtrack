@@ -9,10 +9,11 @@ class App {
       pets: window.petsView,
       owner: window.ownerView,
       map: window.publicView,
-      cases: window.casesView,
-      impounded: window.impoundedView,
       hardware: window.hardwareView,
-      sightings: window.sightingsView
+      sightings: window.sightingsView,
+      found: window.foundView,
+      report: window.reportPageView,
+      settings: window.settingsView
     };
 
     this.init();
@@ -90,6 +91,13 @@ class App {
   }
 
   // Map a server account onto the guardian profile shape the views already use
+  // Names are stored as "Last, First" (or plain "First Last"): the greeting wants the first given name
+  firstNameOf(fullName) {
+    const name = String(fullName || '').trim();
+    const given = name.includes(',') ? name.slice(name.indexOf(',') + 1) : name;
+    return given.trim().split(/\s+/)[0] || '';
+  }
+
   toGuardianProfile(user) {
     const cached = window.pawStore.getGoogleUser();
     const sameUser = !!(cached && cached.email === user.email);
@@ -97,7 +105,7 @@ class App {
     return {
       id: user.id,
       name,
-      shortName: name.split(' ')[0] || name,
+      shortName: this.firstNameOf(name) || name,
       email: user.email,
       phone: user.phone,
       picture: (sameUser && cached.picture) || user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a73e8&color=fff&bold=true&size=128`,
@@ -156,25 +164,54 @@ class App {
     }
   }
 
-  initTheme() {
-    const savedTheme = (window.pawStore && typeof window.pawStore.getTheme === 'function')
+  // The saved preference is 'light', 'dark' or 'system' (follow the device); data-theme is always light or dark
+  resolveTheme(pref) {
+    if (pref === 'system') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    return pref === 'light' ? 'light' : 'dark';
+  }
+
+  getThemePreference() {
+    const saved = (window.pawStore && typeof window.pawStore.getTheme === 'function')
       ? window.pawStore.getTheme()
       : (localStorage.getItem('pawtrack_theme') || 'dark');
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    this.updateThemeIcon(savedTheme);
+    return ['light', 'dark', 'system'].includes(saved) ? saved : 'dark';
+  }
 
+  setThemePreference(pref) {
+    if (!['light', 'dark', 'system'].includes(pref)) return;
+    if (window.pawStore && typeof window.pawStore.setTheme === 'function') {
+      window.pawStore.setTheme(pref);
+    } else {
+      localStorage.setItem('pawtrack_theme', pref);
+    }
+    this.applyTheme();
+  }
+
+  applyTheme() {
+    const theme = this.resolveTheme(this.getThemePreference());
+    document.documentElement.setAttribute('data-theme', theme);
+    this.updateThemeIcon(theme);
+  }
+
+  initTheme() {
+    this.applyTheme();
+
+    // "System default" follows the device while the page is open
+    const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+    const onSystemChange = () => { if (this.getThemePreference() === 'system') this.applyTheme(); };
+    if (media) {
+      if (media.addEventListener) media.addEventListener('change', onSystemChange);
+      else if (media.addListener) media.addListener(onSystemChange);
+    }
+
+    // The header button flips between light and dark; Settings is where "System default" is chosen
     const toggleBtn = document.getElementById('theme-toggle-btn');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
         const current = document.documentElement.getAttribute('data-theme') || 'dark';
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        if (window.pawStore && typeof window.pawStore.setTheme === 'function') {
-          window.pawStore.setTheme(next);
-        } else {
-          localStorage.setItem('pawtrack_theme', next);
-        }
-        this.updateThemeIcon(next);
+        this.setThemePreference(current === 'dark' ? 'light' : 'dark');
       });
     }
   }
@@ -319,7 +356,7 @@ class App {
       }
 
       user.name = nameVal;
-      user.shortName = nameVal.split(' ')[0] || nameVal;
+      user.shortName = this.firstNameOf(nameVal) || nameVal;
       user.phone = phoneVal;
       user.area = areaVal || 'National Capital Region (NCR)';
       user.backupPhone = backupVal;
@@ -349,9 +386,6 @@ class App {
           });
       }
 
-      const regOwnerName = document.getElementById('reg-owner-name');
-      if (regOwnerName) regOwnerName.value = user.name;
-
       if (window.notifManager) {
         window.notifManager.showToast('Guardian profile updated successfully.', 'success');
       }
@@ -364,28 +398,18 @@ class App {
       window.location.hash = 'hardware';
     });
 
-    // User Dropdown: Portal Settings Button
+    // User Dropdown: Settings opens the Settings page
     document.getElementById('dropdown-settings-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (userDropdown) userDropdown.style.display = 'none';
-      if (settingsModal) settingsModal.classList.add('active');
+      window.location.hash = 'settings';
     });
 
     // User Dropdown: Log Out Button
     document.getElementById('dropdown-logout-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (userDropdown) userDropdown.style.display = 'none';
-      window.pawStore.setGoogleUser(null);
-      if (this.supabase) this.supabase.auth.signOut({ scope: 'local' });
-      this.setGuestMode(false);
-      this.updateGoogleAuthUI();
-      this.openLoginDialog();
-      if (window.location.hash && window.location.hash !== '#owner') {
-        window.location.hash = '#owner';
-      } else {
-        this.handleRoute();
-      }
-      window.notifManager.showToast('Signed out of PawTrack portal.', 'info');
+      this.logOut();
     });
 
     // Notification Bell: Facebook-style anchored dropdown
@@ -971,15 +995,23 @@ class App {
       otpCooldownTimer = setInterval(apply, 1000);
     };
 
-    loginForgotBtn?.addEventListener('click', () => {
-      if (forgotEmailInput) forgotEmailInput.value = (loginEmailInput?.value || '').trim();
+    // lockEmail: opened from Settings by a signed-in guardian, so the code can only go to their own address
+    const openForgotPassword = (email, lockEmail = false) => {
+      if (forgotEmailInput) {
+        forgotEmailInput.value = (email || '').trim();
+        forgotEmailInput.readOnly = lockEmail;
+        forgotEmailInput.closest('.auth-field-box')?.classList.toggle('auth-field-box-locked', lockEmail);
+      }
       if (forgotOtpInput) forgotOtpInput.value = '';
       showForgotStep('email');
       window.notifManager.openModal('forgot-password-modal');
       tickOtpCooldown();
       renderForgotTurnstile();
-      setTimeout(() => forgotEmailInput?.focus(), 150);
-    });
+      setTimeout(() => (lockEmail ? forgotSendBtn : forgotEmailInput)?.focus(), 150);
+    };
+    this.openForgotPassword = openForgotPassword;
+
+    loginForgotBtn?.addEventListener('click', () => openForgotPassword(loginEmailInput?.value, false));
 
     forgotOtpInput?.addEventListener('input', () => {
       forgotOtpInput.value = forgotOtpInput.value.replace(/\D/g, '').slice(0, 6);
@@ -1176,6 +1208,8 @@ class App {
       window.notifManager.closeModal('reset-password-modal');
       window.pawStore.setGoogleUser(null);
       this.updateGoogleAuthUI();
+      this.landedOnPets = false;
+      if (window.location.hash && window.location.hash !== '#owner') window.location.hash = '#owner';
       window.notifManager.showToast('Password reset cancelled.', 'info');
     });
 
@@ -1217,6 +1251,9 @@ class App {
       window.notifManager.closeModal('reset-password-modal');
       window.pawStore.setGoogleUser(null);
       this.updateGoogleAuthUI();
+      // Signed out from wherever the reset began (e.g. Settings): the next log in should land on Pets
+      this.landedOnPets = false;
+      if (window.location.hash && window.location.hash !== '#owner') window.location.hash = '#owner';
       setAuthMode('signin');
       openLoginDialog();
       if (loginEmailInput) loginEmailInput.value = email;
@@ -1265,6 +1302,37 @@ class App {
     });
   }
 
+  logOut() {
+    window.pawStore.setGoogleUser(null);
+    if (this.supabase) this.supabase.auth.signOut({ scope: 'local' });
+    this.setGuestMode(false);
+    this.updateGoogleAuthUI();
+    this.openLoginDialog();
+    if (window.location.hash && window.location.hash !== '#owner') {
+      window.location.hash = '#owner';
+    } else {
+      this.handleRoute();
+    }
+    window.notifManager.showToast(window.t('toast.signedOut', 'Signed out of PawTrack portal.'), 'info');
+  }
+
+  // "Good morning, Jayson" in the top bar, using the first word of the account name
+  updateGreeting(user) {
+    const box = document.getElementById('header-greeting');
+    if (!box) return;
+    const first = user && user.name ? this.firstNameOf(user.name) : '';
+    if (!first) { box.hidden = true; return; }
+    const now = new Date();
+    const hour = now.getHours();
+    const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
+    const key = hour < 12 ? 'greet.morning' : hour < 18 ? 'greet.afternoon' : 'greet.evening';
+    document.getElementById('header-greeting-line').textContent = `${t(key, part)}, ${first}`;
+    const lang = document.documentElement.lang === 'fil' ? 'fil-PH' : 'en-PH';
+    document.getElementById('header-greeting-date').textContent = now.toLocaleDateString(lang, { weekday: 'long', month: 'long', day: 'numeric' });
+    box.hidden = false;
+  }
+
   updateGoogleAuthUI() {
     const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
     const loginBtn = document.getElementById('header-login-btn');
@@ -1280,6 +1348,7 @@ class App {
     const modalAvatar = document.getElementById('guardian-modal-avatar');
 
     const isLoggedIn = !!(user && user.name);
+    this.updateGreeting(user);
 
     if (isLoggedIn) {
       if (loginBtn) loginBtn.style.display = 'none';
@@ -1315,11 +1384,6 @@ class App {
       if (modalPhone) modalPhone.textContent = user.phone || '+63 917 555 3829';
       if (modalArea) modalArea.textContent = user.area || 'National Capital Region (NCR)';
       if (modalBackupPhone) modalBackupPhone.textContent = user.backupPhone || 'None set';
-
-      const regOwnerName = document.getElementById('reg-owner-name');
-      if (regOwnerName && !regOwnerName.value) {
-        regOwnerName.value = user.name;
-      }
     } else {
       if (loginBtn) loginBtn.style.display = 'inline-flex';
       if (userBtn) userBtn.style.display = 'none';
@@ -1551,6 +1615,9 @@ class App {
     const container = document.getElementById('app-viewport');
     if (!container) return;
 
+    // The report form lives in the page only while #report is open
+    if (this.currentView !== 'report' && window.reportPageView) window.reportPageView.park();
+
     if (this.views[this.currentView]) {
       this.views[this.currentView].render(container);
     }
@@ -1654,6 +1721,19 @@ class App {
     // Register Pet Form Submission
     const regForm = document.getElementById('register-pet-form');
     if (regForm) {
+      // "Other" asks which species it is
+      const speciesSelect = document.getElementById('reg-pet-species');
+      const otherGroup = document.getElementById('reg-pet-species-other-group');
+      const otherInput = document.getElementById('reg-pet-species-other');
+      const syncOther = () => {
+        const other = speciesSelect?.value === 'Other';
+        if (otherGroup) otherGroup.hidden = !other;
+        if (otherInput) otherInput.required = other;
+      };
+      speciesSelect?.addEventListener('change', syncOther);
+      regForm.addEventListener('reset', () => setTimeout(syncOther, 0));
+      syncOther();
+
       regForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -1670,7 +1750,10 @@ class App {
 
         const name = (document.getElementById('reg-pet-name')?.value || '').trim() || 'Pet';
         const species = document.getElementById('reg-pet-species')?.value || 'Dog';
-        const breed = (document.getElementById('reg-pet-breed')?.value || '').trim() || 'Mixed';
+        // The database only knows Dog, Cat and Other, so the species the owner typed is kept in front of the breed
+        const otherSpecies = species === 'Other' ? (document.getElementById('reg-pet-species-other')?.value || '').trim() : '';
+        const breedText = (document.getElementById('reg-pet-breed')?.value || '').trim() || 'Mixed';
+        const breed = otherSpecies ? `${otherSpecies} (${breedText})` : breedText;
         const gender = document.getElementById('reg-pet-gender')?.value || 'Male';
         const color = (document.getElementById('reg-pet-color')?.value || '').trim() || 'Brown';
 
@@ -1684,21 +1767,12 @@ class App {
         const ageMonths = ageUnit === 'years' ? ageValue * 12 : ageValue;
         const age = `${ageValue} ${ageValue === 1 ? ageUnit.slice(0, -1) : ageUnit}`;
 
-        // No description yet: let the AI write one before moving on (a failure just leaves it empty)
-        const descBox = document.getElementById('reg-pet-description');
-        const nextBtn = document.getElementById('reg-next-btn');
-        if (descBox && !descBox.value.trim() && window.petAI) {
-          const label = nextBtn ? nextBtn.innerHTML : '';
-          if (nextBtn) { nextBtn.disabled = true; nextBtn.textContent = 'Writing description...'; }
-          await window.petAI.fillRegisterForm({ auto: true });
-          if (nextBtn) { nextBtn.disabled = false; nextBtn.innerHTML = label; if (window.lucide) window.lucide.createIcons({ root: nextBtn }); }
-        }
-
         const user = window.pawStore.getGoogleUser();
-        const ownerName = document.getElementById('reg-owner-name')?.value || (user ? user.name : 'Pet Guardian');
-        const ownerPhone = document.getElementById('reg-owner-phone')?.value || '+63 917 555 3829';
+        // The guardian contact is the signed-in account's own name and phone
+        const ownerName = (user && user.name) || 'Pet Guardian';
+        const ownerPhone = (user && user.phone) || '';
         const ownerEmail = (user ? user.email : 'guardian@pawtrack.com');
-        const ownerAddress = document.getElementById('reg-owner-address')?.value || 'Metro Manila, Philippines';
+        const ownerAddress = (user && user.area) || 'Metro Manila, Philippines';
 
         const defaultPhotos = {
           Dog: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80',
@@ -1716,7 +1790,6 @@ class App {
           color,
           age,
           ageMonths,
-          description: (document.getElementById('reg-pet-description')?.value || '').trim().slice(0, 600),
           photoUrl: document.getElementById('reg-pet-photo')?.value || defaultPhotos[species] || defaultPhotos.Dog,
           owner: { name: ownerName, phone: ownerPhone, email: ownerEmail, address: ownerAddress }
         });
@@ -1948,7 +2021,7 @@ class App {
     if (modal && img) {
       img.src = url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80';
       if (t) t.textContent = title;
-      if (c) c.textContent = caption || 'Registered PawTrack Transponder Pass';
+      if (c) c.textContent = caption || '';
       modal.classList.add('active');
       if (window.lucide) window.lucide.createIcons({ root: modal });
     }

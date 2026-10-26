@@ -341,6 +341,10 @@
         this._g.addListener('mouseout', () => {
           this._handlers.filter(h => h.type === 'mouseout').forEach(h => h.fn({}));
         });
+        // The user dragging the map (turn-by-turn stops following their position)
+        this._g.addListener('dragstart', () => {
+          this._handlers.filter(h => h.type === 'dragstart').forEach(h => h.fn({}));
+        });
         this._layers.forEach(layer => layer._attach(this));
       }
 
@@ -354,6 +358,8 @@
         if (dark !== this._dark) this._build(dark); // the colour scheme can only be set when the map is created
         else this._g.setMapTypeId(this._typeId());
       }
+
+      getZoom() { return this._g.getZoom(); }
 
       setView(ll, zoom) {
         this._g.setCenter(toLL(ll));
@@ -400,6 +406,11 @@
 
       on(type, fn) {
         this._handlers.push({ type, fn });
+        return this;
+      }
+
+      off(type, fn) {
+        this._handlers = this._handlers.filter(h => !(h.type === type && h.fn === fn));
         return this;
       }
 

@@ -2,8 +2,8 @@
  * Step 2 of pet registration: scan an NFC tag, write the pet's page link onto it,
  * and save the pet (with the tag's unique ID) to the database.
  *
- * Web NFC (NDEFReader) only exists in Chrome on Android over HTTPS, so every other
- * device gets a "Simulate scan" button that runs the same flow without touching a tag.
+ * Web NFC (NDEFReader) only exists in Chrome on Android over HTTPS, so on every other
+ * device the owner can choose "Continue without NFC" and register the pet with no tag.
  */
 
 const PUBLIC_SITE_URL = 'https://pawtrack-user.vercel.app';
@@ -30,7 +30,10 @@ class NfcLinkFlow {
       else if (this.mode === 'confirm') this.approveOverwrite();
       else this.startScan();
     });
-    on('nfc-link-demo', () => this.simulate());
+    on('nfc-link-skip', () => this.askSkip());
+    on('nfc-skip-confirm', () => this.skipTag());
+    on('nfc-skip-cancel', () => this.closeSkip());
+    on('nfc-skip-close', () => this.closeSkip());
     on('nfc-link-back', () => this.back());
     on('nfc-link-close', () => this.back());
   }
@@ -100,9 +103,9 @@ class NfcLinkFlow {
 
   setButtons({ start, demo = true, back = true, backLabel = null }) {
     const startBtn = document.getElementById('nfc-link-start');
-    if (startBtn) { startBtn.textContent = start; startBtn.disabled = !start; }
-    const demoBtn = document.getElementById('nfc-link-demo');
-    if (demoBtn) demoBtn.style.display = demo ? '' : 'none';
+    if (startBtn) { startBtn.textContent = start; startBtn.disabled = !start; startBtn.style.display = start ? '' : 'none'; }
+    const skipBtn = document.getElementById('nfc-link-skip');
+    if (skipBtn) skipBtn.style.display = demo ? '' : 'none';
     const backBtn = document.getElementById('nfc-link-back');
     if (backBtn) backBtn.style.display = back ? '' : 'none';
     const backText = backBtn && backBtn.querySelector('span');
@@ -196,7 +199,7 @@ class NfcLinkFlow {
       this.setState('error', this.t('nfc.unsupported', 'This device cannot read NFC tags'),
         brave
           ? this.t('nfc.braveDetail', 'Brave does not support NFC scanning. Open this page in Chrome on Android to scan and write tags.')
-          : this.t('nfc.unsupportedDetail', 'Web NFC works on Android Chrome over HTTPS. Use Simulate scan to try the flow here.'));
+          : this.t('nfc.unsupportedDetail', 'Web NFC works on Android Chrome over HTTPS. You can continue without NFC instead.'));
       this.setButtons({ start: this.t('nfc.retry', 'Scan again'), demo: true, back: true });
       return;
     }
@@ -362,15 +365,59 @@ class NfcLinkFlow {
     return !!err && ['NetworkError', 'TimeoutError', 'AbortError', 'NotReadableError', 'InvalidStateError'].includes(err.name);
   }
 
-  simulate() {
-    if (this.busy) return;
+  askSkip() {
+    if (this.busy || this.done) return;
+    document.getElementById('nfc-skip-modal')?.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  closeSkip() {
+    document.getElementById('nfc-skip-modal')?.classList.remove('active');
+  }
+
+  // Registers the pet with no tag: same save as link(), minus anything written to or read from a tag
+  async skipTag() {
+    this.closeSkip();
+    if (this.busy || this.linking || !this.draft) return;
+    const draft = this.draft;
+    if (this.abort) this.abort.abort();
     this.busy = true;
-    this.setState('scanning', this.t('nfc.scanning', 'Scanning... keep the tag against your phone'), '');
+    this.linking = true;
+    this.setState('linking', this.t('nfc.savingPet', 'Saving {name}...', { name: draft.name }), '');
     this.setButtons({ start: '', demo: false, back: false });
-    const bytes = new Uint8Array(7);
-    crypto.getRandomValues(bytes);
-    const serial = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(':');
-    setTimeout(() => { this.busy = false; this.link({ serial, existingUid: null, writer: null, simulated: true, existing: [] }); }, 900);
+    try {
+      const client = window.pawApp && window.pawApp.supabase;
+      const { data: session } = client ? await client.auth.getUser() : { data: null };
+      if (!(session && session.user)) {
+        this.fail(this.t('nfc.signIn', 'Please sign in again'),
+          this.t('nfc.signInDetail', 'Your pet is saved to the database, which needs you to be signed in. Sign in, then register the pet again.'));
+        return;
+      }
+      const result = await this.saveToDatabase(null, null);
+      const pet = window.pawStore.savePet({
+        ...(result.dbId ? { id: result.dbId } : {}),
+        name: draft.name,
+        species: draft.species,
+        breed: draft.breed,
+        gender: draft.gender,
+        color: draft.color,
+        age: draft.age,
+        ageMonths: draft.ageMonths,
+        description: draft.description || '',
+        nfcTag: '',
+        nfcSerial: null,
+        nfcUrl: '',
+        microchipNo: '',
+        status: 'safe',
+        photoUrl: result.photoUrl || draft.photoUrl,
+        owner: draft.owner,
+        registeredDate: new Date().toISOString().split('T')[0]
+      });
+      this.onLinked(pet, { uid: null, offline: result.offline });
+    } catch (err) {
+      console.warn('[NFC link]', err);
+      this.fail(this.t('nfc.saveFailed', 'Could not save the pet'), (err && err.message) || '');
+    }
   }
 
   fail(headline, detail) {
@@ -508,7 +555,7 @@ class NfcLinkFlow {
     if (!user) return { offline: true };
 
     const draft = this.draft;
-    const photoUrl = await this.uploadPhoto(client, uid, draft.photoUrl);
+    const photoUrl = await this.uploadPhoto(client, uid || 'untagged', draft.photoUrl);
     const { data, error } = await client.from('registered_pets').insert({
       owner_id: user.id,
       name: draft.name,
@@ -519,7 +566,7 @@ class NfcLinkFlow {
       age_months: draft.ageMonths,
       description: draft.description || null,
       status: 'safe',
-      nfc_tag: uid,
+      nfc_tag: uid || null,
       nfc_serial: serial || null,
       photo_url: photoUrl,
       owner_name: draft.owner.name,
@@ -581,11 +628,15 @@ class NfcLinkFlow {
     this.linking = false;
     this.resumeUid = null;
     this.reassignFrom = null;
+    // The AI writes the description in the background: registration does not wait for it
+    if (window.petAI) window.petAI.writeInBackground(pet, this.draft);
     // The scan session keeps running until Done is pressed, so tapping the tag again does not open the website
-    this.setState('done', this.t('nfc.done', 'Tag linked to {name}', { name: pet.name }),
-      this.t('nfc.doneDetail', 'Anyone who taps this tag will open {name}\'s page and can alert you.', { name: pet.name }));
-    document.getElementById('nfc-link-uid').textContent = saved.uid;
-    document.getElementById('nfc-link-result').hidden = false;
+    const tagged = !!saved.uid;
+    this.setState('done', tagged ? this.t('nfc.done', 'Tag linked to {name}', { name: pet.name }) : this.t('nfc.doneNoTag', '{name} is registered', { name: pet.name }),
+      tagged ? this.t('nfc.doneDetail', 'Anyone who taps this tag will open {name}\'s page and can alert you.', { name: pet.name })
+        : this.t('nfc.doneNoTagDetail', '{name} has no NFC tag yet, so a finder cannot tap a tag to reach you.', { name: pet.name }));
+    document.getElementById('nfc-link-uid').textContent = saved.uid || '-';
+    document.getElementById('nfc-link-result').hidden = !tagged;
     this.setButtons({ start: this.t('nfc.finish', 'Done'), demo: false, back: false });
 
     if (window.nfcScanner) window.nfcScanner.playSuccessChirp();
@@ -602,7 +653,8 @@ class NfcLinkFlow {
         ? ' Saved on this device only: sign in again so other phones can open the tag.'
         : (simulated ? ' (demo scan, nothing was written to a tag)' : '');
       const swapped = replacedName ? ` ${replacedName} no longer uses this tag.` : '';
-      window.notifManager.showToast(`${pet.name} is registered with tag ${saved.uid}.${swapped}${note}`, saved.offline ? 'warning' : 'success', 6000);
+      const tagText = saved.uid ? ` with tag ${saved.uid}` : ' without an NFC tag';
+      window.notifManager.showToast(`${pet.name} is registered${tagText}.${swapped}${note}`, saved.offline ? 'warning' : 'success', 6000);
     }
   }
 }

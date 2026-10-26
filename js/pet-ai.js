@@ -51,44 +51,66 @@ class PetAI {
     return data.description;
   }
 
-  // Reads the Register Pet form, writes into its description box and reports progress under it
-  async fillRegisterForm({ auto = false } = {}) {
-    const val = (id) => (document.getElementById(id)?.value || '').trim();
-    const box = document.getElementById('reg-pet-description');
-    const status = document.getElementById('reg-ai-status');
-    const btn = document.getElementById('reg-ai-btn');
-    if (!box) return false;
+  // Reads a photo with Gemini (through /api/photo-match) and returns the traits it can see
+  async readPhoto(photo) {
+    const image = await this.imagePayload(photo);
+    if (!image) throw new Error('This photo could not be read.');
+    const response = await fetch('/api/photo-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: `data:${image.mimeType};base64,${image.imageBase64}` })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `The AI could not read the photo (${response.status}).`);
+    return data.traits || {};
+  }
 
-    const name = val('reg-pet-name');
-    if (!name) {
-      if (status) { status.textContent = 'Enter the pet name first.'; status.dataset.kind = 'error'; }
-      document.getElementById('reg-pet-name')?.focus();
-      return false;
-    }
+  // A short written description from the traits Gemini saw in the photo
+  describeTraits(traits) {
+    const known = (v) => v && v !== 'Unknown';
+    const parts = [];
+    if (traits.summary) parts.push(String(traits.summary).trim().replace(/\.?$/, '.'));
+    const look = [known(traits.species) && traits.species, known(traits.breed) && traits.breed].filter(Boolean).join(', ');
+    if (look) parts.push(`${look}.`);
+    if (traits.colors && traits.colors.length) parts.push(`Colors: ${traits.colors.join(', ')}${traits.coatPattern ? ` (${traits.coatPattern})` : ''}.`);
+    if (traits.distinctMarkings) parts.push(`Markings: ${traits.distinctMarkings}.`);
+    return parts.join(' ').slice(0, 600);
+  }
 
-    const ageValue = parseInt(val('reg-pet-age'), 10);
-    const unit = val('reg-pet-age-unit') === 'months' ? 'month' : 'year';
-    const age = Number.isFinite(ageValue) ? `${ageValue} ${unit}${ageValue === 1 ? '' : 's'}` : '';
+  // Ranks the pets already reported missing against what the photo shows. Their descriptions are part of the comparison.
+  matchMissing(traits, limit = 3) {
+    const store = window.pawStore;
+    const missing = store.getPets().filter((p) => p.status === 'lost');
+    const colors = (traits.colors || []).join(' ');
+    const sighting = {
+      species: traits.species && traits.species !== 'Unknown' ? traits.species : '',
+      breed: traits.breed && traits.breed !== 'Unknown' ? traits.breed : '',
+      color: [colors, traits.coatPattern || ''].join(' ').trim(),
+      distinctMarkings: traits.distinctMarkings || '',
+      comments: `${colors} ${traits.distinctMarkings || ''}`.trim()
+    };
+    const matches = store.runAiPetMatch(sighting, missing).filter((m) => m.confidenceScore > 0).slice(0, limit);
+    return { matches, checked: missing.length };
+  }
 
-    if (btn) btn.disabled = true;
-    if (status) { status.textContent = auto ? 'Writing a description for you...' : 'Writing...'; status.dataset.kind = 'busy'; }
+  // Runs after a pet is registered, without holding up the registration: writes the description,
+  // then saves it to the database and this device. A failure just leaves the pet without one.
+  async writeInBackground(pet, draft) {
     try {
-      const text = await this.describe({
-        name,
-        species: val('reg-pet-species'),
-        breed: val('reg-pet-breed'),
-        gender: val('reg-pet-gender'),
-        color: val('reg-pet-color'),
-        age
-      }, val('reg-pet-photo'));
-      box.value = text;
-      if (status) { status.textContent = 'Written by AI. Edit it if anything is off.'; status.dataset.kind = 'ok'; }
-      return true;
+      const text = (await this.describe({
+        name: draft.name, species: draft.species, breed: draft.breed,
+        gender: draft.gender, color: draft.color, age: draft.age
+      }, draft.photoUrl)).trim().slice(0, 600);
+      if (!text) return;
+
+      if (/^[0-9a-f-]{36}$/i.test(pet.id)) {
+        const { error } = await this.client().from('registered_pets').update({ description: text }).eq('id', pet.id);
+        if (error) throw new Error(error.message);
+      }
+      if (window.pawStore.getPetById(pet.id)) window.pawStore.savePet({ id: pet.id, description: text });
+      if (window.petsView) window.petsView.refresh(true);
     } catch (err) {
-      if (status) { status.textContent = err.message; status.dataset.kind = 'error'; }
-      return false;
-    } finally {
-      if (btn) btn.disabled = false;
+      console.warn('[PetAI] description not added:', err.message);
     }
   }
 }

@@ -1757,6 +1757,10 @@
   gap: 0.35rem;
 }
 
+.form-group[hidden] {
+  display: none;
+}
+
 .form-label {
   font-size: 0.82rem;
   font-weight: 600;
@@ -2152,27 +2156,47 @@
 }
 
 .lightbox-details {
-  margin-top: 1rem;
+  margin-top: 0.9rem;
+  max-width: min(100%, 440px);
   text-align: center;
   background: var(--bg-surface, #ffffff);
   border: 1px solid var(--border-glass, #cbd5e1);
-  padding: 0.65rem 1.5rem;
-  border-radius: var(--radius-full, 9999px);
+  padding: 0.7rem 1.4rem 0.8rem;
+  border-radius: var(--radius-lg, 14px);
   box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 2px;
+}
+
+.lightbox-details::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  margin-bottom: 6px;
+  border-radius: 3px;
+  background: var(--primary, #ea9d1e);
 }
 
 .lightbox-title {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-family: var(--font-heading, inherit);
+  font-weight: 800;
+  font-size: 1.15rem;
+  line-height: 1.25;
   color: var(--text-main, #1e293b);
+  overflow-wrap: anywhere;
 }
 
 .lightbox-caption {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
   color: var(--text-muted, #64748b);
+  overflow-wrap: anywhere;
+}
+
+.lightbox-caption:empty {
+  display: none;
 }
 
 [data-theme="light"] .image-lightbox-overlay,
@@ -8749,12 +8773,37 @@ div.owner-summary-stat:hover {
 }
 
 /* Trend lines */
+.chart-lines-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
 .chart-lines {
   display: block;
   width: 100%;
   height: auto;
   max-height: 260px;
-  overflow: visible;
+  overflow: hidden;
+}
+
+.chart-tip {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--text-main);
+  color: var(--bg-main);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+
+.chart-tip[hidden] {
+  display: none;
 }
 
 .chart-grid {
@@ -9107,3 +9156,5 @@ div.owner-summary-stat:hover {
   }
   [data-theme="light"] #report-pet-modal .modal-footer { background: #ffffff; }
 }
+
+.kpi-label .kpi-sub { display: block; margin-top: 2px; font-size: 0.68rem; font-weight: 500; opacity: 0.85; }

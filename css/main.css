@@ -923,3 +923,12 @@ body {
     font-size: 1.05rem;
   }
 }
+
+/* Greeting in the top bar */
+.header-greeting { display: grid; gap: 1px; margin-right: auto; min-width: 0; line-height: 1.2; }
+.header-greeting[hidden] { display: none; }
+.header-greeting strong { font-family: var(--font-heading); font-size: 1.05rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-greeting span { font-size: 0.76rem; color: var(--text-muted); }
+@media (max-width: 992px) { .header-greeting { margin-right: 0; margin-left: auto; text-align: right; } }
+@media (max-width: 640px) { .header-greeting span { display: none; } .header-greeting strong { font-size: 0.9rem; } }
+@media (max-width: 480px) { .header-greeting { display: none; } }

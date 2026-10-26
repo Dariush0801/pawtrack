@@ -41,6 +41,7 @@ class PublicView {
     this.activeRoute = null;
     this.routePolyline = null;
     this.routeGlowLine = null;
+    this.navigator = new TurnByTurn(this);
     this.startMarker = null;
     this.userLocation = [14.6500, 121.0350]; // Default user GPS / Central NCR Command
   }
@@ -553,7 +554,7 @@ class PublicView {
           rows: [
             { icon: 'pin', label: p.status === 'lost' ? 'Last seen at' : 'Location', value: p.lastSeenLocation, hint: p.lastSeenDate ? this.getTimeAgo(p.lastSeenDate) : '' }
           ],
-          actions: `${p.status === 'lost' ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Have you seen this pet?</button><button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
+          actions: `${p.status === 'lost' ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Seen this pet?</button><button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
         })}
       `);
 
@@ -668,7 +669,7 @@ class PublicView {
             { icon: 'clock', label: 'When', value: this.formatSightingDate(row.last_seen_at), hint: ago }
           ],
           note: row.description,
-          actions: `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.haveYouSeen('${row.id}')">Have you seen this pet?</button>${this.popupMapsLink(row.lat, row.lng)}`
+          actions: `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.haveYouSeen('${row.id}')">Seen this pet?</button>${this.popupMapsLink(row.lat, row.lng)}`
         })}
       `);
 
@@ -886,7 +887,8 @@ class PublicView {
   // Road route from the Google Routes library (one billed request per origin, destination and mode; repeats are cached).
   // Without Google Maps, or when the request fails, falls back to a straight line with a rough estimate.
   async fetchRoute(origin, dest, travelMode) {
-    const key = [origin[0].toFixed(4), origin[1].toFixed(4), dest[0].toFixed(5), dest[1].toFixed(5), travelMode].join('|');
+    const language = window.pawI18n && window.pawI18n.getLang() === 'fil' ? 'fil' : 'en';
+    const key = [origin[0].toFixed(4), origin[1].toFixed(4), dest[0].toFixed(5), dest[1].toFixed(5), travelMode, language].join('|');
     this.routeCache = this.routeCache || new Map();
     if (this.routeCache.has(key)) return this.routeCache.get(key);
 
@@ -898,7 +900,8 @@ class PublicView {
           origin: { lat: origin[0], lng: origin[1] },
           destination: { lat: dest[0], lng: dest[1] },
           travelMode: { drive: 'DRIVING', walk: 'WALKING', transit: 'TRANSIT' }[travelMode] || 'DRIVING',
-          fields: ['path', 'distanceMeters', 'durationMillis']
+          language,
+          fields: ['path', 'distanceMeters', 'durationMillis', 'legs']
         });
         const r = routes && routes[0];
         if (r && r.path && r.path.length > 1) {
@@ -906,7 +909,17 @@ class PublicView {
             path: r.path.map(p => [p.lat, p.lng]),
             distanceKm: r.distanceMeters / 1000,
             durationMin: Math.max(1, Math.round(r.durationMillis / 60000)),
-            approximate: false
+            approximate: false,
+            // Maneuvers for turn-by-turn: "instructions" says what to do at the START of each step
+            steps: (r.legs || []).flatMap(leg => leg.steps || [])
+              .filter(st => st.startLocation && st.endLocation)
+              .map(st => ({
+                text: String(st.instructions || '').split(/\r?\n/)[0].trim(), // extra lines are pass-by notes
+                maneuver: st.maneuver || '',
+                dist: st.distanceMeters || 0,
+                start: [st.startLocation.lat, st.startLocation.lng],
+                end: [st.endLocation.lat, st.endLocation.lng]
+              }))
           };
         }
       } catch (err) {
@@ -917,10 +930,42 @@ class PublicView {
     if (!result) {
       const km = this.calculateDistance(origin[0], origin[1], dest[0], dest[1]);
       const kmh = { drive: 30, transit: 20, walk: 4.5 }[travelMode] || 30;
-      return { path: [origin, dest], distanceKm: km, durationMin: Math.max(1, Math.round(km / kmh * 60)), approximate: true };
+      return { path: [origin, dest], distanceKm: km, durationMin: Math.max(1, Math.round(km / kmh * 60)), approximate: true, steps: [] };
     }
     this.routeCache.set(key, result);
     return result;
+  }
+
+  // Draws (or redraws) the route line and frames it on the map
+  drawRoute(route, travelMode) {
+    if (this.routePolyline) this.map.removeLayer(this.routePolyline);
+    if (this.routeGlowLine) this.map.removeLayer(this.routeGlowLine);
+
+    this.routeGlowLine = window.L.polyline(route.path, {
+      color: '#1e40af',
+      weight: 8,
+      opacity: 0.5,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(this.map);
+
+    this.routePolyline = window.L.polyline(route.path, {
+      color: '#3b82f6',
+      weight: 5,
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: travelMode === 'walk' || route.approximate ? '4, 8' : null
+    }).addTo(this.map);
+
+    if (!this.navigator.running) this.map.fitBounds(this.routePolyline.getBounds(), { padding: [60, 60], maxZoom: 16 });
+  }
+
+  // Start button: follow the guardian's live position and speak each turn
+  startNavigation() {
+    const a = this.activeRoute;
+    if (!a || !a.route) return;
+    this.navigator.start(a.route, { destLat: a.destLat, destLng: a.destLng, destName: a.destName, travelMode: a.travelMode });
   }
 
   formatDuration(min) {
@@ -931,6 +976,7 @@ class PublicView {
     if (!this.map || !window.L) return;
 
     const requestId = (this.routeRequestId = (this.routeRequestId || 0) + 1);
+    this.navigator.stop();
     if (window.notifManager) window.notifManager.showToast('Getting your location…', 'info', 2000);
 
     const origin = await this.getUserPosition();
@@ -951,34 +997,16 @@ class PublicView {
       destAddress: destAddress || 'Metro Manila, Philippines',
       destPhotoUrl: destPhotoUrl || (destType === 'shelter' ? 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=600&q=80' : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'),
       destType,
-      travelMode
+      travelMode,
+      route
     };
 
     const [startLat, startLng] = origin;
     const activeEta = this.formatDuration(route.durationMin);
     const activeDistance = route.distanceKm.toFixed(1) + ' km';
 
-    // Clear previous route layers
-    if (this.routePolyline) this.map.removeLayer(this.routePolyline);
-    if (this.routeGlowLine) this.map.removeLayer(this.routeGlowLine);
     if (this.startMarker) this.map.removeLayer(this.startMarker);
-
-    this.routeGlowLine = window.L.polyline(route.path, {
-      color: '#1e40af',
-      weight: 8,
-      opacity: 0.5,
-      lineCap: 'round',
-      lineJoin: 'round'
-    }).addTo(this.map);
-
-    this.routePolyline = window.L.polyline(route.path, {
-      color: '#3b82f6',
-      weight: 5,
-      opacity: 0.95,
-      lineCap: 'round',
-      lineJoin: 'round',
-      dashArray: travelMode === 'walk' || route.approximate ? '4, 8' : null
-    }).addTo(this.map);
+    this.drawRoute(route, travelMode);
 
     // Place Start Point pulsing marker
     const startIcon = window.L.divIcon({
@@ -997,12 +1025,12 @@ class PublicView {
       .addTo(this.map)
       .bindPopup('<strong>Your Location</strong>');
 
-    // Fit map smoothly along navigation route
-    this.map.fitBounds(this.routePolyline.getBounds(), { padding: [60, 60], maxZoom: 16 });
-
     // Hands the same trip to the Google Maps app/site, where turn-by-turn navigation can be started
     const gmMode = { drive: 'driving', transit: 'transit', walk: 'walking' }[travelMode] || 'driving';
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLat},${startLng}&destination=${destLat},${destLng}&travelmode=${gmMode}&dir_action=navigate`;
+
+    // In-app guidance needs real road steps (driving and walking); straight-line estimates and transit open Google Maps instead
+    const canNavigate = !route.approximate && travelMode !== 'transit' && route.steps && route.steps.length > 0;
 
     const modeTab = (mode, label) => `
       <button type="button" class="gmap-mode-tab ${travelMode === mode ? 'active' : ''}" onclick="window.publicView.showDirections(${destLat}, ${destLng}, '${this.jsArg(destName)}', '${this.jsArg(destAddress)}', '${this.jsArg(this.activeRoute.destPhotoUrl)}', '${destType}', '${mode}')">
@@ -1072,9 +1100,14 @@ class PublicView {
 
             <!-- Action Buttons -->
             <div class="gmap-nav-actions">
-              <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; box-shadow:0 4px 14px rgba(234,157,30,0.4);">
-                <span>Follow this route in Google Maps ↗</span>
-              </a>
+              ${canNavigate
+                ? `<button type="button" class="btn btn-primary tbt-start-btn" onclick="window.publicView.startNavigation()">
+                     <i data-lucide="navigation"></i><span>Start</span>
+                   </button>
+                   <a href="${mapsUrl}" target="_blank" rel="noopener" class="tbt-alt-link">Open in Google Maps ↗</a>`
+                : `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; box-shadow:0 4px 14px rgba(234,157,30,0.4);">
+                     <span>Follow this route in Google Maps ↗</span>
+                   </a>`}
               <button type="button" class="btn btn-outline btn-sm" onclick="window.publicView.closeDirections()" style="width:100%; justify-content:center;">
                 Exit Navigation
               </button>
@@ -1082,10 +1115,12 @@ class PublicView {
           </div>
         </div>
       `;
+      if (window.lucide) window.lucide.createIcons({ root: hudContainer });
     }
   }
 
   closeDirections() {
+    this.navigator.stop();
     this.routeRequestId = (this.routeRequestId || 0) + 1;
     if (this.routePolyline && this.map) this.map.removeLayer(this.routePolyline);
     if (this.routeGlowLine && this.map) this.map.removeLayer(this.routeGlowLine);

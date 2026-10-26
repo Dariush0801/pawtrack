@@ -8,7 +8,7 @@
   <script>
     (function () {
       var root = document.documentElement;
-      try { var theme = localStorage.getItem('pawtrack_theme'); if (theme) root.setAttribute('data-theme', theme); } catch (e) {}
+      try { var theme = localStorage.getItem('pawtrack_theme'); if (theme === 'system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'; if (theme) root.setAttribute('data-theme', theme); } catch (e) {}
       root.classList.add('booting');
       setTimeout(function () { root.classList.remove('booting'); }, 6000); // never leave a blank page if scripts fail
     })();
@@ -57,6 +57,9 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/nfc.css" />
   <link rel="stylesheet" href="css/pets.css" />
+  <link rel="stylesheet" href="css/found.css" />
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="css/navigation.css" />
 </head>
 
 <body>
@@ -85,37 +88,29 @@
         </svg>
         <span data-i18n="nav.pets">Pets</span>
       </a>
-      <a href="#owner" class="role-tab-btn" data-view="owner" title="Home" aria-label="Home">
+      <a href="#owner" class="role-tab-btn" data-view="owner" title="Missing Pets" aria-label="Missing Pets">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
+          <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/>
+          <circle cx="12" cy="10" r="3"/>
         </svg>
-        <span>Home</span>
+        <span>Missing Pets</span>
       </a>
       <a href="http://localhost:8080" target="_blank" class="badge" style="display: none; background:rgba(194,65,12,0.15); color:#ea580c; text-decoration:none; padding:4px 8px; border-radius:6px; font-weight:600; font-size:11px; margin-left:8px; border:1px solid rgba(194,65,12,0.3);" hidden>Admin Console ↗</a>
 
-      <a href="#cases" class="role-tab-btn" data-view="cases" title="Cases & Analytics" aria-label="Cases & Analytics">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        <span>Cases & Analytics</span>
-      </a>
-      <a href="#impounded" class="role-tab-btn" data-view="impounded" title="Impounded Pets" aria-label="Impounded Pets">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          <path d="M12 8v4"/>
-          <path d="M12 16h.01"/>
-        </svg>
-        <span data-i18n="nav.impounded">Impounded</span>
-      </a>
       <a href="#sightings" class="role-tab-btn" data-view="sightings" title="Community Pet Sightings" aria-label="Community Pet Sightings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
         <span>Sightings</span>
+      </a>
+      <a href="#found" class="role-tab-btn" data-view="found" title="Found a Pet" aria-label="Found a Pet">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m21 21-4.3-4.3"/>
+          <path d="m8.5 11 1.8 1.8 3.4-3.6"/>
+        </svg>
+        <span>Found a Pet</span>
       </a>
       <a href="javascript:void(0)" class="role-tab-btn nav-report-btn" data-view="report" title="Report Missing or Found Pet" aria-label="Report Missing or Found Pet" onclick="window.reportManager ? window.reportManager.openReportModal('found') : null" data-i18n-title="nav.reportTitle" data-i18n-aria="nav.reportTitle">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -124,6 +119,12 @@
           <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
         </svg>
         <span data-i18n="nav.report">Report Pet</span>
+      </a>
+      <a href="#settings" class="role-tab-btn" data-view="settings" title="Settings" aria-label="Settings" data-i18n-title="nav.settings" data-i18n-aria="nav.settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -240,6 +241,12 @@
         </a>
       </div>
 
+      <!-- Greeting with the signed-in user's first name -->
+      <div class="header-greeting" id="header-greeting" hidden>
+        <strong id="header-greeting-line"></strong>
+        <span id="header-greeting-date"></span>
+      </div>
+
       <!-- Quick Action Controls -->
       <div class="header-actions" style="position: relative;">
         <!-- Language Switcher Toggle Button (One Icon Only) -->
@@ -310,24 +317,6 @@
     <!-- View content is injected here dynamically -->
   </main>
 
-  <!-- App Footer -->
-  <footer class="app-footer">
-    <div class="footer-inner">
-      <div class="footer-copy">
-        <strong data-i18n="footer.copy">PawTrack System &mdash; Pet Recovery &amp; Impoundment Notification System with NFC Technology.</strong>
-      </div>
-      <div class="footer-links" style="display: flex; align-items: center; gap: 14px; font-size: 12px;">
-        <a href="#privacy" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Privacy Policy</a>
-        <span style="color: var(--border-subtle, #333);">&bull;</span>
-        <a href="#terms" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Terms of Service</a>
-      </div>
-      <div class="footer-status">
-        <span class="status-indicator"></span>
-        <span class="status-text" data-i18n="footer.status">NCR Municipal Transponder Grid Active</span>
-      </div>
-    </div>
-  </footer>
-
   <!-- ==================== MODALS ==================== -->
 
   <!-- 1. Register Pet Modal -->
@@ -355,6 +344,11 @@
                 <option value="Other" data-i18n="modal.speciesOther">Other</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group" id="reg-pet-species-other-group" hidden>
+            <label class="form-label" for="reg-pet-species-other">Which species? *</label>
+            <input type="text" id="reg-pet-species-other" maxlength="40" placeholder="e.g. Rabbit, Hamster, Parrot" />
           </div>
 
           <div class="form-row">
@@ -424,50 +418,6 @@
             </div>
           </div>
 
-          <div class="form-group reg-desc-group">
-            <div class="reg-desc-head">
-              <label class="form-label" for="reg-pet-description">Description</label>
-              <button type="button" class="btn btn-outline btn-sm" id="reg-ai-btn" onclick="window.petAI.fillRegisterForm()">
-                <i data-lucide="sparkles"></i> Write with AI
-              </button>
-            </div>
-            <textarea id="reg-pet-description" rows="3" maxlength="600"
-              placeholder="Written by AI from your pet's details and photo. You can edit it."></textarea>
-            <small class="reg-ai-status" id="reg-ai-status" role="status" aria-live="polite"></small>
-          </div>
-
-          <!-- Guardian Emergency Contact (Confidential - Visible only to Admin/Shelter Officers) -->
-          <div style="background: var(--bg-surface-elevated, #f8fafc); border: 1px solid var(--border-subtle, #e2e8f0); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-main, #1e293b); display: flex; align-items: center; gap: 5px;">
-                <span data-i18n="modal.regGuardianTitle">Guardian Emergency Rescue Contact</span>
-              </span>
-              <span style="font-size: 9.5px; font-weight: 700; color: #15803d; background: #dcfce7; padding: 2px 7px; border-radius: 99px;" data-i18n="modal.regAdminBadge">
-                Admin & Pound Officers Only
-              </span>
-            </div>
-
-            <div class="form-row" style="margin-bottom: 8px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerName">Guardian Full Name *</label>
-                <input type="text" id="reg-owner-name" placeholder="e.g. Maria Santos" required />
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerPhone">Guardian Contact Number *</label>
-                <input type="tel" id="reg-owner-phone" placeholder="e.g. +63 917 555 3829" value="+63 917 555 3829" required />
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerAddress">Emergency Rescue City / Address</label>
-              <input type="text" id="reg-owner-address" placeholder="e.g. Metro Manila, Philippines" value="Metro Manila, Philippines" />
-            </div>
-
-            <span style="font-size: 10px; color: var(--text-muted, #64748b); margin-top: 6px; display: block; line-height: 1.35;" data-i18n="modal.regPrivacyNote">
-              <i>Your contact number is kept confidential from other public users and is only used by municipal shelter officers to contact you when your pet is scanned.</i>
-            </span>
-          </div>
-
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline"
@@ -510,14 +460,43 @@
           <strong id="nfc-link-headline" data-i18n="nfc.holdTag">Hold the NFC tag to the back of your phone</strong>
           <span id="nfc-link-detail" data-i18n="nfc.holdTagDetail">Tap Start scanning, then touch the tag from your pet's collar to your phone.</span>
         </div>
+        <ol class="nfc-link-steps" aria-label="How it works">
+          <li><b>1</b><span>Tap Start scanning</span></li>
+          <li><b>2</b><span>Touch the tag to the back of your phone</span></li>
+          <li><b>3</b><span>Keep still until it finishes</span></li>
+        </ol>
         <div class="nfc-link-result" id="nfc-link-result" hidden>
           <div class="nfc-link-result-row"><span data-i18n="nfc.tagId">Tag ID</span><code id="nfc-link-uid">-</code></div>
         </div>
       </div>
       <div class="modal-footer nfc-link-footer">
-        <button type="button" class="btn btn-outline" id="nfc-link-back"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i> <span data-i18n="nfc.back">Back</span></button>
-        <button type="button" class="btn btn-outline" id="nfc-link-demo" data-i18n="nfc.simulate">Simulate scan</button>
-        <button type="button" class="btn btn-primary" id="nfc-link-start" data-i18n="nfc.start">Start scanning</button>
+        <button type="button" class="btn btn-primary nfc-link-start" id="nfc-link-start" data-i18n="nfc.start">Start scanning</button>
+        <button type="button" class="btn btn-outline btn-sm nfc-link-back" id="nfc-link-back"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i> <span data-i18n="nfc.back">Back</span></button>
+        <button type="button" class="nfc-link-skip" id="nfc-link-skip" data-i18n="nfc.skip">Continue without NFC</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm registering a pet without an NFC tag -->
+  <div class="modal-overlay" id="nfc-skip-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="alert-triangle" style="color:var(--warning, #ea9d1e); width:20px; height:20px;"></i> <span data-i18n="nfc.skipTitle">Continue without an NFC tag?</span>
+        </h3>
+        <button type="button" class="btn-outline btn-sm" id="nfc-skip-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.9rem; margin-bottom:0.75rem;" data-i18n="nfc.skipIntro">Your pet will be registered, but without a tag on the collar:</p>
+        <ul style="font-size:0.85rem; color:var(--text-muted); padding-left:1.1rem; line-height:1.5; margin:0 0 0.75rem;">
+          <li data-i18n="nfc.skipPoint1">Anyone who finds your pet cannot tap a tag to see its page or alert you.</li>
+          <li data-i18n="nfc.skipPoint2">Shelters and finders have no quick way to identify your pet and reach you.</li>
+          <li data-i18n="nfc.skipPoint3">You can still report your pet as missing and use photo matching.</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="nfc-skip-cancel" data-i18n="nfc.skipCancel">Go back and scan</button>
+        <button type="button" class="btn btn-primary" id="nfc-skip-confirm" data-i18n="nfc.skipConfirm">Continue without NFC</button>
       </div>
     </div>
   </div>
@@ -906,25 +885,6 @@
     </div>
   </div>
 
-  <!-- 11. Pet Recovery Case Dossier Modal -->
-  <div class="modal-overlay" id="case-dossier-modal">
-    <div class="modal-box" style="max-width: 580px;">
-      <div class="modal-header">
-        <h3 style="display:flex; align-items:center; gap:0.5rem;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
-          Recovery Case Dossier & Audit Log
-        </h3>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('case-dossier-modal')" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal-body" id="case-dossier-content" style="padding: 1.25rem 1.4rem;">
-        <!-- Filled dynamically by casesView.openCaseDossier() -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('case-dossier-modal')">Close Case Dossier</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 12. Impoundment Claiming Document Verification Modal -->
   <div class="modal-overlay" id="claiming-verification-modal">
     <div class="modal-box" style="max-width: 500px;">
@@ -986,7 +946,7 @@
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;" data-i18n="guide.modalSubtitle">Complete step-by-step instructions: What to do Before, During, and After.</div>
           </div>
         </div>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('owner-guide-modal')" aria-label="Close Guide">&times;</button>
+        <button type="button" class="modal-close-squircle-btn" onclick="window.notifManager.closeModal('owner-guide-modal')" aria-label="Close Guide" title="Close"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <!-- Interactive Tab Selector -->
@@ -1213,13 +1173,13 @@
     </div>
   </div>
 
-  <!-- 12b. Interactive Report Missing / Found Pet Modal with Pin-Drop Map -->
-  <div class="modal-overlay" id="report-pet-modal">
+  <!-- 12b. Report Missing Pet page (moved into the #report view) with Pin-Drop Map -->
+  <div class="report-page" id="report-pet-modal" hidden>
     <div class="modal-box report-modal-box">
       <!-- Modal Header -->
-      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.2));">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div class="report-modal-icon-badge">
+      <div class="modal-header view-header">
+        <div class="view-title-group">
+          <div class="report-modal-icon-badge" hidden>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/>
             </svg>
@@ -1240,12 +1200,7 @@
             </p>
           </div>
         </div>
-        <button type="button" class="modal-close-squircle-btn" onclick="window.reportManager.closeModal()" aria-label="Close Report Dialog" title="Close">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <button type="button" class="btn btn-outline btn-sm report-back-btn" onclick="window.reportManager.closeModal()" aria-label="Go back"><i data-lucide="arrow-left"></i> Back</button>
       </div>
 
       <!-- Collapsible Step-by-Step Reporting Instructions Panel -->
@@ -1269,17 +1224,17 @@
       </div>
 
       <!-- Main Form with Two-Column Map & Form Layout -->
-      <form id="report-pet-form" onsubmit="window.reportManager.handleSubmit(event)">
+      <form id="report-pet-form" novalidate onsubmit="window.reportManager.handleSubmit(event)">
         <input type="hidden" id="report-pinned-lat" value="14.6500" />
         <input type="hidden" id="report-pinned-lng" value="121.0400" />
 
         <div class="report-modal-layout">
           <!-- Left Column: Interactive Pin-Drop Leaflet Map / Photo Upload -->
-          <div class="report-map-column">
+          <div class="report-map-column glass-card">
             <div class="report-pin-header">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="report-live-pulse-dot" id="report-header-dot"></span>
-                <span id="report-header-title" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);" data-i18n="report.pinnedLoc">Pinned Location:</span>
+                <span id="report-header-title" class="report-step-2" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);" data-i18n="report.pinnedLoc">Pinned Location:</span>
               </div>
               
               <!-- Maps and Upload mode toggle buttons (Found / Sighted Stray Pet tab only) -->
@@ -1461,7 +1416,8 @@
 
             <!-- SECTION B: Missing Pet Alert Fields -->
             <div id="report-fields-missing" style="display: none;">
-              <div class="report-field-section" data-i18n="report.sectionPet">About the pet</div>
+              <div class="report-card glass-card" id="report-card-pet">
+              <div class="report-field-section report-step-1" data-i18n="report.sectionPet">About the pet</div>
               <div class="form-group" id="report-missing-pet-select-wrap" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPetMissing">Which pet is missing? *</label>
                 <select class="form-control" id="report-missing-pet-select" style="display: none;" aria-hidden="true" tabindex="-1" onchange="window.reportManager.handlePetSelect(this.value)">
@@ -1476,7 +1432,7 @@
               <div class="report-pet-card" id="report-missing-pet-card" hidden></div>
 
               <div class="form-group" id="report-missing-photo-row" style="display: none; margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 0.78rem;">Photo of the pet</label>
+                <label class="form-label" style="font-size: 0.78rem;" id="report-missing-photo-label">Photo of the pet</label>
                 <div class="report-photo-inline">
                   <img id="report-missing-photo-thumb" alt="" hidden />
                   <span class="report-photo-inline-text" id="report-missing-photo-status-text">No photo attached</span>
@@ -1487,17 +1443,28 @@
                 </div>
               </div>
 
+              <!-- Pets with no NFC tag cannot be identified by a tap, so the owner gives a current photo and condition -->
+              <div class="form-group" id="report-missing-condition-wrap" style="display: none; margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" for="report-missing-condition">Current condition of the pet *</label>
+                <textarea class="form-control" id="report-missing-condition" rows="2" maxlength="400" placeholder="e.g. Looks thin and limps on the left leg, no collar, may be scared of strangers." style="padding: 7px 10px; font-size: 0.85rem; resize: vertical;"></textarea>
+                <small style="font-size: 0.72rem; color: var(--text-muted);">This pet has no NFC tag, so a recent photo and its condition help others recognise it.</small>
+              </div>
+
               <div class="form-group" id="report-missing-custom-name-wrap" style="display: none; margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.petNameDesc">Pet Name & Description *</label>
                 <input type="text" class="form-control" id="report-missing-custom-name" placeholder="e.g. Brownie (Tricolor Beagle mix)" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petNameDescPh" />
               </div>
 
-              <div class="report-field-section" data-i18n="report.sectionLastSeen">Last seen &amp; contact</div>
+              </div><!-- /pet card -->
+
+              <div class="report-card glass-card" id="report-card-details">
+              <div class="report-field-section report-step-3" data-i18n="report.sectionLastSeen">Last seen &amp; contact</div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenLoc">Last Seen Location *</label>
                 <input type="text" class="form-control" id="report-missing-location" placeholder="e.g. Barangay Commonwealth" value="Brgy. Commonwealth, Quezon City" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.lastSeenLocPh" />
               </div>
 
+              <div class="report-row-2">
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenDateTime">Last Seen Date & Time *</label>
                 <input type="datetime-local" class="form-control" id="report-missing-date" style="padding: 7px 10px; font-size: 0.85rem;" />
@@ -1507,21 +1474,27 @@
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.ownerPhone">Emergency Contact Phone *</label>
                 <input type="tel" class="form-control" id="report-missing-phone" placeholder="e.g. 0917 555 3829" value="" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.ownerPhonePh" />
               </div>
+              </div>
 
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.circumstances">Describe Pet</label>
                 <textarea class="form-control" id="report-missing-notes" rows="2" placeholder="e.g. Wearing red collar with bell. Escaped during evening walk near park gate." style="padding: 7px 10px; font-size: 0.85rem; resize: vertical;" data-i18n-placeholder="report.circumstancesPh"></textarea>
               </div>
+              </div><!-- /details card -->
             </div>
           </div>
         </div>
 
-        <!-- Modal Footer Actions: Cancel button is before the other button -->
-        <div class="modal-footer" style="padding: 12px 20px 16px; margin-top: 14px; border-top: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.15)); display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
-          <button type="button" class="btn btn-outline" onclick="window.reportManager.closeModal()" style="font-size: 0.85rem; padding: 7px 18px;" data-i18n="report.btnCancel">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="report-submit-btn" style="box-shadow: 0 4px 14px rgba(234, 157, 30, 0.4); padding: 7px 18px;">
-            <span id="report-submit-label" data-i18n="report.btnSubmitFound">Submit and Notify</span>
-          </button>
+        <!-- Action bar: stays at the bottom of the screen while the form scrolls -->
+        <div class="modal-footer report-actions">
+          <span class="report-actions-hint"><span aria-hidden="true">*</span> Required fields. The pin on the map sets where the pet was last seen.</span>
+          <div class="report-actions-buttons">
+            <button type="button" class="btn btn-outline" onclick="window.reportManager.closeModal()" data-i18n="report.btnCancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="report-submit-btn">
+              <i data-lucide="megaphone"></i>
+              <span id="report-submit-label" data-i18n="report.btnSubmitFound">Submit and Notify</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -2169,6 +2142,48 @@
     </div>
   </div>
 
+  <!-- 16a. Change email (Settings): a 6-digit code is sent to the NEW address and must be entered to confirm it -->
+  <div class="modal-overlay" id="change-email-modal">
+    <div class="modal-box auth-dialog-card" role="dialog" aria-modal="true" aria-labelledby="change-email-title">
+      <button type="button" class="auth-dialog-back-btn" id="change-email-back-btn" aria-label="Back" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('change-email-modal')" aria-label="Close">&times;</button>
+
+      <ol class="auth-steps" id="change-email-steps" aria-label="Email change progress">
+        <li class="is-active" data-step="email"><span>1</span><b data-i18n="settings.stepNewEmail">New email</b></li>
+        <li data-step="otp"><span>2</span><b data-i18n="settings.stepCode">Code</b></li>
+      </ol>
+
+      <h2 class="auth-dialog-title" id="change-email-title" data-i18n="settings.changeEmailTitle">Change your email</h2>
+
+      <form id="change-email-form" class="auth-dialog-form" novalidate>
+        <p class="auth-dialog-sub" data-i18n="settings.changeEmailSub">Enter your new email address. We'll send a 6-digit code to it to confirm it's yours.</p>
+        <div class="auth-field-box">
+          <label for="change-email-input" class="auth-field-label" data-i18n="settings.newEmail">NEW EMAIL</label>
+          <input type="email" id="change-email-input" class="auth-field-input" autocomplete="email" inputmode="email" required />
+        </div>
+        <div id="change-email-turnstile" class="auth-turnstile auth-turnstile-below"></div>
+        <button type="submit" id="change-email-send-btn" class="auth-dialog-submit-btn" data-i18n="settings.sendCode">Send code</button>
+      </form>
+
+      <form id="change-email-otp-form" class="auth-dialog-form" novalidate hidden>
+        <p class="auth-dialog-sub"><span data-i18n="settings.codeSentTo">We sent a 6-digit code to</span> <strong id="change-email-target"></strong>.</p>
+        <div class="auth-field-box">
+          <label for="change-email-otp" class="auth-field-label" data-i18n="settings.verificationCode">VERIFICATION CODE</label>
+          <input type="text" id="change-email-otp" class="auth-field-input auth-otp-input" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" required />
+        </div>
+        <button type="submit" id="change-email-verify-btn" class="auth-dialog-submit-btn" data-i18n="settings.verifyCode">Verify code</button>
+        <div class="auth-mode-row">
+          <span data-i18n="settings.noCode">Didn't get a code?</span>
+          <button type="button" class="auth-text-btn" id="change-email-resend-btn" data-i18n="settings.sendAgain">Send again</button>
+        </div>
+      </form>
+
+      <div id="change-email-status" class="auth-status" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
   <!-- 16b. Forgot Password: step 1 asks for the email, step 2 for the 6-digit code emailed through Brevo -->
   <div class="modal-overlay" id="forgot-password-modal">
     <div class="modal-box auth-dialog-card" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
@@ -2345,6 +2360,7 @@
 
   <!-- PawTrack Core & View Scripts (Loaded at bottom of DOM) -->
   <script src="js/i18n.js"></script>
+  <script src="js/i18n-phrases.js"></script>
   <script src="js/legacy-nfc.js"></script>
   <script src="js/store.js"></script>
   <script src="js/nfc-scanner.js"></script>
@@ -2354,11 +2370,12 @@
   <script src="js/notifications.js"></script>
   <script src="js/views/pets-view.js"></script>
   <script src="js/views/owner-view.js"></script>
+  <script src="js/turn-by-turn.js"></script>
   <script src="js/views/public-view.js"></script>
-  <script src="js/views/cases-view.js"></script>
-  <script src="js/views/impounded-view.js"></script>
   <script src="js/views/hardware-view.js"></script>
   <script src="js/views/sightings-view.js"></script>
+  <script src="js/views/found-view.js"></script>
+  <script src="js/views/settings-view.js"></script>
   <script src="js/report-manager.js"></script>
   <script src="js/app.js"></script>
 </body>

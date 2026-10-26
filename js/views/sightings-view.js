@@ -41,7 +41,7 @@ class SightingsView {
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
+          <button class="btn btn-primary btn-sm" onclick="window.location.hash = '#found'">
             <i data-lucide="eye"></i> Report Pet Sighting
           </button>
           <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')" title="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})" aria-label="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'}">

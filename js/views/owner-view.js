@@ -156,15 +156,12 @@ class OwnerView {
           <button class="btn-help-circle" id="owner-guide-header-btn" onclick="window.ownerView.openOwnerGuideModal()" title="${t('owner.guideBtnTitle', 'Owner System Guide: What to do Before, During & After')}" aria-label="Owner System Guide">
             <i data-lucide="help-circle"></i>
           </button>
-          <button class="btn btn-primary" onclick="window.ownerView.openRegisterModal()">
-            <i data-lucide="plus-circle"></i> ${t('owner.regBtn', 'Register Pet')}
-          </button>
         </div>
       </div>
 
       ${heroHtml}
 
-      <!-- Incident Map Section (Moved to Home) -->
+      <!-- Missing pets map and list -->
       <div id="incident-map-section" class="home-map-section">
         <div class="home-section-header">
           <div>
@@ -172,8 +169,8 @@ class OwnerView {
             <div class="home-section-sub">${t('map.subtitle', 'Tap a pet to see where it was last seen.')}</div>
           </div>
           <div class="home-section-actions">
-            <button class="btn btn-outline btn-sm" onclick="window.publicView ? window.publicView.openFoundPetModal() : null">
-              <i data-lucide="eye"></i> ${t('map.reportStrayBtn', 'Report Found Pet')}
+            <button class="btn btn-outline btn-sm" onclick="window.location.hash = '#found'">
+              <i data-lucide="search-check"></i> ${t('map.reportStrayBtn', 'Found a Pet')}
             </button>
             <button class="btn btn-outline btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
               <i data-lucide="map-pin"></i> Report Sighting
@@ -535,26 +532,8 @@ class OwnerView {
   }
 
   markPetSafe(petId) {
+    // Also resolves any active case for this pet (synchronizes with Admin Portal)
     window.pawStore.updatePetStatus(petId, 'safe');
-
-    // Also resolve any active cases for this pet to synchronize with Admin Portal
-    if (window.pawStore) {
-      const cases = window.pawStore.getCases() || [];
-      const activeCase = cases.find(c => c.petId === petId && c.status !== 'reunited');
-      if (activeCase) {
-        activeCase.status = 'reunited';
-        activeCase.lastUpdated = new Date().toISOString();
-        if (!Array.isArray(activeCase.timeline)) activeCase.timeline = [];
-        activeCase.timeline.unshift({
-          timestamp: new Date().toISOString(),
-          type: 'reunited',
-          title: 'Pet Reunited & Safe at Home',
-          location: 'Home / Safe',
-          notes: 'Guardian confirmed pet is safely recovered.'
-        });
-        window.pawStore.saveCase(activeCase);
-      }
-    }
 
     if (window.notifManager) {
       window.notifManager.showToast('Pet status updated to Safe at Home', 'success');
@@ -704,6 +683,9 @@ class OwnerView {
       during: document.getElementById('guide-phase-during'),
       after: document.getElementById('guide-phase-after')
     };
+
+    const body = document.querySelector('.owner-guide-body');
+    if (body) body.scrollTop = 0; // start each tab from its first step
 
     if (phase === 'all') {
       Object.values(sections).forEach(sec => {

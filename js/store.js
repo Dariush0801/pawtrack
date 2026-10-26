@@ -441,6 +441,7 @@ class Store {
     if (existingIndex >= 0) {
       pets[existingIndex] = { ...pets[existingIndex], ...pet, updatedAt: new Date().toISOString() };
     } else {
+      if (!pet.name) return pet; // a partial update for a pet that is not saved here must not create a nameless pet
       const newPet = {
         ...pet,
         id: pet.id || 'pet-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -477,6 +478,34 @@ class Store {
       this.pushBackendMutation('update_pet_status', { petId, status, extra: extraData });
       this.notify('pet_status_changed');
     }
+    if (status === 'safe') this.resolveCasesForPet(petId);
+  }
+
+  // Closes any open case for a pet that is back home so it leaves the missing counts
+  // A case made for a pet that is not saved on this device has petId 'pet-temp', so it is also matched by report or tag
+  resolveCasesForPet(petId, { missingReportId, nfcTag } = {}) {
+    this.getCases()
+      .filter(c => c.status !== 'reunited' && (
+        c.petId === petId ||
+        (missingReportId && c.missingReportId === missingReportId) ||
+        (nfcTag && c.nfcTag === nfcTag)
+      ))
+      .forEach(c => {
+        this.saveCase({
+          ...c,
+          status: 'reunited',
+          timeline: [
+            {
+              timestamp: new Date().toISOString(),
+              type: 'reunited',
+              title: 'Pet Reunited & Safe at Home',
+              location: 'Home / Safe',
+              notes: 'Guardian confirmed pet is safely recovered.'
+            },
+            ...(Array.isArray(c.timeline) ? c.timeline : [])
+          ]
+        });
+      });
   }
 
   getImpoundments() {
@@ -928,7 +957,7 @@ class Store {
       // 2. Color / Coat Pattern Match (25%)
       let colorScore = 45;
       const sColor = (sighting.color || sighting.breed || sighting.comments || '').toLowerCase();
-      const pColor = ((pet.color || '') + ' ' + (pet.breed || '') + ' ' + (pet.medicalNotes || '')).toLowerCase();
+      const pColor = ((pet.color || '') + ' ' + (pet.breed || '') + ' ' + (pet.medicalNotes || '') + ' ' + (pet.description || '')).toLowerCase();
       const colorKeywords = ['golden', 'brown', 'black', 'white', 'calico', 'orange', 'grey', 'gray', 'tan', 'brindle', 'spotted', 'tricolor', 'yellow', 'cream', 'chocolate', 'rust'];
       let matchedColors = 0;
       let totalPetColors = 0;
@@ -964,7 +993,7 @@ class Store {
       // 4. Distinctive Markings Match (15%)
       let markingsScore = 65;
       const sNotes = (sighting.comments || sighting.distinctMarkings || '').toLowerCase();
-      const pNotes = ((pet.medicalNotes || '') + ' ' + (pet.color || '')).toLowerCase();
+      const pNotes = ((pet.medicalNotes || '') + ' ' + (pet.color || '') + ' ' + (pet.description || '')).toLowerCase();
       const markTerms = ['collar', 'tag', 'patch', 'spots', 'ear', 'tail', 'socks', 'chest', 'scar', 'fluffy', 'short', 'white patch'];
       let marksMatched = 0;
       markTerms.forEach(term => {
@@ -1044,7 +1073,22 @@ class Store {
     const sightedCount = sightings.length;
     const impoundedCount = impoundments.filter(i => i.status === 'active_impounded').length;
     const reunitedCount = pets.filter(p => p.status === 'reunited' || p.status === 'safe').length;
-    const recoveryRate = totalRegistered > 0 ? Math.round(((reunitedCount) / (missingCount + impoundedCount + reunitedCount || 1)) * 100) : 100;
+    // Share of cases that ended with the pet back home
+    const reunitedCases = cases.filter(c => c.status === 'reunited' || c.status === 'safe');
+    const recoveryRate = cases.length ? Math.round(reunitedCases.length / cases.length * 100) : 0;
+
+    // Average time from opening a case to its reunion, in hours
+    const spans = reunitedCases.map(c => {
+      const done = (Array.isArray(c.timeline) ? c.timeline.find(e => e.type === 'reunited') : null);
+      const end = new Date((done && done.timestamp) || c.lastUpdated);
+      const start = new Date(c.createdAt);
+      return (end - start) / 36e5;
+    }).filter(h => Number.isFinite(h) && h >= 0);
+    const avgHours = spans.length ? spans.reduce((n, h) => n + h, 0) / spans.length : null;
+
+    // Share of registered pets that have an NFC tag linked
+    const tagged = pets.filter(p => p.nfcTag).length;
+    const nfcAdoption = totalRegistered ? Math.round(tagged / totalRegistered * 100) : 0;
 
     return {
       totalRegistered,
@@ -1053,19 +1097,49 @@ class Store {
       impoundedCount,
       reunitedCount,
       totalCases: cases.length,
-      recoveryRate: Math.min(100, Math.max(75, recoveryRate)),
-      avgRecoveryHours: '14.2 Hours',
-      nfcScanAdoption: '96.5%'
+      recoveryRate,
+      avgRecoveryHours: avgHours === null ? null : Math.round(avgHours * 10) / 10,
+      nfcScanAdoption: nfcAdoption,
+      nfcTagged: tagged,
+      nfcUntagged: totalRegistered - tagged
     };
   }
 
-  getHotspotAreas() {
-    return [
-      { name: 'Brgy. South Triangle & Scout Area, Quezon City', count: 6, risk: 'High Sighting Density', coords: [14.6360, 121.0370], percent: 85 },
-      { name: 'Brgy. Payatas & Batasan Hills, Quezon City', count: 4, risk: 'Facility Intake Hub', coords: [14.7118, 121.1037], percent: 65 },
-      { name: 'Kapitolyo & San Nicolas, Pasig City', count: 3, risk: 'Moderate Sighting Zone', coords: [14.5750, 121.0620], percent: 45 },
-      { name: 'Tondo & Vitas Compound, Manila City', count: 3, risk: 'Municipal Holding Area', coords: [14.6231, 120.9634], percent: 40 }
-    ];
+  // Areas ranked by the incidents reported there: missing-pet reports, community sightings and impound intakes.
+  // The area is the last two parts of the address (for example "Diliman, Quezon City").
+  getHotspotAreas(limit = 5) {
+    const areaOf = (loc) => String(loc || '').split(',').map(x => x.trim())
+      .filter(x => x && !/^(philippines|metro manila|ncr|national capital region)$/i.test(x))
+      .slice(-2).join(', ');
+    const groups = new Map();
+    const seen = new Set();
+    const add = (kind, id, loc, coords) => {
+      const area = areaOf(loc);
+      const key = `${kind}:${id}`;
+      if (!area || (id && seen.has(key))) return; // the same report can be stored twice after a sync
+      if (id) seen.add(key);
+      if (!groups.has(area)) groups.set(area, { name: area, reports: 0, sightings: 0, impounds: 0, lat: 0, lng: 0, located: 0 });
+      const g = groups.get(area);
+      g[kind]++;
+      if (Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) { g.lat += coords[0]; g.lng += coords[1]; g.located++; }
+    };
+
+    this.getMissingReports().forEach(r => add('reports', r.id, r.lastSeenLocation, r.lastSeenCoords));
+    this.getSightings().filter(x => x.status !== 'dismissed').forEach(x => add('sightings', x.id, x.location, x.coords));
+    this.getImpoundments().forEach(i => add('impounds', i.id, i.foundLocation || i.location, i.coords));
+
+    const list = [...groups.values()].map(g => {
+      const count = g.reports + g.sightings + g.impounds;
+      const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+      const parts = [];
+      if (g.reports) parts.push(plural(g.reports, 'missing report'));
+      if (g.sightings) parts.push(plural(g.sightings, 'sighting'));
+      if (g.impounds) parts.push(plural(g.impounds, 'impound'));
+      return { name: g.name, count, risk: parts.join(' · '), coords: g.located ? [g.lat / g.located, g.lng / g.located] : null };
+    }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, limit);
+
+    const max = list.length ? list[0].count : 1;
+    return list.map(h => ({ ...h, percent: Math.round(h.count / max * 100) }));
   }
 
   subscribe(fn) {

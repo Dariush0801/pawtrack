@@ -112,11 +112,20 @@ class ReportManager {
     });
   }
 
+  // The report form is a page (#report). Opening it fills the form, then moves to that page.
   openReportModal(type = 'missing', petId = null, prefill = {}) {
+    if (!document.getElementById('report-pet-modal')) return;
+    this.prepareForm(type, petId, prefill);
+    const here = window.location.hash.replace('#', '');
+    if (here && here !== 'report') this.returnHash = here;
+    if (here === 'report') window.reportPageView.render(document.getElementById('app-viewport'));
+    else window.location.hash = 'report';
+  }
+
+  prepareForm(type = 'missing', petId = null, prefill = {}) {
     type = 'missing'; // this form only reports missing pets; there is no found-pet tab any more
     this.currentType = type;
-    const modal = document.getElementById('report-pet-modal');
-    if (!modal) return;
+    this.formReady = true;
 
     this.removeUploadedPhoto(false);
     this.setType(type);
@@ -148,20 +157,16 @@ class ReportManager {
       missingDateInput.value = now.toISOString().slice(0, 16);
     }
 
-    modal.classList.add('active');
-
-    // Initialize or refresh pin-drop map after modal opens
-    setTimeout(() => {
-      this.initPinMap();
-    }, 150);
   }
 
+  // Leaves the report page and goes back to where the person came from
   closeModal() {
-    const modal = document.getElementById('report-pet-modal');
-    if (modal) {
-      modal.classList.remove('active');
-    }
+    this.formReady = false;
     this.toggleInstructionGuide(false);
+    if (window.location.hash !== '#report') return;
+    const back = this.returnHash && this.returnHash !== 'report' ? this.returnHash : 'pets';
+    this.returnHash = null;
+    window.location.hash = back;
   }
 
   toggleInstructionGuide(forceState = null) {
@@ -433,13 +438,14 @@ class ReportManager {
     const registeredLabel = window.pawI18n ? window.pawI18n.t('report.registered', 'Registered') : 'Registered';
     const unregisteredLabel = window.pawI18n ? window.pawI18n.t('report.unregistered', 'Unregistered') : 'Unregistered';
 
-    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    const pets = (window.pawStore ? window.pawStore.getPets() : []).filter((p) => p.name && p.status !== 'lost');
     let options = '';
 
     const isCustomSelected = selectedPetId === 'custom' || selectedPetId === 'unregistered';
 
     if (pets && pets.length > 0) {
-      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(pets[0].id) : null);
+      const firstAvailable = pets[0];
+      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(firstAvailable.id) : null);
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
@@ -490,23 +496,49 @@ class ReportManager {
   }
 
   // Pets as photo chips (a native list cannot show pictures); the hidden select keeps the value
+  escHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  petAvatarHtml(pet) {
+    const photo = pet.photoUrl || pet.photo;
+    return photo ? `<img class="pet-pick-img" src="${this.escHtml(photo)}" alt="" loading="lazy" decoding="async" />`
+      : '<span class="pet-pick-img pet-pick-blank"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg></span>';
+  }
+
+  // The picker shows a few pets as cards; with more than that, "See all" opens a list with one pet per row
   renderPetPicker() {
     const picker = document.getElementById('report-missing-pet-picker');
     const select = document.getElementById('report-missing-pet-select');
     if (!picker || !select) return;
-    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    const esc = (v) => this.escHtml(v);
+    // A pet with no name cannot be picked, and a pet already reported missing is not offered again
+    const pets = (window.pawStore ? window.pawStore.getPets() : []).filter((p) => p.name && p.status !== 'lost');
     const current = select.value;
-    const chip = (value, label, inner, selected) =>
-      `<button type="button" class="pet-pick${selected ? ' is-selected' : ''}" role="radio" aria-checked="${selected}" data-value="${esc(value)}" title="${esc(label)}">${inner}<span class="pet-pick-name">${esc(label)}</span></button>`;
-    const avatar = (pet) => {
-      const photo = pet.photoUrl || pet.photo;
-      return photo ? `<img class="pet-pick-img" src="${esc(photo)}" alt="" loading="lazy" decoding="async" />`
-        : '<span class="pet-pick-img pet-pick-blank"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg></span>';
-    };
-    const other = '<span class="pet-pick-img pet-pick-other"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>';
-    picker.innerHTML = pets.map((p) => chip(p.id, p.name, avatar(p), String(current) === String(p.id))).join('')
-      + chip('custom', 'Other pet', other, current === 'custom' || current === 'unregistered');
+    const plus = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    const check = '<svg class="pet-pick-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12 10 17 19 7"/></svg>';
+    const card = ({ value, name, sub = '', img, selected = false, notes = [], disabled = false, other = false, action = '' }) =>
+      `<button type="button" class="pet-pick${selected ? ' is-selected' : ''}${other ? ' is-other' : ''}" ${action ? `data-action="${action}"` : `role="radio" aria-checked="${selected}" data-value="${esc(value)}"`} ${disabled ? 'disabled' : ''} title="${esc(name)}">
+        ${img}
+        <span class="pet-pick-text"><span class="pet-pick-name">${esc(name)}</span>${sub ? `<span class="pet-pick-sub">${esc(sub)}</span>` : ''}${notes.map((n) => `<span class="pet-pick-badge">${esc(n)}</span>`).join('')}</span>
+        ${selected ? check : ''}
+      </button>`;
+    const petCard = (p) => card({
+      value: p.id,
+      name: p.name,
+      sub: [p.species, p.breed].filter(Boolean).join(' · '),
+      img: this.petAvatarHtml(p),
+      selected: String(current) === String(p.id)
+    });
+
+    picker.innerHTML = pets.map(petCard).join('')
+      + card({
+        value: 'custom',
+        name: 'Another pet',
+        img: `<span class="pet-pick-img pet-pick-other">${plus}</span>`,
+        selected: current === 'custom' || current === 'unregistered',
+        other: true
+      });
     picker.querySelectorAll('.pet-pick').forEach((btn) => {
       btn.addEventListener('click', () => {
         select.value = btn.dataset.value;
@@ -523,10 +555,25 @@ class ReportManager {
     const select = document.getElementById('report-missing-pet-select');
     if (select && select.value !== String(petId) && petId) select.value = String(petId);
     this.renderPetPicker();
-    // A photo can only be added for a pet that is not registered: registered pets already have theirs
+    // A registered pet with no NFC tag cannot be identified by a tap: its owner must add a current photo and describe its condition
+    const chosen = !isUnregistered && petId && window.pawStore
+      ? window.pawStore.getPets().find(p => String(p.id) === String(petId)) : null;
+    const noNfc = !!chosen && !chosen.nfcTag;
+    this.missingNoNfc = noNfc;
+    const conditionWrap = document.getElementById('report-missing-condition-wrap');
+    const conditionInput = document.getElementById('report-missing-condition');
+    if (conditionWrap) conditionWrap.style.display = noNfc ? '' : 'none';
+    if (conditionInput) {
+      conditionInput.required = noNfc;
+      if (!noNfc) conditionInput.value = '';
+    }
+    const photoLabel = document.getElementById('report-missing-photo-label');
+    if (photoLabel) photoLabel.textContent = noNfc ? 'Current photo of the pet *' : 'Photo of the pet';
+
+    // Registered pets with a tag already have their photo on file; unregistered and untagged pets need one uploaded
     const photoRow = document.getElementById('report-missing-photo-row');
-    if (photoRow) photoRow.style.display = isUnregistered ? '' : 'none';
-    if (isUnregistered) this.removeUploadedPhoto(false);
+    if (photoRow) photoRow.style.display = (isUnregistered || noNfc) ? '' : 'none';
+    if (isUnregistered || noNfc) this.removeUploadedPhoto(false);
 
     if (isUnregistered) {
       if (customWrap) customWrap.style.display = 'block';
@@ -546,7 +593,9 @@ class ReportManager {
           if (locInput && pet.lastSeenLocation) {
             locInput.value = pet.lastSeenLocation;
           }
-          if (pet.photoUrl || pet.photo) {
+          if (noNfc) {
+            this.updateMissingPhotoStatus(null, false);
+          } else if (pet.photoUrl || pet.photo) {
             this.setUploadedPhoto(pet.photoUrl || pet.photo);
             this.updateMissingPhotoStatus(pet.name, true);
           } else {
@@ -650,17 +699,14 @@ class ReportManager {
     if (!statusText) return;
 
     if (this.uploadedPhotoData) {
-      if (isRegistered && petName) {
-        statusText.textContent = `Attached: ${petName}'s profile photo`;
-        statusText.style.color = 'var(--text-main, #ffffff)';
-      } else {
-        statusText.textContent = 'Custom pet photo attached';
-        statusText.style.color = 'var(--primary, #ea9d1e)';
-      }
-      if (statusBtn) statusBtn.textContent = 'Change / View';
+      statusText.textContent = isRegistered && petName ? `${petName}'s profile photo` : 'Photo added';
+      statusText.dataset.state = 'ok';
+      statusText.style.color = '';
+      if (statusBtn) statusBtn.textContent = 'Change';
     } else {
-      statusText.textContent = 'No photo attached';
-      statusText.style.color = 'var(--text-muted, #a89f91)';
+      statusText.textContent = 'No photo yet';
+      statusText.dataset.state = 'empty';
+      statusText.style.color = '';
       if (statusBtn) statusBtn.textContent = 'Upload photo';
     }
   }
@@ -1212,7 +1258,36 @@ class ReportManager {
     }
   }
 
+  // Phone photos are several MB and the app saves each photo in a few places in the browser's ~5 MB storage,
+  // so big photos are shrunk to a small JPEG as soon as they are added
+  shrinkDataUrl(dataUrl, maxSide = 800) {
+    return new Promise((resolve) => {
+      if (!dataUrl || !dataUrl.startsWith('data:image/') || dataUrl.length < 150000) { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   setUploadedPhoto(dataUrl) {
+    if (dataUrl && dataUrl.length >= 150000) this.shrinkDataUrl(dataUrl).then((small) => this.applyUploadedPhoto(small));
+    else this.applyUploadedPhoto(dataUrl);
+  }
+
+  applySightingUploadedPhoto(dataUrl) {
+    if (dataUrl && dataUrl.length >= 150000) this.shrinkDataUrl(dataUrl).then((small) => this.applySightingUploadedPhoto(small));
+    else this.applySightingUploadedPhoto(dataUrl);
+  }
+
+  applyUploadedPhoto(dataUrl) {
     this.uploadedPhotoData = dataUrl;
     const placeholder = document.getElementById('report-photo-placeholder');
     const previewWrap = document.getElementById('report-photo-preview-wrap');
@@ -1254,10 +1329,21 @@ class ReportManager {
     e.preventDefault();
     if (!window.pawStore) return;
 
-    if (this.currentType === 'found') {
-      this.submitFoundReport();
-    } else {
-      this.submitMissingReport();
+    // A save that fails must say so: otherwise the button just seems to do nothing
+    try {
+      if (this.currentType === 'found') {
+        this.submitFoundReport();
+      } else {
+        this.submitMissingReport();
+      }
+    } catch (err) {
+      console.error('[Report] submit failed:', err);
+      const full = err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''));
+      if (window.notifManager) {
+        window.notifManager.showToast(full
+          ? 'Could not save the report because this device is out of storage. Try a smaller photo.'
+          : `Could not send the report: ${(err && err.message) || 'unknown error'}. Please try again.`, 'error', 6000);
+      }
     }
   }
 
@@ -1404,42 +1490,83 @@ class ReportManager {
     }
   }
 
+  // Inline errors: red field, message underneath, cleared as soon as the user fixes it
+  showFieldError(id, message) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const group = el.closest('.form-group') || el.parentElement;
+    group.classList.add('has-error');
+    let note = group.querySelector(':scope > .field-error');
+    if (!note) {
+      note = document.createElement('small');
+      note.className = 'field-error';
+      note.setAttribute('role', 'alert');
+      group.appendChild(note);
+    }
+    note.textContent = message;
+    if (!group.dataset.errorBound) {
+      group.dataset.errorBound = '1';
+      const clear = () => this.clearFieldError(group);
+      group.addEventListener('input', clear);
+      group.addEventListener('change', clear);
+      group.addEventListener('click', (e) => { if (e.target.closest('.pet-pick, button')) clear(); });
+    }
+  }
+
+  clearFieldError(group) {
+    group.classList.remove('has-error');
+    group.querySelector(':scope > .field-error')?.remove();
+  }
+
+  clearFieldErrors() {
+    document.querySelectorAll('#report-pet-modal .form-group.has-error').forEach((g) => this.clearFieldError(g));
+  }
+
   submitMissingReport() {
     const select = document.getElementById('report-missing-pet-select');
     const petId = (select?.value || '').trim();
     const customName = (document.getElementById('report-missing-custom-name')?.value || '').trim();
     const location = (document.getElementById('report-missing-location')?.value || '').trim();
     const date = (document.getElementById('report-missing-date')?.value || '').trim();
-    const phone = (document.getElementById('report-missing-phone')?.value || '').trim();
+    // The phone falls back to the account's, then to the one saved on the pet
+    const phoneBox = document.getElementById('report-missing-phone');
+    const account = window.pawStore.getGoogleUser();
+    const savedPet = window.pawStore.getPets().find(p => String(p.id) === petId);
+    const phone = ((phoneBox?.value || '').trim() || (account && account.phone) || (savedPet && savedPet.owner && savedPet.owner.phone) || '').trim();
+    if (phoneBox && phone && !phoneBox.value.trim()) phoneBox.value = phone;
     const notes = (document.getElementById('report-missing-notes')?.value || '').trim();
 
-    // Required fields validation (all except Describe Pet message)
-    if (!petId) {
-      if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
-      select?.focus();
-      return;
-    }
+    // Required fields: every problem is marked on its own field, not just the first one
+    this.clearFieldErrors();
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
-    if (isUnregistered && !customName) {
-      if (window.notifManager) window.notifManager.showToast('Please enter the pet name and description.', 'warning', 3500);
-      document.getElementById('report-missing-custom-name')?.focus();
+    const untagged = !isUnregistered && petId
+      ? window.pawStore.getPets().find(p => String(p.id) === String(petId)) : null;
+    const condition = (document.getElementById('report-missing-condition')?.value || '').trim();
+    const problems = [];
+    if (!petId) problems.push(['report-missing-pet-picker', 'Choose which pet is missing, or pick Another pet.']);
+    if (isUnregistered && !customName) problems.push(['report-missing-custom-name', "Enter the pet's name and a short description."]);
+    // A pet with no NFC tag needs a current photo and its condition, since nobody can tap a tag to identify it
+    if (untagged && !untagged.nfcTag) {
+      if (!this.uploadedPhotoData) problems.push(['report-missing-photo-row', `${untagged.name} has no NFC tag. Add a current photo so others can recognise it.`]);
+      if (!condition) problems.push(['report-missing-condition', `Describe how ${untagged.name} looks right now (injuries, collar, behaviour).`]);
+    }
+    if (!location) problems.push(['report-missing-location', 'Enter where the pet was last seen, or drop the pin on the map.']);
+    if (!date) problems.push(['report-missing-date', 'Choose the date and time the pet went missing.']);
+    if (!phone) problems.push(['report-missing-phone', 'Enter a phone number where you can be reached.']);
+    if (problems.length) {
+      problems.forEach(([id, msg]) => this.showFieldError(id, msg));
+      const first = document.getElementById(problems[0][0]);
+      if (first) {
+        first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const focusable = first.matches('input, textarea, select, button') ? first : first.querySelector('input, textarea, select, button');
+        if (focusable) focusable.focus({ preventScroll: true });
+      }
+      if (window.notifManager) {
+        window.notifManager.showToast(problems.length === 1 ? 'One thing needs your attention.' : `${problems.length} things need your attention.`, 'warning', 3000);
+      }
       return;
     }
-    if (!location) {
-      if (window.notifManager) window.notifManager.showToast('Please specify the last known location where the pet was seen.', 'warning', 3500);
-      document.getElementById('report-missing-location')?.focus();
-      return;
-    }
-    if (!date) {
-      if (window.notifManager) window.notifManager.showToast('Please provide the date and time when the pet went missing.', 'warning', 3500);
-      document.getElementById('report-missing-date')?.focus();
-      return;
-    }
-    if (!phone) {
-      if (window.notifManager) window.notifManager.showToast('Please provide an emergency contact phone number.', 'warning', 3500);
-      document.getElementById('report-missing-phone')?.focus();
-      return;
-    }
+    const reportNotes = condition ? `Condition: ${condition}${notes ? ' | ' + notes : ''}` : notes;
 
     let petName = 'Pet';
     let nfc = 'NFC-TAG';
@@ -1451,7 +1578,7 @@ class ReportManager {
         pet = pets.find(p => String(p.id) === String(petId)) || (petId === 'registered' && pets.length > 0 ? pets[0] : null);
         if (pet) {
           petName = pet.name;
-          nfc = pet.nfcTag;
+          nfc = pet.nfcTag || '';
         } else {
           petName = 'Registered Pet';
         }
@@ -1468,9 +1595,9 @@ class ReportManager {
         lastSeenDate: date,
         lastSeenCoords: [this.pinnedLat, this.pinnedLng],
         ownerPhone: phone,
-        notes: notes,
-        photoUrl: finalPhoto,
-        photo: finalPhoto
+        notes: reportNotes,
+        // The current photo of an untagged pet belongs to this report; its profile photo stays as it was
+        ...(condition ? {} : { photoUrl: finalPhoto, photo: finalPhoto })
       });
     }
 
@@ -1488,7 +1615,8 @@ class ReportManager {
       lastSeenLocation: location,
       lastSeenCoords: [this.pinnedLat, this.pinnedLng],
       lastSeenDate: date,
-      notes: notes,
+      notes: reportNotes,
+      condition: condition,
       status: 'active'
     });
 
@@ -1512,7 +1640,7 @@ class ReportManager {
           type: 'missing',
           title: 'Missing Alert Broadcast Activated',
           location: location,
-          notes: `Guardian reported missing with pinned coordinates [${this.pinnedLat}, ${this.pinnedLng}]. Notes: ${notes}`,
+          notes: reportNotes,
           photoUrl: finalPhoto
         }
       ]
@@ -1521,7 +1649,7 @@ class ReportManager {
 
     window.pawStore.addNotification({
       title: `Emergency Alert: "${petName}" Missing`,
-      message: `Guardian reported ${petName} (${nfc}) missing near ${location}. Checkpoints & public map notified.`,
+      message: `Guardian reported ${petName}${nfc ? ` (${nfc})` : ''} missing near ${location}. Checkpoints & public map notified.`,
       type: 'missing',
       missingReportId: missingReport.id,
       petId: pet ? pet.id : null,
@@ -2400,3 +2528,31 @@ class ReportManager {
 }
 
 window.reportManager = new ReportManager();
+
+// Shows the report form as a page. The form is built once in index.html; it is moved into the page
+// while #report is open and parked again before another view replaces the page content.
+class ReportPageView {
+  render(container) {
+    const page = document.getElementById('report-pet-modal');
+    const manager = window.reportManager;
+    if (!page || !manager) return;
+    if (page.parentElement === container) return; // already showing: keep what has been typed
+
+    if (!manager.formReady) manager.prepareForm('missing', null, {});
+    container.innerHTML = '';
+    page.hidden = false;
+    container.appendChild(page);
+    if (window.lucide) window.lucide.createIcons({ root: page });
+    window.scrollTo(0, 0);
+    setTimeout(() => manager.initPinMap(), 60);
+  }
+
+  park() {
+    const page = document.getElementById('report-pet-modal');
+    if (!page || page.parentElement === document.body) return;
+    page.hidden = true;
+    document.body.appendChild(page);
+  }
+}
+
+window.reportPageView = new ReportPageView();

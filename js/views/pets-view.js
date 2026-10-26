@@ -100,7 +100,8 @@ class PetsView {
     const store = window.pawStore;
     const user = store.getGoogleUser() || {};
     pets.forEach((p) => {
-      if (store.getPetById(p.id)) return;
+      const local = store.getPetById(p.id);
+      if (local && local.name) return; // a saved copy with no name is only a leftover: fill it in
       store.savePet({
         id: p.id, name: p.name, species: p.species, breed: p.breed, gender: p.gender, color: p.color,
         age: this.formatAge(p.age_months), ageMonths: p.age_months, description: p.description || '',
@@ -249,16 +250,21 @@ class PetsView {
 
     const facts = [
       ['Species', pet.species], ['Breed', pet.breed], ['Gender', pet.gender],
-      ['Age', this.formatAge(pet.age_months)], ['Color & markings', pet.color],
-      ['NFC tag', pet.nfc_tag || 'Not linked']
+      ['Age', this.formatAge(pet.age_months)], ['Color & markings', pet.color]
     ].filter(([, v]) => v);
+    const nfcBadge = pet.nfc_tag
+      ? `<span class="pet-nfc-badge is-linked" title="Tag ${this.esc(pet.nfc_tag)}"><i data-lucide="nfc"></i> NFC linked</span>`
+      : '<span class="pet-nfc-badge"><i data-lucide="nfc"></i> No NFC</span>';
 
     body.innerHTML = `
       <div class="pet-detail-hero">
         ${pet.photo_url ? `<img src="${this.esc(pet.photo_url)}" alt="${this.esc(pet.name)}" />` : '<div class="pet-card-noimg"><i data-lucide="paw-print"></i></div>'}
         <div>
           <h2>${this.esc(pet.name)}</h2>
-          <span class="pet-status pet-status-${this.esc(pet.status)} pet-status-inline">${this.statusLabel(pet.status)}</span>
+          <div class="pet-detail-badges">
+            <span class="pet-status pet-status-${this.esc(pet.status)} pet-status-inline">${this.statusLabel(pet.status)}</span>
+            ${nfcBadge}
+          </div>
         </div>
       </div>
       ${pet.description ? `<p class="pet-detail-desc">${this.esc(pet.description)}</p>` : ''}
@@ -355,8 +361,10 @@ class PetsView {
     if (!ok) { if (btn) btn.disabled = false; return; }
     // Close the open report on this device too
     const store = window.pawStore;
-    if (store.getPetById(petId)) store.updatePetStatus(petId, 'safe');
     const report = store.getActiveMissingReportForPet && store.getActiveMissingReportForPet(petId);
+    const pet = this.pets.find((p) => p.id === petId);
+    if (store.getPetById(petId)) store.updatePetStatus(petId, 'safe');
+    store.resolveCasesForPet(petId, { missingReportId: report && report.id, nfcTag: pet && pet.nfc_tag });
     if (report) store.updateMissingReport(report.id, { status: 'resolved' });
     if (window.notifManager) window.notifManager.showToast('Marked as found. Glad they are safe.', 'success', 3500);
   }
