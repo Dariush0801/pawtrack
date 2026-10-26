@@ -46,15 +46,15 @@ const SEED_SHELTERS = [
   }
 ];
 
-const SEED_RFID_TAGS = [
-  { id: 'tag-1', code: 'RFID-882194', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-2', code: 'RFID-449102', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-3', code: 'RFID-109283', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-4', code: 'RFID-331908', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-5', code: 'RFID-771829', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-6', code: 'RFID-904123', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-7', code: 'RFID-662310', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null },
-  { id: 'tag-8', code: 'RFID-551980', status: 'available', petId: null, petName: null, frequency: '134.2 kHz FDX-B', battery: '100%', lastScanned: null }
+const SEED_NFC_TAGS = [
+  { id: 'tag-1', code: 'NFC-882194', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-2', code: 'NFC-449102', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-3', code: 'NFC-109283', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-4', code: 'NFC-331908', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-5', code: 'NFC-771829', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-6', code: 'NFC-904123', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-7', code: 'NFC-662310', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null },
+  { id: 'tag-8', code: 'NFC-551980', status: 'available', petId: null, petName: null, frequency: '13.56 MHz NTAG213', battery: '100%', lastScanned: null }
 ];
 
 // Keep mutations available while a serverless instance is warm. The browser
@@ -67,7 +67,7 @@ const cloudState = {
   cases: [],
   missingReports: [],
   shelters: SEED_SHELTERS,
-  rfidTags: SEED_RFID_TAGS,
+  nfcTags: SEED_NFC_TAGS,
   settings: {
     systemName: 'PawTrack Municipal Gateway (Cloud)',
     holdingWindowHours: 72,
@@ -76,11 +76,13 @@ const cloudState = {
     autoNotifyOwnerOnIntake: true,
     autoNotifyOwnerOnExpiryWarning: true,
     expiryWarningHours: 12,
-    rfidScannerBaudRate: 9600,
+    nfcScannerBaudRate: 9600,
     municipalJurisdiction: 'National Capital Region (Metro Manila)',
     syncStatus: 'Vercel Serverless Ready'
   }
 };
+
+const { migrateLegacyNfc } = require('../js/legacy-nfc');
 
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -98,7 +100,7 @@ module.exports = (req, res) => {
   }
 
   if (req.method === 'POST') {
-    const payload = req.body || {};
+    const payload = migrateLegacyNfc(req.body || {}); // older clients still send rfid* fields
     if (payload.action === 'create_sighting' && payload.sighting) {
       cloudState.sightings = cloudState.sightings.filter(item => item.id !== payload.sighting.id);
       cloudState.sightings.unshift(payload.sighting);

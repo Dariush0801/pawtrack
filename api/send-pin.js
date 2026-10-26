@@ -2,6 +2,8 @@
  * Vercel Serverless Function: Send 4-Digit Security PIN to Google/Gmail Account
  * Primary transactional dispatch for PawTrack Guardian identity verification.
  */
+const mailer = require('./mailer');
+
 module.exports = async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,18 +30,10 @@ module.exports = async function handler(req, res) {
 
     // Optional real SMTP delivery if environment credentials are provided (e.g. Gmail App Password, Resend, or SendGrid)
     let emailSentViaSmtp = false;
-    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+    if (mailer.isConfigured()) {
       try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASS
-          }
-        });
+        const transporter = mailer;
         await transporter.sendMail({
-          from: `"PawTrack Guardian Security" <${process.env.GMAIL_USER}>`,
           to: targetEmail,
           subject: `Google Security Alert: PawTrack Verification PIN [${securityPin}]`,
           html: `
@@ -52,13 +46,13 @@ module.exports = async function handler(req, res) {
               </div>
               <p style="font-size: 13px; color: #64748b;">This PIN is valid for 10 minutes. If you did not request this code, please disregard this email.</p>
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-              <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack RFID Pet Recovery &amp; Municipal Pound Network</p>
+              <p style="font-size: 11px; color: #94a3b8; text-align: center;">PawTrack NFC Pet Recovery &amp; Municipal Pound Network</p>
             </div>
           `
         });
         emailSentViaSmtp = true;
       } catch (smtpErr) {
-        console.warn('[SMTP Dispatch Warning]:', smtpErr.message);
+        console.warn('[Brevo Dispatch Warning]:', smtpErr.message);
       }
     }
 

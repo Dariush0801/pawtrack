@@ -4,9 +4,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Keep the page blank until the app has decided between dashboard and login (removed by App.endBoot) -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      try { var theme = localStorage.getItem('pawtrack_theme'); if (theme === 'system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'; if (theme) root.setAttribute('data-theme', theme); } catch (e) {}
+      root.classList.add('booting');
+      setTimeout(function () { root.classList.remove('booting'); }, 6000); // never leave a blank page if scripts fail
+    })();
+  </script>
+  <style>
+    html.booting { background: #180d07; }
+    html[data-theme="light"].booting { background: #faf6f2; }
+    html.booting body { visibility: hidden; }
+    html.booting::after { content: ""; position: fixed; top: 50%; left: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid rgba(234, 157, 30, 0.25); border-top-color: #ea9d1e; animation: boot-spin 0.8s linear infinite; }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+  </style>
   <title>PawTrack | Pet Recovery & Impoundment Notification System</title>
   <meta name="description"
-    content="Unified RFID pet tracking, automated municipal pound alerts, and 72-hour legal holding countdown monitor." />
+    content="Unified NFC pet tracking, automated municipal pound alerts, and 72-hour legal holding countdown monitor." />
 
   <!-- Circular System Favicon & Brand Icons -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4NCiAgPGRlZnM+DQogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYXd0cmFjay1jaXJjbGUtZ3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+DQogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYzI0MTBjIi8+DQogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3RvcC1jb2xvcj0iI2VhNTgwYyIvPg0KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjN2MyZDEyIi8+DQogICAgPC9saW5lYXJHcmFkaWVudD4NCiAgICA8ZmlsdGVyIGlkPSJwYXctZ2xvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+DQogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iMS41IiBzdGREZXZpYXRpb249IjEuNSIgZmxvb2QtY29sb3I9IiMwMDAwMDAiIGZsb29kLW9wYWNpdHk9IjAuNDUiLz4NCiAgICA8L2ZpbHRlcj4NCiAgPC9kZWZzPg0KICANCiAgPCEtLSBPdXRlciBDaXJjdWxhciBCYXNlIC0tPg0KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0idXJsKCNwYXd0cmFjay1jaXJjbGUtZ3JhZCkiIHN0cm9rZT0iI2ZlZDdhYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4NCiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjYuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMjIpIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIvPg0KICANCiAgPCEtLSBTeXN0ZW0gTG9nbyBFbWJsZW0gTW90aWYgLS0+DQogIDxnIGZpbGw9IiNmZmZmZmYiIGZpbHRlcj0idXJsKCNwYXctZ2xvdykiPg0KICAgIDwhLS0gVG9wIENlbnRyYWwgUGFkIC0tPg0KICAgIDxlbGxpcHNlIGN4PSIzMiIgY3k9IjE4IiByeD0iNCIgcnk9IjUuNSIvPg0KICAgIDwhLS0gTGVmdCBQYWQgLS0+DQogICAgPGVsbGlwc2UgY3g9IjIxIiBjeT0iMjMiIHJ4PSIzLjgiIHJ5PSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgtMTggMjEgMjMpIi8+DQogICAgPCEtLSBSaWdodCBQYWQgLS0+DQogICAgPGVsbGlwc2UgY3g9IjQzIiBjeT0iMjMiIHJ4PSIzLjgiIHJ5PSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgxOCA0MyAyMykiLz4NCiAgICA8IS0tIE1haW4gQ2VudGVyIFBhdyBQYWQgLS0+DQogICAgPHBhdGggZD0iTTMyIDMwIEMyNSAzMCAxOSAzNSAxOSA0MS41IEMxOSA0Ni41IDIzIDUwIDI3LjUgNTAgQzMwLjIgNTAgMzEuNCA0OC4yIDMyIDQ4LjIgQzMyLjYgNDguMiAzMy44IDUwIDM2LjUgNTAgQzQxIDUwIDQ1IDQ2LjUgNDUgNDEuNSBDNDUgMzUgMzkgMzAgMzIgMzAgWiIvPg0KICA8L2c+DQo8L3N2Zz4NCg==" />
@@ -30,18 +46,27 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/google-maps.js"></script>
+  <script src="js/google-map-adapter.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 
   <!-- PawTrack Stylesheets -->
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/nfc.css" />
+  <link rel="stylesheet" href="css/pets.css" />
+  <link rel="stylesheet" href="css/found.css" />
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="css/navigation.css" />
 </head>
 
 <body>
   <!-- Sidebar: logo (home), navigation, account -->
   <aside class="app-sidebar" id="app-sidebar" aria-label="Sidebar">
     <div class="sidebar-brand">
-      <a href="#owner" class="brand-logo" title="PawTrack Home">
+      <a href="#pets" class="brand-logo" title="PawTrack Home">
         <div class="logo-icon-box">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path
@@ -50,51 +75,42 @@
         </div>
         <div class="brand-name">
           <span>PawTrack</span>
-          <span class="brand-tagline">RFID RECOVERY</span>
+          <span class="brand-tagline">NFC RECOVERY</span>
         </div>
       </a>
     </div>
 
     <nav class="role-tabs sidebar-nav" aria-label="Main Navigation">
-      <a href="#owner" class="role-tab-btn active" data-view="owner" title="Home" aria-label="Home">
+      <a href="#pets" class="role-tab-btn active" data-view="pets" title="Pets" aria-label="Pets">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
+          <circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/>
+          <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>
         </svg>
-        <span>Home</span>
+        <span data-i18n="nav.pets">Pets</span>
+      </a>
+      <a href="#owner" class="role-tab-btn" data-view="owner" title="Missing Pets" aria-label="Missing Pets">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span>Missing Pets</span>
       </a>
       <a href="http://localhost:8080" target="_blank" class="badge" style="display: none; background:rgba(194,65,12,0.15); color:#ea580c; text-decoration:none; padding:4px 8px; border-radius:6px; font-weight:600; font-size:11px; margin-left:8px; border:1px solid rgba(194,65,12,0.3);" hidden>Admin Console ↗</a>
-      <a href="#shelter" class="role-tab-btn" data-view="shelter" title="Shelter Terminal" aria-label="Shelter Terminal">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 21h18"/>
-          <path d="M5 21V7l8-4 8 4v14"/>
-          <path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9z"/>
-        </svg>
-        <span>Shelter Terminal</span>
-      </a>
 
-      <a href="#cases" class="role-tab-btn" data-view="cases" title="Cases & Analytics" aria-label="Cases & Analytics">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        <span>Cases & Analytics</span>
-      </a>
-      <a href="#impounded" class="role-tab-btn" data-view="impounded" title="Impounded Pets" aria-label="Impounded Pets">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          <path d="M12 8v4"/>
-          <path d="M12 16h.01"/>
-        </svg>
-        <span data-i18n="nav.impounded">Impounded</span>
-      </a>
       <a href="#sightings" class="role-tab-btn" data-view="sightings" title="Community Pet Sightings" aria-label="Community Pet Sightings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
         <span>Sightings</span>
+      </a>
+      <a href="#found" class="role-tab-btn" data-view="found" title="Found a Pet" aria-label="Found a Pet">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m21 21-4.3-4.3"/>
+          <path d="m8.5 11 1.8 1.8 3.4-3.6"/>
+        </svg>
+        <span>Found a Pet</span>
       </a>
       <a href="javascript:void(0)" class="role-tab-btn nav-report-btn" data-view="report" title="Report Missing or Found Pet" aria-label="Report Missing or Found Pet" onclick="window.reportManager ? window.reportManager.openReportModal('found') : null" data-i18n-title="nav.reportTitle" data-i18n-aria="nav.reportTitle">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -103,6 +119,12 @@
           <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
         </svg>
         <span data-i18n="nav.report">Report Pet</span>
+      </a>
+      <a href="#settings" class="role-tab-btn" data-view="settings" title="Settings" aria-label="Settings" data-i18n-title="nav.settings" data-i18n-aria="nav.settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -209,7 +231,7 @@
         <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Open menu" aria-controls="app-sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
         </button>
-        <a href="#owner" class="brand-logo header-mobile-brand" title="PawTrack Home">
+        <a href="#pets" class="brand-logo header-mobile-brand" title="PawTrack Home">
           <div class="logo-icon-box">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z" />
@@ -217,6 +239,12 @@
           </div>
           <div class="brand-name"><span>PawTrack</span></div>
         </a>
+      </div>
+
+      <!-- Greeting with the signed-in user's first name -->
+      <div class="header-greeting" id="header-greeting" hidden>
+        <strong id="header-greeting-line"></strong>
+        <span id="header-greeting-date"></span>
       </div>
 
       <!-- Quick Action Controls -->
@@ -237,7 +265,7 @@
           aria-label="Toggle Theme" data-i18n-title="nav.themeTitle">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round" id="theme-btn-svg">
-            <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z" />
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
           </svg>
         </button>
 
@@ -289,24 +317,6 @@
     <!-- View content is injected here dynamically -->
   </main>
 
-  <!-- App Footer -->
-  <footer class="app-footer">
-    <div class="footer-inner">
-      <div class="footer-copy">
-        <strong data-i18n="footer.copy">PawTrack System &mdash; Pet Recovery &amp; Impoundment Notification System with RFID Technology.</strong>
-      </div>
-      <div class="footer-links" style="display: flex; align-items: center; gap: 14px; font-size: 12px;">
-        <a href="#privacy" onclick="event.preventDefault(); window.notifManager.openModal('privacy-policy-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Privacy Policy</a>
-        <span style="color: var(--border-subtle, #333);">&bull;</span>
-        <a href="#terms" onclick="event.preventDefault(); window.notifManager.openModal('terms-modal');" style="color: var(--text-muted, #94a3b8); text-decoration: none; font-weight: 500;">Terms of Service</a>
-      </div>
-      <div class="footer-status">
-        <span class="status-indicator"></span>
-        <span class="status-text" data-i18n="footer.status">NCR Municipal Transponder Grid Active</span>
-      </div>
-    </div>
-  </footer>
-
   <!-- ==================== MODALS ==================== -->
 
   <!-- 1. Register Pet Modal -->
@@ -336,6 +346,11 @@
             </div>
           </div>
 
+          <div class="form-group" id="reg-pet-species-other-group" hidden>
+            <label class="form-label" for="reg-pet-species-other">Which species? *</label>
+            <input type="text" id="reg-pet-species-other" maxlength="40" placeholder="e.g. Rabbit, Hamster, Parrot" />
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" data-i18n="modal.regBreed">Breed *</label>
@@ -346,6 +361,20 @@
               <select id="reg-pet-gender">
                 <option value="Male" data-i18n="modal.genderMale">Male</option>
                 <option value="Female" data-i18n="modal.genderFemale">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="reg-pet-age" data-i18n="modal.regAge">Age *</label>
+              <input type="number" id="reg-pet-age" min="0" max="50" step="1" inputmode="numeric" placeholder="e.g. 3" data-i18n-placeholder="modal.regAgePh" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-pet-age-unit" data-i18n="modal.regAgeUnit">Unit</label>
+              <select id="reg-pet-age-unit">
+                <option value="years" data-i18n="modal.ageYears">Years</option>
+                <option value="months" data-i18n="modal.ageMonths">Months</option>
               </select>
             </div>
           </div>
@@ -389,50 +418,86 @@
             </div>
           </div>
 
-          <!-- Guardian Emergency Contact (Confidential - Visible only to Admin/Shelter Officers) -->
-          <div style="background: var(--bg-surface-elevated, #f8fafc); border: 1px solid var(--border-subtle, #e2e8f0); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-main, #1e293b); display: flex; align-items: center; gap: 5px;">
-                <span data-i18n="modal.regGuardianTitle">Guardian Emergency Rescue Contact</span>
-              </span>
-              <span style="font-size: 9.5px; font-weight: 700; color: #15803d; background: #dcfce7; padding: 2px 7px; border-radius: 99px;" data-i18n="modal.regAdminBadge">
-                Admin & Pound Officers Only
-              </span>
-            </div>
-
-            <div class="form-row" style="margin-bottom: 8px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerName">Guardian Full Name *</label>
-                <input type="text" id="reg-owner-name" placeholder="e.g. Maria Santos" required />
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerPhone">Guardian Contact Number *</label>
-                <input type="tel" id="reg-owner-phone" placeholder="e.g. +63 917 555 3829" value="+63 917 555 3829" required />
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;" data-i18n="modal.regOwnerAddress">Emergency Rescue City / Address</label>
-              <input type="text" id="reg-owner-address" placeholder="e.g. Metro Manila, Philippines" value="Metro Manila, Philippines" />
-            </div>
-
-            <span style="font-size: 10px; color: var(--text-muted, #64748b); margin-top: 6px; display: block; line-height: 1.35;" data-i18n="modal.regPrivacyNote">
-              <i>Your contact number is kept confidential from other public users and is only used by municipal shelter officers to contact you when your pet is scanned.</i>
-            </span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" data-i18n="modal.regMedical">Medical / Vaccination / Microchip Details</label>
-            <textarea id="reg-pet-notes" rows="2"
-              placeholder="Vaccine records, allergies, microchip number..." data-i18n-placeholder="modal.regMedicalPh"></textarea>
-          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline"
             onclick="window.notifManager.closeModal('register-pet-modal')" data-i18n="modal.cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary" data-i18n="modal.saveReg">Save & Issue Digital Tag</button>
+          <button type="submit" class="btn btn-primary" id="reg-next-btn"><span data-i18n="modal.next">Next</span> <i data-lucide="arrow-right" style="width:16px; height:16px;"></i></button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Pet detail + vaccination records -->
+  <div class="modal-overlay" id="pet-detail-modal">
+    <div class="modal-box pet-detail-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="paw-print" style="color:var(--primary); width:20px; height:20px;"></i> <span>Pet details</span>
+        </h3>
+        <button type="button" class="btn-outline btn-sm" onclick="window.petsView.close()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="pet-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- 1b. Link NFC Tag Modal (step 2 of pet registration) -->
+  <div class="modal-overlay" id="nfc-link-modal">
+    <div class="modal-box nfc-link-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="nfc" style="color:var(--primary); width:20px; height:20px;"></i> <span data-i18n="nfc.linkTitle">Scan an NFC Tag</span>
+        </h3>
+        <button type="button" class="btn-outline btn-sm" id="nfc-link-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body nfc-link-body">
+        <div class="nfc-link-pet" id="nfc-link-pet"></div>
+        <div class="nfc-radar" id="nfc-radar" data-state="idle" aria-hidden="true">
+          <span class="nfc-radar-ring"></span><span class="nfc-radar-ring"></span><span class="nfc-radar-ring"></span>
+          <div class="nfc-radar-core"><i data-lucide="nfc" style="width:34px; height:34px;"></i></div>
+        </div>
+        <div class="nfc-link-status" id="nfc-link-status" role="status" aria-live="polite">
+          <strong id="nfc-link-headline" data-i18n="nfc.holdTag">Hold the NFC tag to the back of your phone</strong>
+          <span id="nfc-link-detail" data-i18n="nfc.holdTagDetail">Tap Start scanning, then touch the tag from your pet's collar to your phone.</span>
+        </div>
+        <ol class="nfc-link-steps" aria-label="How it works">
+          <li><b>1</b><span>Tap Start scanning</span></li>
+          <li><b>2</b><span>Touch the tag to the back of your phone</span></li>
+          <li><b>3</b><span>Keep still until it finishes</span></li>
+        </ol>
+        <div class="nfc-link-result" id="nfc-link-result" hidden>
+          <div class="nfc-link-result-row"><span data-i18n="nfc.tagId">Tag ID</span><code id="nfc-link-uid">-</code></div>
+        </div>
+      </div>
+      <div class="modal-footer nfc-link-footer">
+        <button type="button" class="btn btn-primary nfc-link-start" id="nfc-link-start" data-i18n="nfc.start">Start scanning</button>
+        <button type="button" class="btn btn-outline btn-sm nfc-link-back" id="nfc-link-back"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i> <span data-i18n="nfc.back">Back</span></button>
+        <button type="button" class="nfc-link-skip" id="nfc-link-skip" data-i18n="nfc.skip">Continue without NFC</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm registering a pet without an NFC tag -->
+  <div class="modal-overlay" id="nfc-skip-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="alert-triangle" style="color:var(--warning, #ea9d1e); width:20px; height:20px;"></i> <span data-i18n="nfc.skipTitle">Continue without an NFC tag?</span>
+        </h3>
+        <button type="button" class="btn-outline btn-sm" id="nfc-skip-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.9rem; margin-bottom:0.75rem;" data-i18n="nfc.skipIntro">Your pet will be registered, but without a tag on the collar:</p>
+        <ul style="font-size:0.85rem; color:var(--text-muted); padding-left:1.1rem; line-height:1.5; margin:0 0 0.75rem;">
+          <li data-i18n="nfc.skipPoint1">Anyone who finds your pet cannot tap a tag to see its page or alert you.</li>
+          <li data-i18n="nfc.skipPoint2">Shelters and finders have no quick way to identify your pet and reach you.</li>
+          <li data-i18n="nfc.skipPoint3">You can still report your pet as missing and use photo matching.</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="nfc-skip-cancel" data-i18n="nfc.skipCancel">Go back and scan</button>
+        <button type="button" class="btn btn-primary" id="nfc-skip-confirm" data-i18n="nfc.skipConfirm">Continue without NFC</button>
+      </div>
     </div>
   </div>
 
@@ -468,7 +533,7 @@
           <div class="form-group">
             <label class="form-label" data-i18n="modal.lostNotes">Additional Distinct Features & Behavior</label>
             <textarea id="report-lost-notes" rows="3"
-              placeholder="Wearing RFID collar tag, responds to name..." data-i18n-placeholder="modal.lostNotesPh"></textarea>
+              placeholder="Wearing NFC collar tag, responds to name..." data-i18n-placeholder="modal.lostNotesPh"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -512,8 +577,8 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" data-i18n="modal.foundRfid">RFID Tag Detected (if collar has tag)</label>
-            <input type="text" id="found-rfid" placeholder="e.g. RFID-882194" />
+            <label class="form-label" data-i18n="modal.foundNfc">NFC Tag Detected (if collar has tag)</label>
+            <input type="text" id="found-nfc" placeholder="e.g. NFC-882194" />
           </div>
 
           <div class="form-group">
@@ -556,12 +621,12 @@
     </div>
   </div>
 
-  <!-- 5. Digital RFID Tag Pass Modal -->
+  <!-- 5. Digital NFC Tag Pass Modal -->
   <div class="modal-overlay" id="digital-pass-modal">
     <div class="modal-box" style="max-width: 440px;">
       <div class="modal-header">
         <h3 style="display:flex; align-items:center; gap:0.5rem;">
-          <i data-lucide="qr-code" style="color:var(--primary); width:20px; height:20px;"></i> Digital RFID Pass
+          <i data-lucide="qr-code" style="color:var(--primary); width:20px; height:20px;"></i> Digital NFC Pass
         </h3>
         <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('digital-pass-modal')"
           aria-label="Close">&times;</button>
@@ -604,7 +669,7 @@
       </div>
       <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-main, #1e293b);">Google Sign-In Required</h3>
       <p style="font-size: 13.5px; color: var(--text-muted, #64748b); line-height: 1.5; margin-bottom: 22px;">
-        To register a new pet, issue municipal RFID collar transponders, and manage emergency recovery alerts, you must first sign in with your Google account.
+        To register a new pet, issue municipal NFC collar transponders, and manage emergency recovery alerts, you must first sign in with your Google account.
       </p>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button type="button" onclick="document.getElementById('google-required-modal').style.display='none'" style="padding: 9px 18px; border-radius: 20px; border: 1px solid var(--border-subtle, #cbd5e1); background: transparent; color: var(--text-main, #1e293b); font-size: 13px; font-weight: 600; cursor: pointer;">
@@ -820,25 +885,6 @@
     </div>
   </div>
 
-  <!-- 11. Pet Recovery Case Dossier Modal -->
-  <div class="modal-overlay" id="case-dossier-modal">
-    <div class="modal-box" style="max-width: 580px;">
-      <div class="modal-header">
-        <h3 style="display:flex; align-items:center; gap:0.5rem;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #c2410c)" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
-          Recovery Case Dossier & Audit Log
-        </h3>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('case-dossier-modal')" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal-body" id="case-dossier-content" style="padding: 1.25rem 1.4rem;">
-        <!-- Filled dynamically by casesView.openCaseDossier() -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="window.notifManager.closeModal('case-dossier-modal')">Close Case Dossier</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 12. Impoundment Claiming Document Verification Modal -->
   <div class="modal-overlay" id="claiming-verification-modal">
     <div class="modal-box" style="max-width: 500px;">
@@ -869,8 +915,8 @@
             </label>
 
             <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-surface-elevated, #fff); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer;">
-              <input type="checkbox" id="claim-doc-rfid" checked style="accent-color:var(--primary); width:18px; height:18px;" />
-              <span style="font-size:13px; font-weight:600;">3. RFID Transponder Verification / Microchip Certificate</span>
+              <input type="checkbox" id="claim-doc-nfc" checked style="accent-color:var(--primary); width:18px; height:18px;" />
+              <span style="font-size:13px; font-weight:600;">3. NFC Transponder Verification / Microchip Certificate</span>
             </label>
           </div>
 
@@ -900,7 +946,7 @@
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;" data-i18n="guide.modalSubtitle">Complete step-by-step instructions: What to do Before, During, and After.</div>
           </div>
         </div>
-        <button class="btn-outline btn-sm" onclick="window.notifManager.closeModal('owner-guide-modal')" aria-label="Close Guide">&times;</button>
+        <button type="button" class="modal-close-squircle-btn" onclick="window.notifManager.closeModal('owner-guide-modal')" aria-label="Close Guide" title="Close"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <!-- Interactive Tab Selector -->
@@ -927,7 +973,7 @@
             <div class="guide-phase-badge before" data-i18n="guide.phase1Badge">PHASE 1</div>
             <div class="guide-phase-title-wrap">
               <h4 class="guide-phase-heading" data-i18n="guide.phase1Head">BEFORE: Preventive Protection & Registration</h4>
-              <p class="guide-phase-desc" data-i18n="guide.phase1Desc">Steps every pet owner must complete to secure their pet on the municipal RFID grid before emergencies happen.</p>
+              <p class="guide-phase-desc" data-i18n="guide.phase1Desc">Steps every pet owner must complete to secure their pet on the municipal NFC grid before emergencies happen.</p>
             </div>
           </div>
 
@@ -935,13 +981,13 @@
             <div class="guide-step-card">
               <div class="guide-step-num before">1</div>
               <div class="guide-step-main">
-                <div class="guide-step-title" data-i18n="guide.phase1Step1Title">Register Pet & Attach RFID Tag / Link Microchip</div>
+                <div class="guide-step-title" data-i18n="guide.phase1Step1Title">Register Pet & Attach NFC Tag / Link Microchip</div>
                 <div class="guide-step-text" data-i18n="guide.phase1Step1Text">
-                  Add your dog or cat into the PawTrack registry with full details: breed, age, distinct color markings, medical notes, and a clear front-facing photo. Link an implanted 134.2 kHz ISO microchip or attach a PawTrack RFID collar transponder.
+                  Add your dog or cat into the PawTrack registry with full details: breed, age, distinct color markings, medical notes, and a clear front-facing photo. Link an implanted 134.2 kHz ISO microchip or attach a PawTrack NFC collar transponder.
                 </div>
                 <div class="guide-step-tip">
                   <i data-lucide="info" style="width:14px; height:14px; color:#38bdf8; flex-shrink:0;"></i>
-                  <span data-i18n="guide.phase1Step1Tip">Why it matters: Unregistered pets without RFID transponders cannot be automatically identified by municipal scanning grids.</span>
+                  <span data-i18n="guide.phase1Step1Tip">Why it matters: Unregistered pets without NFC transponders cannot be automatically identified by municipal scanning grids.</span>
                 </div>
               </div>
             </div>
@@ -963,7 +1009,7 @@
             <div class="guide-step-card">
               <div class="guide-step-num before">3</div>
               <div class="guide-step-main">
-                <div class="guide-step-title" data-i18n="guide.phase1Step3Title">Save / Print Your Pet's Digital RFID Pass</div>
+                <div class="guide-step-title" data-i18n="guide.phase1Step3Title">Save / Print Your Pet's Digital NFC Pass</div>
                 <div class="guide-step-text" data-i18n="guide.phase1Step3Text">
                   Tap "Digital Pass" on your registered pet card. Save the digital pass badge with QR code and microchip UID to your smartphone or keep a printed physical copy with your pet's vaccination booklet.
                 </div>
@@ -1008,7 +1054,7 @@
               <div class="guide-step-main">
                 <div class="guide-step-title" data-i18n="guide.phase2Step2Title">Shelter Scan & Instant Automated SMS Notification</div>
                 <div class="guide-step-text">
-                  <span data-i18n="guide.phase2Step2Text">When animal control or pound officers rescue and scan your pet's RFID tag, PawTrack instantly triggers an SMS and portal alert with:</span>
+                  <span data-i18n="guide.phase2Step2Text">When animal control or pound officers rescue and scan your pet's NFC tag, PawTrack instantly triggers an SMS and portal alert with:</span>
                   <ul class="guide-checklist">
                     <li data-i18n="guide.phase2Step2Item1">Facility Name (e.g. Quezon City Animal Care Facility) & GPS Address</li>
                     <li data-i18n="guide.phase2Step2Item2">Official Intake Timestamp and Holding Cell ID</li>
@@ -1044,7 +1090,7 @@
                     </div>
                     <div class="guide-doc-item">
                       <i data-lucide="qr-code" style="width:16px; height:16px; color:#ea9d1e;"></i>
-                      <div><strong data-i18n="guide.doc3Title">3. PawTrack Digital Pass</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc3Sub">QR Code or RFID Tag UID</span></div>
+                      <div><strong data-i18n="guide.doc3Title">3. PawTrack Digital Pass</strong><br><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="guide.doc3Sub">QR Code or NFC Tag UID</span></div>
                     </div>
                     <div class="guide-doc-item">
                       <i data-lucide="receipt" style="width:16px; height:16px; color:#ea9d1e;"></i>
@@ -1103,7 +1149,7 @@
               <div class="guide-step-main">
                 <div class="guide-step-title" data-i18n="guide.phase3Step4Title">Post-Reunion Health Check & Collar Inspection</div>
                 <div class="guide-step-text" data-i18n="guide.phase3Step4Text">
-                  Inspect your pet's RFID collar tag for secure fit and wear. Update any recent veterinary treatments, vaccinations, or address changes in the portal to keep your pet continuously protected.
+                  Inspect your pet's NFC collar tag for secure fit and wear. Update any recent veterinary treatments, vaccinations, or address changes in the portal to keep your pet continuously protected.
                 </div>
               </div>
             </div>
@@ -1127,20 +1173,20 @@
     </div>
   </div>
 
-  <!-- 12b. Interactive Report Missing / Found Pet Modal with Pin-Drop Map -->
-  <div class="modal-overlay" id="report-pet-modal">
+  <!-- 12b. Report Missing Pet page (moved into the #report view) with Pin-Drop Map -->
+  <div class="report-page" id="report-pet-modal" hidden>
     <div class="modal-box report-modal-box">
       <!-- Modal Header -->
-      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.2));">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div class="report-modal-icon-badge">
+      <div class="modal-header view-header">
+        <div class="view-title-group">
+          <div class="report-modal-icon-badge" hidden>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/>
             </svg>
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <h3 id="report-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;" data-i18n="report.modalTitleFound">Found this pet?</h3>
+              <h3 id="report-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;" data-i18n="report.modalTitleMissing">Report a missing pet</h3>
               <button type="button" class="report-help-btn" id="report-help-btn" onclick="window.reportManager ? window.reportManager.toggleInstructionGuide() : null" title="How to report instructions & guide" aria-label="Reporting instructions" data-i18n-title="report.helpBtnTitle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -1149,17 +1195,12 @@
                 </svg>
               </button>
             </div>
-            <p id="report-modal-sub" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.35;" data-i18n="report.modalSubFound">
-              Drop a pin at the spot where you found the pet, add a quick note if you'd like, and notify the owner.
+            <p id="report-modal-sub" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.35;" data-i18n="report.modalSubMissing">
+              Drop a pin where the pet was last seen, add details, and broadcast an emergency alert to shelters and public map.
             </p>
           </div>
         </div>
-        <button type="button" class="modal-close-squircle-btn" onclick="window.reportManager.closeModal()" aria-label="Close Report Dialog" title="Close">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <button type="button" class="btn btn-outline btn-sm report-back-btn" onclick="window.reportManager.closeModal()" aria-label="Go back"><i data-lucide="arrow-left"></i> Back</button>
       </div>
 
       <!-- Collapsible Step-by-Step Reporting Instructions Panel -->
@@ -1182,34 +1223,24 @@
         </div>
       </div>
 
-      <!-- Report Type Selector Toggle Tabs -->
-      <div class="report-type-toggle-bar">
-        <button type="button" class="report-type-tab-btn active" id="report-tab-found" onclick="window.reportManager.setType('found')">
-          <span data-i18n="report.tabFound">Found / Sighted Stray Pet</span>
-        </button>
-        <button type="button" class="report-type-tab-btn" id="report-tab-missing" onclick="window.reportManager.setType('missing')">
-          <span data-i18n="report.tabMissing">Report Missing Pet Alert</span>
-        </button>
-      </div>
-
       <!-- Main Form with Two-Column Map & Form Layout -->
-      <form id="report-pet-form" onsubmit="window.reportManager.handleSubmit(event)">
+      <form id="report-pet-form" novalidate onsubmit="window.reportManager.handleSubmit(event)">
         <input type="hidden" id="report-pinned-lat" value="14.6500" />
         <input type="hidden" id="report-pinned-lng" value="121.0400" />
 
         <div class="report-modal-layout">
           <!-- Left Column: Interactive Pin-Drop Leaflet Map / Photo Upload -->
-          <div class="report-map-column">
+          <div class="report-map-column glass-card">
             <div class="report-pin-header">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="report-live-pulse-dot" id="report-header-dot"></span>
-                <span id="report-header-title" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);" data-i18n="report.pinnedLoc">Pinned Location:</span>
+                <span id="report-header-title" class="report-step-2" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);" data-i18n="report.pinnedLoc">Pinned Location:</span>
               </div>
               
               <!-- Maps and Upload mode toggle buttons (Found / Sighted Stray Pet tab only) -->
               <div class="report-view-mode-toggle" id="report-view-mode-toggle">
-                <button type="button" class="report-mode-btn active" id="report-mode-map-btn" onclick="window.reportManager.setViewMode('map')" data-i18n="report.modeMaps">Maps</button>
-                <button type="button" class="report-mode-btn" id="report-mode-upload-btn" onclick="window.reportManager.setViewMode('upload')" data-i18n="report.modeUpload">Upload</button>
+                <button type="button" class="report-mode-btn active" id="report-mode-map-btn" onclick="window.reportManager.setViewMode('map')" data-i18n="report.modeMaps">Location</button>
+                <button type="button" class="report-mode-btn" id="report-mode-upload-btn" onclick="window.reportManager.setViewMode('upload')" data-i18n="report.modeUpload">Photo</button>
               </div>
             </div>
 
@@ -1217,22 +1248,6 @@
             <div id="report-map-view-container" class="report-panel-container">
               <div class="report-map-wrapper">
                 <div id="report-pin-map"></div>
-
-                <!-- Google Maps Layer Switcher Floating Dock (No Emojis) -->
-                <div class="gmap-layer-dock report-gmap-layer-dock" id="report-map-layer-dock">
-                  <button type="button" class="gmap-layer-btn active" onclick="window.reportManager.setMapLayer('roadmap')" title="Map (Street Network)">
-                    <span>Map</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('satellite')" title="Satellite Photographic View">
-                    <span>Satellite</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('hybrid')" title="Hybrid View">
-                    <span>Hybrid</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setMapLayer('dark')" title="Dark Theme">
-                    <span>Dark</span>
-                  </button>
-                </div>
 
                 <!-- Quick Recenter GPS Tool -->
                 <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
@@ -1281,6 +1296,10 @@
 
                 <!-- Autocomplete suggestions dropdown -->
                 <div id="report-location-suggestions" class="report-location-suggestions" style="display: none;"></div>
+              <button type="button" class="use-location-btn" id="report-use-location-btn" onclick="window.reportManager.useMyLocation('report')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+                <span>Use my current location</span>
+              </button>
               </div>
             </div>
 
@@ -1354,8 +1373,9 @@
           <div class="report-form-column">
             <!-- SECTION A: Found Pet Fields -->
             <div id="report-fields-found">
+              <div class="report-field-section" data-i18n="report.sectionPet">About the pet</div>
               <div class="form-group" style="margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPet">Select Pet *</label>
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPetFound">Which pet did you find? *</label>
                 <select class="form-control" id="report-found-pet-select" style="padding: 7px 10px; font-size: 0.85rem;" onchange="window.reportManager.handleFoundPetSelect(this.value)">
                   <option value="registered" selected data-i18n="report.registered">Registered</option>
                   <option value="unregistered" data-i18n="report.unregistered">Unregistered</option>
@@ -1377,6 +1397,7 @@
                 </div>
               </div>
 
+              <div class="report-field-section" data-i18n="report.sectionWhereContact">Where &amp; how to reach you</div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.locationLandmark">Location Landmark / Street *</label>
                 <input type="text" class="form-control" id="report-found-location" placeholder="e.g. Commonwealth Ave near Park Entrance" value="Quezon City, Metro Manila" required style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.locationLandmarkPh" />
@@ -1395,12 +1416,38 @@
 
             <!-- SECTION B: Missing Pet Alert Fields -->
             <div id="report-fields-missing" style="display: none;">
-              <div class="form-group" style="margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPet">Select Pet *</label>
-                <select class="form-control" id="report-missing-pet-select" style="padding: 7px 10px; font-size: 0.85rem;" onchange="window.reportManager.handlePetSelect(this.value)">
+              <div class="report-card glass-card" id="report-card-pet">
+              <div class="report-field-section report-step-1" data-i18n="report.sectionPet">About the pet</div>
+              <div class="form-group" id="report-missing-pet-select-wrap" style="margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.selectPetMissing">Which pet is missing? *</label>
+                <select class="form-control" id="report-missing-pet-select" style="display: none;" aria-hidden="true" tabindex="-1" onchange="window.reportManager.handlePetSelect(this.value)">
                   <option value="registered" selected data-i18n="report.registered">Registered</option>
                   <option value="custom" data-i18n="report.unregistered">Unregistered</option>
                 </select>
+                <!-- Pets with their photos; the select above keeps the chosen value for the rest of the form -->
+                <div class="pet-picker" id="report-missing-pet-picker" role="radiogroup" aria-label="Which pet is missing?"></div>
+              </div>
+
+              <!-- Shown instead of the pet list when the pet is already known (opened from My Pets) -->
+              <div class="report-pet-card" id="report-missing-pet-card" hidden></div>
+
+              <div class="form-group" id="report-missing-photo-row" style="display: none; margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" id="report-missing-photo-label">Photo of the pet</label>
+                <div class="report-photo-inline">
+                  <img id="report-missing-photo-thumb" alt="" hidden />
+                  <span class="report-photo-inline-text" id="report-missing-photo-status-text">No photo attached</span>
+                  <button type="button" class="btn btn-outline btn-sm" id="report-missing-photo-status-btn" onclick="window.reportManager.triggerUploadPhoto()">Upload photo</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="window.reportManager.triggerTakePhoto()" title="Take photo" aria-label="Take photo">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Pets with no NFC tag cannot be identified by a tap, so the owner gives a current photo and condition -->
+              <div class="form-group" id="report-missing-condition-wrap" style="display: none; margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 0.78rem;" for="report-missing-condition">Current condition of the pet *</label>
+                <textarea class="form-control" id="report-missing-condition" rows="2" maxlength="400" placeholder="e.g. Looks thin and limps on the left leg, no collar, may be scared of strangers." style="padding: 7px 10px; font-size: 0.85rem; resize: vertical;"></textarea>
+                <small style="font-size: 0.72rem; color: var(--text-muted);">This pet has no NFC tag, so a recent photo and its condition help others recognise it.</small>
               </div>
 
               <div class="form-group" id="report-missing-custom-name-wrap" style="display: none; margin-bottom: 8px;">
@@ -1408,11 +1455,16 @@
                 <input type="text" class="form-control" id="report-missing-custom-name" placeholder="e.g. Brownie (Tricolor Beagle mix)" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petNameDescPh" />
               </div>
 
+              </div><!-- /pet card -->
+
+              <div class="report-card glass-card" id="report-card-details">
+              <div class="report-field-section report-step-3" data-i18n="report.sectionLastSeen">Last seen &amp; contact</div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenLoc">Last Seen Location *</label>
                 <input type="text" class="form-control" id="report-missing-location" placeholder="e.g. Barangay Commonwealth" value="Brgy. Commonwealth, Quezon City" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.lastSeenLocPh" />
               </div>
 
+              <div class="report-row-2">
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenDateTime">Last Seen Date & Time *</label>
                 <input type="datetime-local" class="form-control" id="report-missing-date" style="padding: 7px 10px; font-size: 0.85rem;" />
@@ -1422,21 +1474,27 @@
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.ownerPhone">Emergency Contact Phone *</label>
                 <input type="tel" class="form-control" id="report-missing-phone" placeholder="e.g. 0917 555 3829" value="" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.ownerPhonePh" />
               </div>
+              </div>
 
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.circumstances">Describe Pet</label>
                 <textarea class="form-control" id="report-missing-notes" rows="2" placeholder="e.g. Wearing red collar with bell. Escaped during evening walk near park gate." style="padding: 7px 10px; font-size: 0.85rem; resize: vertical;" data-i18n-placeholder="report.circumstancesPh"></textarea>
               </div>
+              </div><!-- /details card -->
             </div>
           </div>
         </div>
 
-        <!-- Modal Footer Actions: Cancel button is before the other button -->
-        <div class="modal-footer" style="padding: 12px 20px 16px; margin-top: 14px; border-top: 1px solid var(--border-subtle, rgba(234, 157, 30, 0.15)); display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
-          <button type="button" class="btn btn-outline" onclick="window.reportManager.closeModal()" style="font-size: 0.85rem; padding: 7px 18px;" data-i18n="report.btnCancel">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="report-submit-btn" style="box-shadow: 0 4px 14px rgba(234, 157, 30, 0.4); padding: 7px 18px;">
-            <span id="report-submit-label" data-i18n="report.btnSubmitFound">Submit and Notify</span>
-          </button>
+        <!-- Action bar: stays at the bottom of the screen while the form scrolls -->
+        <div class="modal-footer report-actions">
+          <span class="report-actions-hint"><span aria-hidden="true">*</span> Required fields. The pin on the map sets where the pet was last seen.</span>
+          <div class="report-actions-buttons">
+            <button type="button" class="btn btn-outline" onclick="window.reportManager.closeModal()" data-i18n="report.btnCancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="report-submit-btn">
+              <i data-lucide="megaphone"></i>
+              <span id="report-submit-label" data-i18n="report.btnSubmitFound">Submit and Notify</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -1451,7 +1509,7 @@
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span id="sighting-modal-title">Report Pet Sighting</span>
+          <span id="sighting-modal-title">Have you seen this pet?</span>
         </h3>
         <button type="button" class="btn-outline btn-sm" onclick="window.reportManager ? window.reportManager.closeSightingModal() : window.notifManager.closeModal('sighting-submission-modal')" aria-label="Close">&times;</button>
       </div>
@@ -1463,53 +1521,26 @@
         <input type="hidden" id="sighting-pinned-lng" value="121.0362" />
 
         <div class="modal-body" style="padding: 1.25rem 1.4rem; overflow-y: auto;">
+          <p class="sighting-intro">Your report goes straight to the owner. It only takes a minute, and every sighting helps bring a pet home.</p>
+
           <!-- Linked Missing Report Context Banner (Shown when linked or pre-filled) -->
           <div id="sighting-prefill-banner" class="sighting-prefill-banner" style="display:none;">
             <img id="sighting-prefill-pet-thumb" src="" alt="Missing Pet" class="sighting-prefill-thumb" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80'" />
             <div style="flex:1; min-width:0;">
-              <div style="font-size:0.72rem; text-transform:uppercase; color:var(--primary); font-weight:700; letter-spacing:0.04em;">LINKED MISSING PET ALERT</div>
+              <div style="font-size:0.72rem; text-transform:uppercase; color:#ba3820; font-weight:700; letter-spacing:0.04em;">MISSING PET</div>
               <div id="sighting-prefill-pet-name" style="font-size:0.95rem; font-weight:800; color:var(--text-main);">Max</div>
               <div id="sighting-prefill-pet-meta" style="font-size:0.78rem; color:var(--text-muted);">Golden Retriever · Last seen near Scout Gandia, QC</div>
             </div>
-            <span class="badge" style="background:rgba(22,163,74,0.15); color:#16a34a; border:1px solid rgba(22,163,74,0.3); font-size:0.7rem;">Targeted Sighting</span>
+            <span class="badge" style="background:rgba(186,56,32,0.15); color:#ba3820; border:1px solid rgba(186,56,32,0.35); font-size:0.7rem; white-space:nowrap;">Owner is searching</span>
           </div>
 
 
-          <!-- Image & Map Component (Maps / Upload Mode Toggle) -->
+          <div class="sighting-step"><span>1</span><div class="sighting-step-text"><div class="sighting-step-title">Where did you see it? <em class="sighting-tag is-required">Required</em></div><small>Tap the map or drag the pin to the exact spot</small></div></div>
           <div class="form-group" style="margin-bottom: 12px;">
-            <div class="report-pin-header" style="margin-bottom: 8px;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="report-live-pulse-dot" id="sighting-header-dot"></span>
-                <span id="sighting-header-title" style="font-size: 11.5px; font-weight: 700; color: var(--text-main);">Pinned Location:</span>
-              </div>
-              
-              <!-- Maps and Upload mode toggle buttons -->
-              <div class="report-view-mode-toggle" id="sighting-view-mode-toggle">
-                <button type="button" class="report-mode-btn active" id="sighting-mode-map-btn" onclick="window.reportManager.setSightingViewMode('map')">Maps</button>
-                <button type="button" class="report-mode-btn" id="sighting-mode-upload-btn" onclick="window.reportManager.setSightingViewMode('upload')">Upload</button>
-              </div>
-            </div>
-
-            <!-- CONTAINER 1: Maps View Panel -->
+            <!-- Step 1: map and place search -->
             <div id="sighting-map-view-container" class="report-panel-container">
               <div class="report-map-wrapper">
                 <div id="sighting-pin-map"></div>
-
-                <!-- Map Layer Switcher Floating Dock -->
-                <div class="gmap-layer-dock report-gmap-layer-dock" id="sighting-map-layer-dock">
-                  <button type="button" class="gmap-layer-btn active" onclick="window.reportManager.setSightingMapLayer('roadmap')" title="Map (Street Network)">
-                    <span>Map</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('satellite')" title="Satellite Photographic View">
-                    <span>Satellite</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('hybrid')" title="Hybrid View">
-                    <span>Hybrid</span>
-                  </button>
-                  <button type="button" class="gmap-layer-btn" onclick="window.reportManager.setSightingMapLayer('dark')" title="Dark Theme">
-                    <span>Dark</span>
-                  </button>
-                </div>
 
                 <!-- Quick Recenter GPS Tool -->
                 <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
@@ -1521,7 +1552,7 @@
                 </div>
 
                 <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">
-                  <span>Tap or drag pin to mark exact location</span>
+                  <span>Click the map or drag the pin to set the exact spot</span>
                 </div>
               </div>
 
@@ -1558,11 +1589,18 @@
 
                 <!-- Autocomplete suggestions dropdown -->
                 <div id="sighting-location-suggestions" class="report-location-suggestions" style="display: none;"></div>
+              <button type="button" class="use-location-btn" id="sighting-use-location-btn" onclick="window.reportManager.useMyLocation('sighting')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+                <span>Use my current location</span>
+              </button>
               </div>
             </div>
+          </div>
 
-            <!-- CONTAINER 2: Upload Photo Panel -->
-            <div id="sighting-upload-view-container" class="report-panel-container" style="display: none;">
+          <div class="sighting-step"><span>2</span><div class="sighting-step-text"><div class="sighting-step-title">Add a photo <em class="sighting-tag is-required" id="sighting-photo-tag">Required</em></div><small>A clear photo helps the owner confirm it is their pet</small></div></div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <!-- Step 2: photo -->
+            <div id="sighting-upload-view-container" class="report-panel-container">
               <!-- Two Action Buttons: Take photo & Upload photo -->
               <div class="report-photo-actions-bar">
                 <button type="button" class="btn btn-primary report-photo-action-btn" onclick="window.reportManager.triggerSightingTakePhoto()">
@@ -1628,49 +1666,56 @@
             </div>
           </div>
 
-          <!-- Form Row: Your Name in one line with Name / Anonymous Toggle Button -->
-          <div class="form-group" id="sighting-reporter-name-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <label class="form-label" style="margin-bottom: 0;">Your Name <span style="font-weight:400; color:var(--text-muted);">(Optional — helps owner reach you)</span></label>
-              
-              <!-- Name vs Anonymous Toggle -->
-              <div class="report-view-mode-toggle" id="sighting-name-type-toggle">
-                <button type="button" class="report-mode-btn active" id="sighting-name-btn" onclick="window.reportManager ? window.reportManager.setSightingNameMode('named') : null">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  <span>Name</span>
-                </button>
-                <button type="button" class="report-mode-btn" id="sighting-anon-btn" onclick="window.reportManager ? window.reportManager.setSightingNameMode('anonymous') : null">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  <span>Stay Anonymous</span>
-                </button>
-              </div>
-            </div>
-            <input 
-              type="text" 
-              id="sighting-reporter-name" 
-              placeholder="e.g. Juan dela Cruz" 
-              autocomplete="name" 
-              oninput="window.reportManager ? window.reportManager.handleSightingNameInput(this.value) : null"
-            />
-          </div>
-
-          <!-- Form Row: Date & Time Spotted (REQUIRED) + Contact Phone (OPTIONAL) in the same line -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Date & Time Spotted *</label>
-              <input type="datetime-local" id="sighting-datetime-input" required />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Your Contact Phone <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
-              <input type="tel" id="sighting-reporter-phone" placeholder="e.g. 0917 123 4567" autocomplete="tel" />
-            </div>
-          </div>
-
-          <!-- Form Row 4: Sighting Notes / Comments (OPTIONAL) -->
+          <div class="sighting-step"><span>3</span><div class="sighting-step-text"><div class="sighting-step-title">When did you see it? <em class="sighting-tag is-required">Required</em></div><small>Pick a quick option or set the exact time</small></div></div>
           <div class="form-group">
-            <label class="form-label">Sighting Notes / Observed Condition <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
-            <textarea id="sighting-notes-input" rows="2" placeholder="e.g. Pet seemed nervous, moving toward gate, wearing a faded brown collar..."></textarea>
+            <input type="datetime-local" id="sighting-datetime-input" required />
+            <div class="sighting-chips" role="group" aria-label="Quick time">
+              <button type="button" class="sighting-chip" onclick="window.reportManager.setSightingQuickTime(0)">Just now</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.setSightingQuickTime(30)">30 min ago</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.setSightingQuickTime(60)">1 hour ago</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.setSightingQuickTime(180)">3 hours ago</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.setSightingQuickTime(1440)">Yesterday</button>
+            </div>
+          </div>
+
+          <div class="sighting-step"><span>4</span><div class="sighting-step-text"><div class="sighting-step-title">What did you notice? <em class="sighting-tag is-optional">Optional</em></div><small>Behaviour, condition or anything that stood out</small></div></div>
+          <div class="form-group">
+            <textarea id="sighting-notes-input" rows="2" placeholder="e.g. Pet seemed nervous, moving toward the gate, wearing a faded brown collar..."></textarea>
+            <div class="sighting-chips" role="group" aria-label="Quick notes">
+              <button type="button" class="sighting-chip" onclick="window.reportManager.addSightingNote('Looked healthy and calm.')">Healthy and calm</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.addSightingNote('Seemed scared or nervous.')">Scared</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.addSightingNote('Looked injured or limping.')">Injured</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.addSightingNote('Was wearing a collar.')">Wearing a collar</button>
+              <button type="button" class="sighting-chip" onclick="window.reportManager.addSightingNote('Was with another person.')">With someone</button>
+            </div>
+          </div>
+
+          <div class="sighting-step"><span>5</span><div class="sighting-step-text"><div class="sighting-step-title">Your details <em class="sighting-tag is-required">Required</em></div><small>So the owner can reach you. You can stay anonymous, but a phone number is needed</small></div></div>
+          <div class="sighting-details-grid">
+            <div class="form-group" id="sighting-reporter-name-group">
+              <label class="form-label" for="sighting-reporter-name">Your name <span class="sighting-req" aria-hidden="true">*</span></label>
+              <input
+                type="text"
+                id="sighting-reporter-name"
+                placeholder="e.g. Juan dela Cruz"
+                autocomplete="name"
+                required
+                oninput="window.reportManager ? window.reportManager.handleSightingNameInput(this.value) : null"
+              />
+              <label class="sighting-anon-toggle" for="sighting-anon-checkbox">
+                <input type="checkbox" id="sighting-anon-checkbox" onchange="window.reportManager.setSightingNameMode(this.checked ? 'anonymous' : 'named', true)" />
+                <span class="sighting-anon-box" aria-hidden="true"></span>
+                <span>Stay anonymous</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="sighting-reporter-phone">Contact phone <span class="sighting-req" aria-hidden="true">*</span></label>
+              <input type="tel" id="sighting-reporter-phone" placeholder="e.g. 0917 123 4567" autocomplete="tel" inputmode="tel" required />
+            </div>
+          </div>
+          <div class="sighting-privacy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:2px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Your name and phone are shared only with the pet's owner.</span>
           </div>
 
           <!-- Initial Status Notice Badge (Strictly Possible Sighting) -->
@@ -1686,7 +1731,7 @@
           <button type="button" class="btn btn-outline" onclick="window.reportManager ? window.reportManager.closeSightingModal() : window.notifManager.closeModal('sighting-submission-modal')">Cancel</button>
           <button type="submit" class="btn btn-primary" style="background:#16a34a; border-color:#16a34a; display:flex; align-items:center; gap:6px;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Submit Sighting Pin</span>
+            <span>Send sighting to owner</span>
           </button>
         </div>
       </form>
@@ -1751,8 +1796,8 @@
               <span class="verification-detail-val" id="verify-reg-color">Male · Golden brown with white chest patch</span>
             </div>
             <div class="verification-detail-row">
-              <span class="verification-detail-label">RFID Tag</span>
-              <span class="verification-detail-val" id="verify-reg-rfid" style="font-family:monospace; color:var(--primary);">RFID-882194</span>
+              <span class="verification-detail-label">NFC Tag</span>
+              <span class="verification-detail-val" id="verify-reg-nfc" style="font-family:monospace; color:var(--primary);">NFC-882194</span>
             </div>
             <div class="verification-detail-row">
               <span class="verification-detail-label">Last Known Location</span>
@@ -1906,9 +1951,9 @@
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <h4 id="finder-pet-name" style="margin: 0; font-size: 1.05rem; font-weight: 700;">Pet Name</h4>
-              <span class="badge badge-safe" style="font-size: 10px; font-weight: 700;" id="finder-match-badge">RFID VERIFIED</span>
+              <span class="badge badge-safe" style="font-size: 10px; font-weight: 700;" id="finder-match-badge">NFC VERIFIED</span>
             </div>
-            <div style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--primary); margin-top: 3px;" id="finder-pet-rfid">RFID: 982.000109283</div>
+            <div style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--primary); margin-top: 3px;" id="finder-pet-nfc">NFC: 982.000109283</div>
           </div>
         </div>
 
@@ -1971,133 +2016,272 @@
     </div>
   </div>
 
-  <!-- 15. Login or Create Account Modal -->
-  <div class="modal-overlay" id="login-dialog-modal">
+  <!-- 15. Start Screen: Sign In (email + password, Turnstile, then Google) via Supabase Auth -->
+  <section class="auth-landing" id="auth-landing" aria-labelledby="auth-landing-title" style="display: none;">
+    <div class="auth-landing-inner">
+      <div class="auth-dialog-card auth-landing-card">
+        <button type="button" class="auth-dialog-close-btn" id="auth-landing-close" aria-label="Close" style="display: none;">&times;</button>
+
+        <!-- Logo + wordmark in one centred row at the top of the card -->
+        <div class="auth-landing-brand">
+          <div class="auth-landing-logo" aria-hidden="true">
+            <!-- viewBox shifted by 0.75 so the paw (drawn at y 4.5–21) sits optically centred -->
+            <svg width="20" height="20" viewBox="0 0.75 24 24" fill="currentColor"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg>
+          </div>
+          <span class="auth-landing-brand-name">PawTrack</span>
+        </div>
+
+        <h1 class="auth-dialog-title" id="auth-landing-title">Welcome back</h1>
+        <p class="auth-dialog-sub" id="auth-landing-sub">Sign in to manage your pets and recovery alerts.</p>
+
+        <!-- Browser autofill is off: read-only until focused (see initSupabaseAuth), new-password, non-login field names -->
+        <form id="login-form" class="auth-dialog-form" autocomplete="off" novalidate>
+          <div class="auth-field-box" data-signup-only hidden>
+            <label for="login-name" class="auth-field-label">FULL NAME</label>
+            <input type="text" id="login-name" class="auth-field-input" autocomplete="name" maxlength="80" />
+          </div>
+
+          <div class="auth-field-box">
+            <label for="login-email" class="auth-field-label">EMAIL</label>
+            <input type="email" id="login-email" name="pt-account-id" class="auth-field-input" autocomplete="off" inputmode="email" readonly data-no-autofill required />
+          </div>
+
+          <div class="auth-field-box" data-signup-only hidden>
+            <label for="login-phone" class="auth-field-label">MOBILE NUMBER</label>
+            <div class="auth-phone-row">
+              <span class="auth-phone-prefix" aria-hidden="true">+63</span>
+              <input type="tel" id="login-phone" class="auth-field-input" autocomplete="tel-national" inputmode="numeric" placeholder="917 123 4567" data-ph-mobile />
+            </div>
+          </div>
+
+          <div class="auth-field-box auth-password-box">
+            <label for="login-password" class="auth-field-label">PASSWORD</label>
+            <div class="auth-password-row">
+              <input type="password" id="login-password" name="pt-account-key" class="auth-field-input" autocomplete="new-password" readonly data-no-autofill required />
+              <button type="button" class="auth-password-toggle" id="login-password-toggle" aria-label="Show password" aria-pressed="false">
+                <svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="auth-forgot-row" data-signin-only>
+            <button type="button" class="auth-text-btn" id="login-forgot-btn">Forgot password?</button>
+          </div>
+
+          <button type="submit" id="login-submit-btn" class="auth-dialog-submit-btn">Log in</button>
+        </form>
+
+        <div id="login-turnstile" class="auth-turnstile auth-turnstile-below"></div>
+
+        <div class="auth-dialog-divider">or</div>
+
+        <button type="button" id="login-google-btn" class="auth-google-continue-btn">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <div id="login-auth-status" class="auth-status" role="status" aria-live="polite"></div>
+
+        <div class="auth-signup-row auth-mode-row">
+          <span id="login-mode-text">New to PawTrack?</span>
+          <button type="button" class="auth-text-btn" id="login-mode-toggle">Create an account</button>
+        </div>
+
+        <div class="auth-terms-note">
+          By continuing, you agree to our
+          <a href="#" id="login-open-terms-btn">Terms</a>
+          and
+          <a href="#" id="login-open-privacy-btn">Privacy Policy</a>.
+        </div>
+      </div>
+
+      <div class="auth-landing-guest">
+        <span>Found a pet?</span>
+        <button type="button" id="auth-landing-report-btn" class="auth-landing-guest-btn">Report it without signing in</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. Guardian Registration Modal (completes the profile after a first Google sign-in) -->
+  <div class="modal-overlay" id="register-dialog-modal">
     <div class="modal-box auth-dialog-card">
-      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('login-dialog-modal')" aria-label="Close">&times;</button>
-      
-      <h2 class="auth-dialog-title">Log in or create an<br>account to collaborate</h2>
-      
-      <!-- Continue with Google Button -->
-      <button type="button" id="login-dialog-google-btn" class="auth-google-continue-btn">
-        <svg width="18" height="18" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
-          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-        </svg>
-        <span>Continue with Google</span>
-      </button>
+      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('register-dialog-modal')" aria-label="Close">&times;</button>
 
-      <div class="auth-dialog-divider">or</div>
+      <h2 class="auth-dialog-title">Create your guardian account</h2>
+      <p class="auth-dialog-sub">Shelters use these details to contact you if your pet is found.</p>
 
-      <!-- Email & Password Form -->
-      <form id="login-dialog-form" class="auth-dialog-form" onsubmit="return false;">
+      <form id="register-dialog-form" class="auth-dialog-form" novalidate>
+        <div class="auth-field-box auth-field-box-locked">
+          <label for="register-email" class="auth-field-label">EMAIL</label>
+          <input type="email" id="register-email" class="auth-field-input" readonly />
+        </div>
+        <div class="auth-field-hint">From your Google account</div>
+
         <div class="auth-field-box">
-          <label for="login-dialog-email" class="auth-field-label">EMAIL</label>
-          <input type="email" id="login-dialog-email" class="auth-field-input" placeholder="" autocomplete="email" required />
+          <label for="register-name" class="auth-field-label">FULL NAME</label>
+          <input type="text" id="register-name" class="auth-field-input" autocomplete="name" maxlength="80" required />
         </div>
 
         <div class="auth-field-box">
-          <label for="login-dialog-pwd" class="auth-field-label">PASSWORD</label>
-          <input type="password" id="login-dialog-pwd" class="auth-field-input" placeholder="" autocomplete="current-password" required />
+          <label for="register-phone" class="auth-field-label">MOBILE NUMBER</label>
+          <div class="auth-phone-row">
+            <span class="auth-phone-prefix" aria-hidden="true">+63</span>
+            <input type="tel" id="register-phone" class="auth-field-input" autocomplete="tel-national" inputmode="numeric" placeholder="917 123 4567" data-ph-mobile required />
+          </div>
         </div>
 
-        <button type="submit" id="login-dialog-submit-btn" class="auth-dialog-submit-btn">Log in</button>
+        <div id="register-auth-status" class="auth-status" role="status" aria-live="polite"></div>
+
+        <button type="submit" id="register-submit-btn" class="auth-dialog-submit-btn">Create account</button>
       </form>
-
-      <!-- Terms Notice in Collaborate Login Modal -->
-      <div class="auth-terms-note">
-        By continuing, you agree to PawTrack's
-        <a href="#" id="login-open-terms-btn">Terms of Service</a>
-        and acknowledge our
-        <a href="#" id="login-open-privacy-btn">Privacy Policy</a>.
-      </div>
-
-      <div class="auth-dialog-links">
-        <a href="#" class="auth-link" id="login-dialog-reset-pwd-btn">Reset password</a>
-        <div class="auth-signup-row">
-          <span>No account?</span> <a href="#" class="auth-link" id="login-dialog-create-btn">Create one</a>
-        </div>
-      </div>
     </div>
   </div>
 
-  <!-- 16. Google Account Authorization & Terms Acceptance Modal -->
-  <div class="modal-overlay" id="google-consent-modal">
-    <div class="modal-box google-consent-card">
-      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('google-consent-modal')" aria-label="Close">&times;</button>
-      
-      <!-- Brand Connection Bar -->
-      <div class="consent-brand-bar">
-        <div class="consent-brand-icon google-g-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
-            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-          </svg>
-        </div>
-        <div class="consent-connect-arrow">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </div>
-        <div class="consent-brand-icon pawtrack-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#c2410c"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg>
-        </div>
-      </div>
+  <!-- 16a. Change email (Settings): a 6-digit code is sent to the NEW address and must be entered to confirm it -->
+  <div class="modal-overlay" id="change-email-modal">
+    <div class="modal-box auth-dialog-card" role="dialog" aria-modal="true" aria-labelledby="change-email-title">
+      <button type="button" class="auth-dialog-back-btn" id="change-email-back-btn" aria-label="Back" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('change-email-modal')" aria-label="Close">&times;</button>
 
-      <h3 class="consent-title">Sign in with Google</h3>
-      <p class="consent-subtitle">to continue to <strong>PawTrack</strong></p>
+      <ol class="auth-steps" id="change-email-steps" aria-label="Email change progress">
+        <li class="is-active" data-step="email"><span>1</span><b data-i18n="settings.stepNewEmail">New email</b></li>
+        <li data-step="otp"><span>2</span><b data-i18n="settings.stepCode">Code</b></li>
+      </ol>
 
-      <!-- User Account Box -->
-      <div class="consent-account-box">
-        <label for="consent-google-email" class="consent-label">CONFIRM GOOGLE / GMAIL ACCOUNT</label>
-        <div class="consent-email-input-wrapper">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <input type="email" id="consent-google-email" class="consent-email-input" placeholder="your.name@gmail.com" autocomplete="email" required />
+      <h2 class="auth-dialog-title" id="change-email-title" data-i18n="settings.changeEmailTitle">Change your email</h2>
+
+      <form id="change-email-form" class="auth-dialog-form" novalidate>
+        <p class="auth-dialog-sub" data-i18n="settings.changeEmailSub">Enter your new email address. We'll send a 6-digit code to it to confirm it's yours.</p>
+        <div class="auth-field-box">
+          <label for="change-email-input" class="auth-field-label" data-i18n="settings.newEmail">NEW EMAIL</label>
+          <input type="email" id="change-email-input" class="auth-field-input" autocomplete="email" inputmode="email" required />
         </div>
-      </div>
+        <div id="change-email-turnstile" class="auth-turnstile auth-turnstile-below"></div>
+        <button type="submit" id="change-email-send-btn" class="auth-dialog-submit-btn" data-i18n="settings.sendCode">Send code</button>
+      </form>
 
-      <!-- Scope / Permissions List -->
-      <div class="consent-scope-card">
-        <div class="consent-scope-heading">PawTrack will access:</div>
-        <ul class="consent-scope-list">
-          <li>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Your Google account profile name &amp; email address</span>
-          </li>
-          <li>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Verified Pet Guardian portal credentials &amp; digital passes</span>
-          </li>
-          <li>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Urgent municipal impound &amp; pet recovery alerts</span>
-          </li>
+      <form id="change-email-otp-form" class="auth-dialog-form" novalidate hidden>
+        <p class="auth-dialog-sub"><span data-i18n="settings.codeSentTo">We sent a 6-digit code to</span> <strong id="change-email-target"></strong>.</p>
+        <div class="auth-field-box">
+          <label for="change-email-otp" class="auth-field-label" data-i18n="settings.verificationCode">VERIFICATION CODE</label>
+          <input type="text" id="change-email-otp" class="auth-field-input auth-otp-input" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" required />
+        </div>
+        <button type="submit" id="change-email-verify-btn" class="auth-dialog-submit-btn" data-i18n="settings.verifyCode">Verify code</button>
+        <div class="auth-mode-row">
+          <span data-i18n="settings.noCode">Didn't get a code?</span>
+          <button type="button" class="auth-text-btn" id="change-email-resend-btn" data-i18n="settings.sendAgain">Send again</button>
+        </div>
+      </form>
+
+      <div id="change-email-status" class="auth-status" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- 16b. Forgot Password: step 1 asks for the email, step 2 for the 6-digit code emailed through Brevo -->
+  <div class="modal-overlay" id="forgot-password-modal">
+    <div class="modal-box auth-dialog-card" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
+      <button type="button" class="auth-dialog-back-btn" id="forgot-back-btn" aria-label="Back" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button type="button" class="auth-dialog-close-btn" onclick="window.notifManager.closeModal('forgot-password-modal')" aria-label="Close">&times;</button>
+
+      <ol class="auth-steps" id="forgot-steps" aria-label="Password reset progress">
+        <li class="is-active" data-step="email"><span>1</span>Email</li>
+        <li data-step="otp"><span>2</span>Code</li>
+        <li data-step="password"><span>3</span>New password</li>
+      </ol>
+
+      <h2 class="auth-dialog-title" id="forgot-title">Forgot your password?</h2>
+
+      <form id="forgot-email-form" class="auth-dialog-form" novalidate>
+        <p class="auth-dialog-sub">Enter your account email and we'll send you a 6-digit verification code.</p>
+        <div class="auth-field-box">
+          <label for="forgot-email" class="auth-field-label">EMAIL</label>
+          <input type="email" id="forgot-email" class="auth-field-input" autocomplete="email" inputmode="email" required />
+        </div>
+        <div id="forgot-turnstile" class="auth-turnstile auth-turnstile-below"></div>
+        <button type="submit" id="forgot-send-btn" class="auth-dialog-submit-btn">Send code</button>
+      </form>
+
+      <form id="forgot-otp-form" class="auth-dialog-form" novalidate hidden>
+        <p class="auth-dialog-sub">We sent a 6-digit code to <strong id="forgot-otp-email"></strong>. It expires in 10 minutes.</p>
+        <div class="auth-field-box">
+          <label for="forgot-otp" class="auth-field-label">VERIFICATION CODE</label>
+          <input type="text" id="forgot-otp" class="auth-field-input auth-otp-input" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" required />
+        </div>
+        <button type="submit" id="forgot-verify-btn" class="auth-dialog-submit-btn">Verify code</button>
+        <div class="auth-mode-row">
+          <span>Didn't get a code?</span>
+          <button type="button" class="auth-text-btn" id="forgot-resend-btn">Send again</button>
+        </div>
+      </form>
+
+      <div id="forgot-status" class="auth-status" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- 17. Set New Password (opened after the forgot-password code is verified) -->
+  <div class="modal-overlay" id="reset-password-modal">
+    <div class="modal-box auth-dialog-card" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+      <ol class="auth-steps" aria-label="Password reset progress">
+        <li class="is-done"><span>&#10003;</span>Email</li>
+        <li class="is-done"><span>&#10003;</span>Code</li>
+        <li class="is-active"><span>3</span>New password</li>
+      </ol>
+
+      <h2 class="auth-dialog-title" id="reset-title">Set a new password</h2>
+      <p class="auth-dialog-sub">Code verified. Choose a new password for your PawTrack account.</p>
+
+      <form id="reset-password-form" class="auth-dialog-form" novalidate>
+        <div class="auth-field-box">
+          <label for="reset-password-input" class="auth-field-label">NEW PASSWORD</label>
+          <div class="auth-password-row">
+            <input type="password" id="reset-password-input" class="auth-field-input" autocomplete="new-password" minlength="8" required />
+            <button type="button" class="auth-password-toggle" data-toggle-for="reset-password-input" aria-label="Show password" aria-pressed="false"><svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
+          </div>
+        </div>
+        <ul class="auth-rules" id="reset-password-rules" aria-live="polite">
+          <li data-rule="length">At least 8 characters</li>
+          <li data-rule="upper">One uppercase letter (A-Z)</li>
+          <li data-rule="lower">One lowercase letter (a-z)</li>
+          <li data-rule="number">One number (0-9)</li>
+          <li data-rule="symbol">One special character (!@#$%&hellip;)</li>
+          <li data-rule="match">Both passwords match</li>
         </ul>
-      </div>
+        <div class="auth-field-box">
+          <label for="reset-password-confirm" class="auth-field-label">CONFIRM PASSWORD</label>
+          <div class="auth-password-row">
+            <input type="password" id="reset-password-confirm" class="auth-field-input" autocomplete="new-password" minlength="8" required />
+            <button type="button" class="auth-password-toggle" data-toggle-for="reset-password-confirm" aria-label="Show password" aria-pressed="false"><svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
+          </div>
+        </div>
 
-      <!-- Terms & Privacy Acceptance Checkbox -->
-      <div class="consent-terms-acceptance">
-        <input type="checkbox" id="consent-terms-checkbox" class="consent-checkbox" checked />
-        <label for="consent-terms-checkbox" class="consent-terms-text">
-          I agree to PawTrack's <a href="#" id="consent-open-terms-btn">Terms of Service</a> and acknowledge the <a href="#" id="consent-open-privacy-btn">Privacy Policy</a>.
-        </label>
-      </div>
+        <div id="reset-password-status" class="auth-status" role="status" aria-live="polite"></div>
 
-      <!-- Action Buttons -->
-      <div class="consent-actions-row">
-        <button type="button" class="btn btn-outline consent-cancel-btn" onclick="window.notifManager.closeModal('google-consent-modal')">Cancel</button>
-        <button type="button" id="consent-agree-continue-btn" class="btn btn-primary consent-continue-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-            <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"/>
-            <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
-            <path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-          </svg>
-          <span>Agree &amp; Continue</span>
-        </button>
+        <button type="submit" id="reset-password-submit" class="auth-dialog-submit-btn" disabled>Update password</button>
+        <div class="auth-mode-row">
+          <button type="button" class="auth-text-btn" id="reset-cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 17b. Password Updated (shown after the new password is saved) -->
+  <div class="modal-overlay" id="password-updated-modal">
+    <div class="modal-box auth-dialog-card auth-success-card" role="dialog" aria-modal="true" aria-labelledby="password-updated-title">
+      <div class="auth-success-icon" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
       </div>
+      <h2 class="auth-dialog-title" id="password-updated-title">Password updated</h2>
+      <p class="auth-dialog-sub">Your password has been changed. For your security, please log in again with your new password.</p>
+      <button type="button" id="password-updated-login-btn" class="auth-dialog-submit-btn">Log in</button>
     </div>
   </div>
 
@@ -2120,8 +2304,8 @@
         <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">1. Google OAuth &amp; Identity Authorization</h4>
         <p>PawTrack accesses basic Google profile attributes (Name, Email, Profile Picture) strictly to authenticate verified pet guardians, issue digital pass badges, and dispatch urgent municipal impound notifications. We do not sell or transfer your Google data to third parties.</p>
 
-        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">2. RFID Transponder &amp; Microchip Records</h4>
-        <p>Encrypted 134.2 kHz FDX-B RFID tag serials, microchip numbers, and pet characteristics are recorded to enable municipal pound scanning grids and shelter intake matching across participating barangays.</p>
+        <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">2. NFC Transponder &amp; Microchip Records</h4>
+        <p>Encrypted NFC tag serials, microchip numbers, and pet characteristics are recorded to enable municipal pound scanning grids and shelter intake matching across participating barangays.</p>
 
         <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">3. 72-Hour Municipal Holding Countdown Alerts</h4>
         <p>Upon shelter transponder scan, automated SMS and Email alerts are immediately sent to the registered guardian email to assist timely pet claiming within the legal holding period.</p>
@@ -2154,7 +2338,7 @@
         </p>
 
         <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">1. Guardian Verification &amp; Accuracy</h4>
-        <p>Guardians agree to provide valid contact details and attach verified RFID collar tags. False impoundment claims or fraudulent ownership assertions are strictly prohibited.</p>
+        <p>Guardians agree to provide valid contact details and attach verified NFC collar tags. False impoundment claims or fraudulent ownership assertions are strictly prohibited.</p>
 
         <h4 style="color:var(--text-main); font-size:14px; margin: 16px 0 6px;">2. Municipal Pound Intake &amp; Claiming Process</h4>
         <p>Guardians must present legitimate proof (Government ID, Pet Vaccination Booklet, or PawTrack Digital Pass) at the municipal animal facility to authorize release before the 72-hour window expires.</p>
@@ -2171,18 +2355,27 @@
     </div>
   </div>
 
+  <!-- NFC tap landing page (shown when a tag link is opened) -->
+  <div id="found-page" class="found-page" hidden></div>
+
   <!-- PawTrack Core & View Scripts (Loaded at bottom of DOM) -->
   <script src="js/i18n.js"></script>
+  <script src="js/i18n-phrases.js"></script>
+  <script src="js/legacy-nfc.js"></script>
   <script src="js/store.js"></script>
-  <script src="js/rfid-scanner.js"></script>
+  <script src="js/nfc-scanner.js"></script>
+  <script src="js/pet-ai.js"></script>
+  <script src="js/nfc-link.js"></script>
+  <script src="js/found-page.js"></script>
   <script src="js/notifications.js"></script>
+  <script src="js/views/pets-view.js"></script>
   <script src="js/views/owner-view.js"></script>
-  <script src="js/views/shelter-view.js"></script>
+  <script src="js/turn-by-turn.js"></script>
   <script src="js/views/public-view.js"></script>
-  <script src="js/views/cases-view.js"></script>
-  <script src="js/views/impounded-view.js"></script>
   <script src="js/views/hardware-view.js"></script>
   <script src="js/views/sightings-view.js"></script>
+  <script src="js/views/found-view.js"></script>
+  <script src="js/views/settings-view.js"></script>
   <script src="js/report-manager.js"></script>
   <script src="js/app.js"></script>
 </body>

@@ -23,7 +23,7 @@ if (fs.existsSync(SHARED_DB_PATH)) {
     console.log('    [PASS] Shared DB file is valid JSON.');
     console.log(`    - Registered Pets:    ${(db.pets || []).length}`);
     console.log(`    - Impoundment Logs:   ${(db.impoundments || []).length}`);
-    console.log(`    - RFID Tag Inventory: ${(db.rfidTags || []).length}`);
+    console.log(`    - NFC Tag Inventory: ${(db.nfcTags || []).length}`);
     console.log(`    - Shelters:           ${(db.shelters || []).length}`);
     console.log(`    - Notifications:      ${(db.notifications || []).length}`);
   } catch (err) {

@@ -1,0 +1,59 @@
+/* Settings page */
+.settings-page { display: flex; flex-direction: column; gap: 18px; width: 100%; }
+.settings-card { padding: 0; overflow: hidden; }
+.settings-card-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--border-subtle); }
+.settings-card-head-text h2 { margin: 0; font-size: 1.1rem; }
+.settings-card-head-text p { margin: 2px 0 0; font-size: 0.82rem; color: var(--text-muted); }
+.settings-avatar, .settings-card-icon { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 1.1rem; background: var(--primary); color: #1a1206; }
+.settings-card-icon { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.settings-card-icon svg { width: 22px; height: 22px; }
+.settings-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 22px; border-bottom: 1px solid var(--border-subtle); }
+.settings-row:last-child { border-bottom: 0; }
+.settings-row-label { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.settings-row-label label { font-weight: 600; font-size: 0.92rem; color: var(--text-main); }
+.settings-row-label span { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; }
+.settings-row-control { flex: 0 1 auto; display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
+.settings-value { font-size: 0.9rem; color: var(--text-main); overflow-wrap: anywhere; text-align: right; }
+.settings-dots { letter-spacing: 2px; color: var(--text-muted); }
+.settings-name-control { flex: 1 1 420px; max-width: 560px; }
+.settings-name-control input { flex: 1; min-width: 0; }
+
+/* Segmented choices (language, appearance) */
+.settings-seg { display: inline-flex; padding: 4px; gap: 4px; border-radius: 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); }
+.settings-seg-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--text-muted); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+.settings-seg-btn svg { width: 16px; height: 16px; }
+.settings-seg-btn:hover { color: var(--text-main); }
+.settings-seg-btn.is-active { background: var(--primary); color: #1a1206; }
+[data-theme="light"] .settings-seg-btn.is-active { color: #fff; }
+
+/* Legal links */
+.settings-link-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 15px 22px; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--text-main); font: inherit; font-size: 0.92rem; font-weight: 600; text-align: left; cursor: pointer; transition: background 0.15s; }
+.settings-link-row:last-child { border-bottom: 0; }
+.settings-link-row:hover { background: var(--bg-surface-elevated); }
+.settings-link-row span { flex: 1; }
+.settings-link-row svg { width: 18px; height: 18px; color: var(--primary); }
+.settings-link-row svg:last-child { color: var(--text-muted); width: 16px; height: 16px; }
+
+.settings-logout-btn { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); background: var(--danger-light); color: var(--danger); font: inherit; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.settings-logout-btn svg { width: 18px; height: 18px; }
+.settings-logout-btn:hover { background: var(--danger); color: #fff; }
+[data-theme="dark"] .settings-logout-btn { color: #ff8e7a; border-color: rgba(255, 142, 122, 0.45); }
+[data-theme="dark"] .settings-logout-btn:hover { color: #fff; }
+
+/* Change email dialog: step labels */
+#change-email-steps li b { font-weight: 600; }
+
+@media (max-width: 640px) {
+  .settings-name-control { flex-wrap: wrap; }
+  .settings-name-control input { flex: 1 1 130px; }
+  .settings-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; }
+  .settings-row-label { flex-basis: auto; }
+  .settings-row-control { justify-content: space-between; }
+  .settings-name-control { max-width: none; }
+  .settings-seg { display: flex; width: 100%; }
+  .settings-seg-btn { flex: 1; justify-content: center; padding: 9px 6px; font-size: 0.8rem; }
+  .settings-seg-btn svg { display: none; }
+  .settings-card-head, .settings-link-row { padding-left: 16px; padding-right: 16px; }
+}

@@ -112,26 +112,38 @@ class ReportManager {
     });
   }
 
-  openReportModal(type = 'found', petId = null, prefill = {}) {
+  // The report form is a page (#report). Opening it fills the form, then moves to that page.
+  openReportModal(type = 'missing', petId = null, prefill = {}) {
+    if (!document.getElementById('report-pet-modal')) return;
+    this.prepareForm(type, petId, prefill);
+    const here = window.location.hash.replace('#', '');
+    if (here && here !== 'report') this.returnHash = here;
+    if (here === 'report') window.reportPageView.render(document.getElementById('app-viewport'));
+    else window.location.hash = 'report';
+  }
+
+  prepareForm(type = 'missing', petId = null, prefill = {}) {
+    type = 'missing'; // this form only reports missing pets; there is no found-pet tab any more
     this.currentType = type;
-    const modal = document.getElementById('report-pet-modal');
-    if (!modal) return;
+    this.formReady = true;
 
     this.removeUploadedPhoto(false);
     this.setType(type);
     this.setViewMode('map');
     this.populatePetsDropdown(petId);
     this.populateFoundPetsDropdown(petId);
+    this.showKnownPet(type === 'missing' ? petId : null);
+    this.fillMissingPhone();
 
-    if (prefill && prefill.rfidTag && window.pawStore) {
-      const matched = window.pawStore.getPetByRFID(prefill.rfidTag);
+    if (prefill && prefill.nfcTag && window.pawStore) {
+      const matched = window.pawStore.getPetByNFC(prefill.nfcTag);
       if (matched) {
         petId = matched.id;
         this.populatePetsDropdown(petId);
         this.populateFoundPetsDropdown(petId);
       }
-      const rfidInput = document.getElementById('report-found-rfid');
-      if (rfidInput) rfidInput.value = prefill.rfidTag;
+      const nfcInput = document.getElementById('report-found-nfc');
+      if (nfcInput) nfcInput.value = prefill.nfcTag;
     }
     if (prefill && prefill.location) {
       const locInput = document.getElementById('report-found-location');
@@ -145,20 +157,16 @@ class ReportManager {
       missingDateInput.value = now.toISOString().slice(0, 16);
     }
 
-    modal.classList.add('active');
-
-    // Initialize or refresh pin-drop map after modal opens
-    setTimeout(() => {
-      this.initPinMap();
-    }, 150);
   }
 
+  // Leaves the report page and goes back to where the person came from
   closeModal() {
-    const modal = document.getElementById('report-pet-modal');
-    if (modal) {
-      modal.classList.remove('active');
-    }
+    this.formReady = false;
     this.toggleInstructionGuide(false);
+    if (window.location.hash !== '#report') return;
+    const back = this.returnHash && this.returnHash !== 'report' ? this.returnHash : 'pets';
+    this.returnHash = null;
+    window.location.hash = back;
   }
 
   toggleInstructionGuide(forceState = null) {
@@ -257,6 +265,17 @@ class ReportManager {
     }
   }
 
+  // The hint over the map tells people to drag the pin
+  updateMapHelper() {
+    const key = this.currentType === 'missing' ? 'report.mapHelperMissing' : 'report.mapHelper';
+    const fallback = this.currentType === 'missing' ? 'Drag the pin to where your pet was last seen' : 'Tap or drag pin to mark exact location';
+    const helper = document.querySelector('#report-map-view-container .report-map-overlay-helper span');
+    if (helper) {
+      helper.textContent = window.pawI18n ? window.pawI18n.t(key, fallback) : fallback;
+      helper.setAttribute('data-i18n', key);
+    }
+  }
+
   setViewMode(mode) {
     this.currentViewMode = mode;
     const mapBtn = document.getElementById('report-mode-map-btn');
@@ -271,9 +290,12 @@ class ReportManager {
       if (mapContainer) mapContainer.style.display = 'flex';
       if (uploadContainer) uploadContainer.style.display = 'none';
       if (headerTitle) {
-        headerTitle.textContent = window.pawI18n ? window.pawI18n.t('report.pinnedLoc', 'Pinned Location:') : 'Pinned Location:';
-        headerTitle.setAttribute('data-i18n', 'report.pinnedLoc');
+        const key = this.currentType === 'missing' ? 'report.lastSeenHeader' : 'report.pinnedLoc';
+        const fallback = this.currentType === 'missing' ? 'Last seen location' : 'Pinned Location:';
+        headerTitle.textContent = window.pawI18n ? window.pawI18n.t(key, fallback) : fallback;
+        headerTitle.setAttribute('data-i18n', key);
       }
+      this.updateMapHelper();
       setTimeout(() => {
         if (this.map) this.map.invalidateSize();
       }, 80);
@@ -301,12 +323,13 @@ class ReportManager {
     const modalSub = document.getElementById('report-modal-sub');
     const modeToggle = document.getElementById('report-view-mode-toggle');
 
-    if (modeToggle) modeToggle.style.display = 'flex';
+    if (modeToggle) modeToggle.style.display = type === 'missing' ? 'none' : 'flex';
+    if (type === 'missing') this.setViewMode('map');
 
     if (type === 'found') {
       tabFound?.classList.add('active');
       tabMissing?.classList.remove('active');
-      if (fieldsFound) fieldsFound.style.display = 'block';
+      if (fieldsFound) fieldsFound.style.display = ''; // stylesheet decides (grid on phones)
       if (fieldsMissing) fieldsMissing.style.display = 'none';
 
       // Set HTML5 required on Found fields, unset on Missing fields
@@ -352,7 +375,7 @@ class ReportManager {
       tabMissing?.classList.add('active');
       tabFound?.classList.remove('active');
       if (fieldsFound) fieldsFound.style.display = 'none';
-      if (fieldsMissing) fieldsMissing.style.display = 'block';
+      if (fieldsMissing) fieldsMissing.style.display = ''; // stylesheet decides (grid on phones)
 
       // Set HTML5 required on Missing fields, unset on Found fields
       const foundPet = document.getElementById('report-found-pet-select');
@@ -378,7 +401,7 @@ class ReportManager {
       if (missingPhone) missingPhone.required = true;
 
       if (modalTitle) {
-        modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report Pet as Missing') : 'Report Pet as Missing';
+        modalTitle.textContent = window.pawI18n ? window.pawI18n.t('report.modalTitleMissing', 'Report a missing pet') : 'Report a missing pet';
         modalTitle.setAttribute('data-i18n', 'report.modalTitleMissing');
       }
       if (modalSub) {
@@ -415,17 +438,18 @@ class ReportManager {
     const registeredLabel = window.pawI18n ? window.pawI18n.t('report.registered', 'Registered') : 'Registered';
     const unregisteredLabel = window.pawI18n ? window.pawI18n.t('report.unregistered', 'Unregistered') : 'Unregistered';
 
-    const pets = window.pawStore ? window.pawStore.getPets() : [];
+    const pets = (window.pawStore ? window.pawStore.getPets() : []).filter((p) => p.name && p.status !== 'lost');
     let options = '';
 
     const isCustomSelected = selectedPetId === 'custom' || selectedPetId === 'unregistered';
 
     if (pets && pets.length > 0) {
-      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(pets[0].id) : null);
+      const firstAvailable = pets[0];
+      const targetPetId = (!isCustomSelected && selectedPetId) ? String(selectedPetId) : (!isCustomSelected ? String(firstAvailable.id) : null);
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
-        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species})</option>`;
       });
 
       options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
@@ -434,18 +458,122 @@ class ReportManager {
       const activeVal = select.value || (isCustomSelected ? 'custom' : pets[0].id);
       this.handlePetSelect(activeVal);
     } else {
-      options += `<option value="registered" ${!isCustomSelected ? 'selected' : ''}>${registeredLabel}</option>`;
-      options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
+      options += `<option value="custom" selected>${unregisteredLabel}</option>`;
       select.innerHTML = options;
 
-      this.handlePetSelect(isCustomSelected ? 'custom' : 'registered');
+      this.handlePetSelect('custom');
     }
+  }
+
+  // Opened for a specific pet: show it instead of asking which pet is missing
+  showKnownPet(petId) {
+    const wrap = document.getElementById('report-missing-pet-select-wrap');
+    const card = document.getElementById('report-missing-pet-card');
+    if (!wrap || !card) return;
+    const pet = petId && petId !== 'custom' && petId !== 'unregistered' && window.pawStore ? window.pawStore.getPetById(petId) : null;
+    if (!pet) {
+      wrap.style.display = '';
+      card.hidden = true;
+      card.innerHTML = '';
+      return;
+    }
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const photo = pet.photoUrl || pet.photo;
+    card.innerHTML = `${photo ? `<img src="${esc(photo)}" alt="" />` : ''}
+      <div><span class="report-pet-card-label">Reporting missing</span><strong>${esc(pet.name)}</strong>
+      <small>${esc([pet.breed, pet.species].filter(Boolean).join(' · '))}</small></div>`;
+    const select = document.getElementById('report-missing-pet-select');
+    if (select) select.value = String(pet.id);
+    wrap.style.display = 'none';
+    card.hidden = false;
+  }
+
+  // The emergency contact starts as the number registered on the account
+  fillMissingPhone() {
+    const input = document.getElementById('report-missing-phone');
+    const user = window.pawStore && window.pawStore.getGoogleUser();
+    if (input && user && user.phone && !input.value.trim()) input.value = user.phone;
+  }
+
+  // Pets as photo chips (a native list cannot show pictures); the hidden select keeps the value
+  escHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  petAvatarHtml(pet) {
+    const photo = pet.photoUrl || pet.photo;
+    return photo ? `<img class="pet-pick-img" src="${this.escHtml(photo)}" alt="" loading="lazy" decoding="async" />`
+      : '<span class="pet-pick-img pet-pick-blank"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.5c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-6 2c1.38 0 2.5-1.12 2.5-2.5S7.38 7.5 6 7.5 3.5 8.62 3.5 10s1.12 2.5 2.5 2.5zm12 0c1.38 0 2.5-1.12 2.5-2.5S19.38 7.5 18 7.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5 0 2.21 1.79 4 4 4 1.1 0 2-.9 2-2 0 1.1.9 2 2 2 2.21 0 4-1.79 4-4 0-2.76-2.24-5-5-5z"/></svg></span>';
+  }
+
+  // The picker shows a few pets as cards; with more than that, "See all" opens a list with one pet per row
+  renderPetPicker() {
+    const picker = document.getElementById('report-missing-pet-picker');
+    const select = document.getElementById('report-missing-pet-select');
+    if (!picker || !select) return;
+    const esc = (v) => this.escHtml(v);
+    // A pet with no name cannot be picked, and a pet already reported missing is not offered again
+    const pets = (window.pawStore ? window.pawStore.getPets() : []).filter((p) => p.name && p.status !== 'lost');
+    const current = select.value;
+    const plus = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    const check = '<svg class="pet-pick-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12 10 17 19 7"/></svg>';
+    const card = ({ value, name, sub = '', img, selected = false, notes = [], disabled = false, other = false, action = '' }) =>
+      `<button type="button" class="pet-pick${selected ? ' is-selected' : ''}${other ? ' is-other' : ''}" ${action ? `data-action="${action}"` : `role="radio" aria-checked="${selected}" data-value="${esc(value)}"`} ${disabled ? 'disabled' : ''} title="${esc(name)}">
+        ${img}
+        <span class="pet-pick-text"><span class="pet-pick-name">${esc(name)}</span>${sub ? `<span class="pet-pick-sub">${esc(sub)}</span>` : ''}${notes.map((n) => `<span class="pet-pick-badge">${esc(n)}</span>`).join('')}</span>
+        ${selected ? check : ''}
+      </button>`;
+    const petCard = (p) => card({
+      value: p.id,
+      name: p.name,
+      sub: [p.species, p.breed].filter(Boolean).join(' · '),
+      img: this.petAvatarHtml(p),
+      selected: String(current) === String(p.id)
+    });
+
+    picker.innerHTML = pets.map(petCard).join('')
+      + card({
+        value: 'custom',
+        name: 'Another pet',
+        img: `<span class="pet-pick-img pet-pick-other">${plus}</span>`,
+        selected: current === 'custom' || current === 'unregistered',
+        other: true
+      });
+    picker.querySelectorAll('.pet-pick').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        select.value = btn.dataset.value;
+        this.handlePetSelect(select.value);
+      });
+    });
   }
 
   handlePetSelect(petId) {
     const customWrap = document.getElementById('report-missing-custom-name-wrap');
     const customInput = document.getElementById('report-missing-custom-name');
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
+
+    const select = document.getElementById('report-missing-pet-select');
+    if (select && select.value !== String(petId) && petId) select.value = String(petId);
+    this.renderPetPicker();
+    // A registered pet with no NFC tag cannot be identified by a tap: its owner must add a current photo and describe its condition
+    const chosen = !isUnregistered && petId && window.pawStore
+      ? window.pawStore.getPets().find(p => String(p.id) === String(petId)) : null;
+    const noNfc = !!chosen && !chosen.nfcTag;
+    this.missingNoNfc = noNfc;
+    const conditionWrap = document.getElementById('report-missing-condition-wrap');
+    const conditionInput = document.getElementById('report-missing-condition');
+    if (conditionWrap) conditionWrap.style.display = noNfc ? '' : 'none';
+    if (conditionInput) {
+      conditionInput.required = noNfc;
+      if (!noNfc) conditionInput.value = '';
+    }
+    const photoLabel = document.getElementById('report-missing-photo-label');
+    if (photoLabel) photoLabel.textContent = noNfc ? 'Current photo of the pet *' : 'Photo of the pet';
+
+    // Registered pets with a tag already have their photo on file; unregistered and untagged pets need one uploaded
+    const photoRow = document.getElementById('report-missing-photo-row');
+    if (photoRow) photoRow.style.display = (isUnregistered || noNfc) ? '' : 'none';
+    if (isUnregistered || noNfc) this.removeUploadedPhoto(false);
 
     if (isUnregistered) {
       if (customWrap) customWrap.style.display = 'block';
@@ -465,7 +593,9 @@ class ReportManager {
           if (locInput && pet.lastSeenLocation) {
             locInput.value = pet.lastSeenLocation;
           }
-          if (pet.photoUrl || pet.photo) {
+          if (noNfc) {
+            this.updateMissingPhotoStatus(null, false);
+          } else if (pet.photoUrl || pet.photo) {
             this.setUploadedPhoto(pet.photoUrl || pet.photo);
             this.updateMissingPhotoStatus(pet.name, true);
           } else {
@@ -505,7 +635,7 @@ class ReportManager {
 
       pets.forEach((p, idx) => {
         const isSelected = !isCustomSelected && (targetPetId === String(p.id) || (!targetPetId && idx === 0));
-        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.rfidTag})</option>`;
+        options += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${registeredLabel}: ${p.name} (${p.breed || p.species} - ${p.nfcTag})</option>`;
       });
 
       options += `<option value="unregistered" ${isCustomSelected ? 'selected' : ''}>${unregisteredLabel}</option>`;
@@ -526,11 +656,11 @@ class ReportManager {
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
     const speciesSelect = document.getElementById('report-found-species');
     const breedInput = document.getElementById('report-found-breed');
-    const rfidInput = document.getElementById('report-found-rfid');
+    const nfcInput = document.getElementById('report-found-nfc');
 
     if (isUnregistered) {
-      if (rfidInput && !rfidInput.dataset.manual) {
-        rfidInput.value = '';
+      if (nfcInput && !nfcInput.dataset.manual) {
+        nfcInput.value = '';
       }
     } else {
       if (petId && petId !== 'registered' && window.pawStore) {
@@ -543,8 +673,8 @@ class ReportManager {
           if (breedInput && pet.breed) {
             breedInput.value = pet.breed;
           }
-          if (rfidInput && pet.rfidTag) {
-            rfidInput.value = pet.rfidTag;
+          if (nfcInput && pet.nfcTag) {
+            nfcInput.value = pet.nfcTag;
           }
           if (pet.photoUrl || pet.photo) {
             this.setUploadedPhoto(pet.photoUrl || pet.photo);
@@ -556,7 +686,7 @@ class ReportManager {
           const pet = pets[0];
           if (speciesSelect && pet.species) speciesSelect.value = (pet.species === 'Cat' ? 'Cat' : pet.species === 'Dog' ? 'Dog' : 'Other');
           if (breedInput && pet.breed) breedInput.value = pet.breed;
-          if (rfidInput && pet.rfidTag) rfidInput.value = pet.rfidTag;
+          if (nfcInput && pet.nfcTag) nfcInput.value = pet.nfcTag;
           if (pet.photoUrl || pet.photo) this.setUploadedPhoto(pet.photoUrl || pet.photo);
         }
       }
@@ -569,22 +699,20 @@ class ReportManager {
     if (!statusText) return;
 
     if (this.uploadedPhotoData) {
-      if (isRegistered && petName) {
-        statusText.textContent = `Attached: ${petName}'s profile photo`;
-        statusText.style.color = 'var(--text-main, #ffffff)';
-      } else {
-        statusText.textContent = 'Custom pet photo attached';
-        statusText.style.color = 'var(--primary, #ea9d1e)';
-      }
-      if (statusBtn) statusBtn.textContent = 'Change / View';
+      statusText.textContent = isRegistered && petName ? `${petName}'s profile photo` : 'Photo added';
+      statusText.dataset.state = 'ok';
+      statusText.style.color = '';
+      if (statusBtn) statusBtn.textContent = 'Change';
     } else {
-      statusText.textContent = 'No photo attached';
-      statusText.style.color = 'var(--text-muted, #a89f91)';
-      if (statusBtn) statusBtn.textContent = 'Attach / Upload Photo';
+      statusText.textContent = 'No photo yet';
+      statusText.dataset.state = 'empty';
+      statusText.style.color = '';
+      if (statusBtn) statusBtn.textContent = 'Upload photo';
     }
   }
 
-  initPinMap() {
+  async initPinMap() {
+    await window.PawMapsReady;
     const container = document.getElementById('report-pin-map');
     if (!container || !window.L) return;
 
@@ -595,7 +723,9 @@ class ReportManager {
 
     this.map = window.L.map('report-pin-map', {
       scrollWheelZoom: true,
-      zoomControl: true
+      zoomControl: true,
+      doubleClickZoom: false,
+      cursor: 'crosshair'
     }).setView([this.pinnedLat, this.pinnedLng], 13);
 
     // Set initial Google Maps tile layer
@@ -609,15 +739,25 @@ class ReportManager {
       autoPan: true
     }).addTo(this.map);
 
+    const mapEl = () => document.getElementById('report-pin-map');
+    this.marker.on('dragstart', () => {
+      mapEl()?.classList.add('is-pin-dragging');
+      this.pinDragging = true;
+    });
     this.marker.on('dragend', (e) => {
       const pos = e.target.getLatLng();
+      mapEl()?.classList.remove('is-pin-dragging');
       this.updatePinnedCoords(pos.lat, pos.lng);
+      // The map also reports a click when a drag ends; ignore that one so the pin is not dropped twice
+      setTimeout(() => { this.pinDragging = false; }, 250);
     });
 
     this.map.on('click', (e) => {
+      if (this.pinDragging) return;
       this.updatePinnedCoords(e.latlng.lat, e.latlng.lng);
       if (this.marker) {
         this.marker.setLatLng(e.latlng);
+        this.marker.setIcon(this.createPinIcon()); // replays the drop animation
       }
     });
 
@@ -681,20 +821,53 @@ class ReportManager {
   }
 
   locateMe() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          this.jumpToLocation(lat, lng, 'Current GPS Location');
-        },
-        () => {
-          this.jumpToLocation(14.6500, 121.0350, 'Central Rescue Grid');
-        }
-      );
-    } else {
-      this.jumpToLocation(14.6500, 121.0350, 'Central Rescue Grid');
+    this.useMyLocation('report');
+  }
+
+  // Pin the reporter's GPS position: 'report' (found/missing report) or 'sighting' (sighting form)
+  useMyLocation(target) {
+    const isSighting = target === 'sighting';
+    const btn = document.getElementById(isSighting ? 'sighting-use-location-btn' : 'report-use-location-btn');
+    const toast = (msg, kind) => { if (window.notifManager) window.notifManager.showToast(msg, kind, 5000); };
+
+    if (!navigator.geolocation) {
+      toast('Your browser cannot share its location. Tap the map to place the pin instead.', 'warning');
+      return;
     }
+    if (!window.isSecureContext) {
+      toast('Location needs a secure (HTTPS) connection. Tap the map to place the pin instead.', 'warning');
+      return;
+    }
+
+    const setBusy = (busy) => {
+      if (!btn) return;
+      btn.disabled = busy;
+      btn.classList.toggle('is-loading', busy);
+      const label = btn.querySelector('span');
+      if (label) label.textContent = busy ? 'Finding your location…' : 'Use my current location';
+    };
+
+    setBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const name = (await this.reverseGeocode(latitude, longitude)) || 'My current location';
+        if (isSighting) this.jumpToSightingLocation(latitude, longitude, name);
+        else this.jumpToLocation(latitude, longitude, name);
+        setBusy(false);
+        toast(`Pin placed at your location (accurate to about ${Math.max(1, Math.round(accuracy))} m).`, 'success');
+      },
+      (err) => {
+        setBusy(false);
+        const reasons = {
+          1: 'Location permission is blocked. Allow it in your browser settings for this site, or tap the map to place the pin.',
+          2: 'Your location is not available right now. Tap the map to place the pin instead.',
+          3: 'Finding your location took too long. Try again, or tap the map to place the pin.'
+        };
+        toast(reasons[err.code] || reasons[2], 'warning');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
   }
 
   createPinIcon() {
@@ -707,7 +880,8 @@ class ReportManager {
     return window.L.divIcon({
       className: 'custom-report-pin',
       html: `
-        <div style="position:relative; transform:translate(-50%, -100%); cursor:grab;">
+        <div class="pin-drop" style="position:relative; transform:translate(-50%, -100%); cursor:grab; touch-action:none; -webkit-user-select:none; user-select:none;">
+          <div style="position:absolute; left:-14px; right:-14px; top:-14px; bottom:-14px;"></div>
           <div style="width:38px; height:38px; border-radius:50% 50% 50% 0; background:${bgGradient}; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(0,0,0,0.5); border:2px solid #ffffff;">
             <div style="transform:rotate(45deg); display:flex; align-items:center; justify-content:center;">${iconSvg}</div>
           </div>
@@ -754,7 +928,7 @@ class ReportManager {
         const parts = [];
         if (road) parts.push(road);
         if (suburb && suburb !== road) parts.push(suburb);
-        parts.push('Quezon City');
+        parts.push(addr.city || addr.town || addr.municipality || 'Quezon City');
         return parts.join(', ');
       }
     } catch (e) {}
@@ -1084,7 +1258,36 @@ class ReportManager {
     }
   }
 
+  // Phone photos are several MB and the app saves each photo in a few places in the browser's ~5 MB storage,
+  // so big photos are shrunk to a small JPEG as soon as they are added
+  shrinkDataUrl(dataUrl, maxSide = 800) {
+    return new Promise((resolve) => {
+      if (!dataUrl || !dataUrl.startsWith('data:image/') || dataUrl.length < 150000) { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   setUploadedPhoto(dataUrl) {
+    if (dataUrl && dataUrl.length >= 150000) this.shrinkDataUrl(dataUrl).then((small) => this.applyUploadedPhoto(small));
+    else this.applyUploadedPhoto(dataUrl);
+  }
+
+  applySightingUploadedPhoto(dataUrl) {
+    if (dataUrl && dataUrl.length >= 150000) this.shrinkDataUrl(dataUrl).then((small) => this.applySightingUploadedPhoto(small));
+    else this.applySightingUploadedPhoto(dataUrl);
+  }
+
+  applyUploadedPhoto(dataUrl) {
     this.uploadedPhotoData = dataUrl;
     const placeholder = document.getElementById('report-photo-placeholder');
     const previewWrap = document.getElementById('report-photo-preview-wrap');
@@ -1093,6 +1296,8 @@ class ReportManager {
     if (placeholder) placeholder.style.display = 'none';
     if (previewWrap) previewWrap.style.display = 'block';
     if (previewImg) previewImg.src = dataUrl;
+    const thumb = document.getElementById('report-missing-photo-thumb');
+    if (thumb) { thumb.src = dataUrl; thumb.hidden = false; }
 
     this.updateMissingPhotoStatus();
   }
@@ -1110,6 +1315,8 @@ class ReportManager {
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
+    const thumb = document.getElementById('report-missing-photo-thumb');
+    if (thumb) { thumb.removeAttribute('src'); thumb.hidden = true; }
 
     this.updateMissingPhotoStatus();
 
@@ -1122,10 +1329,21 @@ class ReportManager {
     e.preventDefault();
     if (!window.pawStore) return;
 
-    if (this.currentType === 'found') {
-      this.submitFoundReport();
-    } else {
-      this.submitMissingReport();
+    // A save that fails must say so: otherwise the button just seems to do nothing
+    try {
+      if (this.currentType === 'found') {
+        this.submitFoundReport();
+      } else {
+        this.submitMissingReport();
+      }
+    } catch (err) {
+      console.error('[Report] submit failed:', err);
+      const full = err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''));
+      if (window.notifManager) {
+        window.notifManager.showToast(full
+          ? 'Could not save the report because this device is out of storage. Try a smaller photo.'
+          : `Could not send the report: ${(err && err.message) || 'unknown error'}. Please try again.`, 'error', 6000);
+      }
     }
   }
 
@@ -1136,10 +1354,10 @@ class ReportManager {
     const breed = (document.getElementById('report-found-breed')?.value || '').trim();
     const location = (document.getElementById('report-found-location')?.value || '').trim();
     const phone = (document.getElementById('report-found-phone')?.value || '').trim();
-    const rfid = (document.getElementById('report-found-rfid')?.value || '').trim();
+    const nfc = (document.getElementById('report-found-nfc')?.value || '').trim();
     const notes = (document.getElementById('report-found-notes')?.value || '').trim();
 
-    // Required fields validation (all except message/notes and rfid)
+    // Required fields validation (all except message/notes and nfc)
     if (!selectedPetId) {
       if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
       petSelect?.focus();
@@ -1170,13 +1388,13 @@ class ReportManager {
 
     const sightingId = 'SIGHT-' + Date.now().toString().slice(-6);
 
-    // Check if the selected registered pet or entered RFID matches any registered pet in the system BEFORE building sighting object
+    // Check if the selected registered pet or entered NFC matches any registered pet in the system BEFORE building sighting object
     let matchedPet = null;
     if (selectedPetId && selectedPetId !== 'unregistered' && selectedPetId !== 'custom' && selectedPetId !== 'registered' && window.pawStore) {
       matchedPet = window.pawStore.getPetById(selectedPetId);
     }
-    if (!matchedPet && rfid && window.pawStore) {
-      matchedPet = window.pawStore.getPetByRFID(rfid);
+    if (!matchedPet && nfc && window.pawStore) {
+      matchedPet = window.pawStore.getPetByNFC(nfc);
     }
 
     const sighting = {
@@ -1185,7 +1403,7 @@ class ReportManager {
       breed: breed,
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
-      rfidTag: rfid || (matchedPet ? matchedPet.rfidTag : ''),
+      nfcTag: nfc || (matchedPet ? matchedPet.nfcTag : ''),
       reporterPhone: phone,
       community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
       reporterName: 'Community Good Samaritan',
@@ -1208,7 +1426,7 @@ class ReportManager {
         type: 'pet_found_match',
         petId: matchedPet.id,
         petName: matchedPet.name,
-        rfidTag: matchedPet.rfidTag,
+        nfcTag: matchedPet.nfcTag,
         finderName: 'Community Good Samaritan',
         finderPhone: phone || '+63 9XX XXX XXXX',
         finderNotes: notes,
@@ -1233,7 +1451,7 @@ class ReportManager {
       });
 
       if (window.notifManager) {
-        window.notifManager.showToast(`MATCH CONFIRMED: Registered pet "${matchedPet.name}" (RFID: ${rfid}) found! Owner notification sent.`, 'success', 6000);
+        window.notifManager.showToast(`MATCH CONFIRMED: Registered pet "${matchedPet.name}" (NFC: ${nfc}) found! Owner notification sent.`, 'success', 6000);
         setTimeout(() => {
           window.notifManager.showFinderInfo(ownerNotif);
         }, 600);
@@ -1243,9 +1461,9 @@ class ReportManager {
       window.pawStore.addNotification({
         id: 'notif-sight-' + Date.now(),
         title: `Sighting Pinned: ${breed} (${species})`,
-        message: `Community sighting logged at ${location} [${this.pinnedLat}, ${this.pinnedLng}]. ${rfid ? 'Collar RFID: ' + rfid + '.' : ''} Notes: "${notes}"`,
+        message: `Community sighting logged at ${location} [${this.pinnedLat}, ${this.pinnedLng}]. ${nfc ? 'Collar NFC: ' + nfc + '.' : ''} Notes: "${notes}"`,
         type: 'sighting',
-        rfidTag: rfid,
+        nfcTag: nfc,
         location: location,
         coords: [this.pinnedLat, this.pinnedLng],
         finderPhone: phone,
@@ -1272,45 +1490,86 @@ class ReportManager {
     }
   }
 
+  // Inline errors: red field, message underneath, cleared as soon as the user fixes it
+  showFieldError(id, message) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const group = el.closest('.form-group') || el.parentElement;
+    group.classList.add('has-error');
+    let note = group.querySelector(':scope > .field-error');
+    if (!note) {
+      note = document.createElement('small');
+      note.className = 'field-error';
+      note.setAttribute('role', 'alert');
+      group.appendChild(note);
+    }
+    note.textContent = message;
+    if (!group.dataset.errorBound) {
+      group.dataset.errorBound = '1';
+      const clear = () => this.clearFieldError(group);
+      group.addEventListener('input', clear);
+      group.addEventListener('change', clear);
+      group.addEventListener('click', (e) => { if (e.target.closest('.pet-pick, button')) clear(); });
+    }
+  }
+
+  clearFieldError(group) {
+    group.classList.remove('has-error');
+    group.querySelector(':scope > .field-error')?.remove();
+  }
+
+  clearFieldErrors() {
+    document.querySelectorAll('#report-pet-modal .form-group.has-error').forEach((g) => this.clearFieldError(g));
+  }
+
   submitMissingReport() {
     const select = document.getElementById('report-missing-pet-select');
     const petId = (select?.value || '').trim();
     const customName = (document.getElementById('report-missing-custom-name')?.value || '').trim();
     const location = (document.getElementById('report-missing-location')?.value || '').trim();
     const date = (document.getElementById('report-missing-date')?.value || '').trim();
-    const phone = (document.getElementById('report-missing-phone')?.value || '').trim();
+    // The phone falls back to the account's, then to the one saved on the pet
+    const phoneBox = document.getElementById('report-missing-phone');
+    const account = window.pawStore.getGoogleUser();
+    const savedPet = window.pawStore.getPets().find(p => String(p.id) === petId);
+    const phone = ((phoneBox?.value || '').trim() || (account && account.phone) || (savedPet && savedPet.owner && savedPet.owner.phone) || '').trim();
+    if (phoneBox && phone && !phoneBox.value.trim()) phoneBox.value = phone;
     const notes = (document.getElementById('report-missing-notes')?.value || '').trim();
 
-    // Required fields validation (all except Describe Pet message)
-    if (!petId) {
-      if (window.notifManager) window.notifManager.showToast('Please select Registered or Unregistered pet.', 'warning', 3500);
-      select?.focus();
-      return;
-    }
+    // Required fields: every problem is marked on its own field, not just the first one
+    this.clearFieldErrors();
     const isUnregistered = petId === 'custom' || petId === 'unregistered';
-    if (isUnregistered && !customName) {
-      if (window.notifManager) window.notifManager.showToast('Please enter the pet name and description.', 'warning', 3500);
-      document.getElementById('report-missing-custom-name')?.focus();
+    const untagged = !isUnregistered && petId
+      ? window.pawStore.getPets().find(p => String(p.id) === String(petId)) : null;
+    const condition = (document.getElementById('report-missing-condition')?.value || '').trim();
+    const problems = [];
+    if (!petId) problems.push(['report-missing-pet-picker', 'Choose which pet is missing, or pick Another pet.']);
+    if (isUnregistered && !customName) problems.push(['report-missing-custom-name', "Enter the pet's name and a short description."]);
+    // A pet with no NFC tag needs a current photo and its condition, since nobody can tap a tag to identify it
+    if (untagged && !untagged.nfcTag) {
+      if (!this.uploadedPhotoData) problems.push(['report-missing-photo-row', `${untagged.name} has no NFC tag. Add a current photo so others can recognise it.`]);
+      if (!condition) problems.push(['report-missing-condition', `Describe how ${untagged.name} looks right now (injuries, collar, behaviour).`]);
+    }
+    if (!location) problems.push(['report-missing-location', 'Enter where the pet was last seen, or drop the pin on the map.']);
+    if (!date) problems.push(['report-missing-date', 'Choose the date and time the pet went missing.']);
+    if (!phone) problems.push(['report-missing-phone', 'Enter a phone number where you can be reached.']);
+    if (problems.length) {
+      problems.forEach(([id, msg]) => this.showFieldError(id, msg));
+      const first = document.getElementById(problems[0][0]);
+      if (first) {
+        first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const focusable = first.matches('input, textarea, select, button') ? first : first.querySelector('input, textarea, select, button');
+        if (focusable) focusable.focus({ preventScroll: true });
+      }
+      if (window.notifManager) {
+        window.notifManager.showToast(problems.length === 1 ? 'One thing needs your attention.' : `${problems.length} things need your attention.`, 'warning', 3000);
+      }
       return;
     }
-    if (!location) {
-      if (window.notifManager) window.notifManager.showToast('Please specify the last known location where the pet was seen.', 'warning', 3500);
-      document.getElementById('report-missing-location')?.focus();
-      return;
-    }
-    if (!date) {
-      if (window.notifManager) window.notifManager.showToast('Please provide the date and time when the pet went missing.', 'warning', 3500);
-      document.getElementById('report-missing-date')?.focus();
-      return;
-    }
-    if (!phone) {
-      if (window.notifManager) window.notifManager.showToast('Please provide an emergency contact phone number.', 'warning', 3500);
-      document.getElementById('report-missing-phone')?.focus();
-      return;
-    }
+    const reportNotes = condition ? `Condition: ${condition}${notes ? ' | ' + notes : ''}` : notes;
 
     let petName = 'Pet';
-    let rfid = 'RFID-TAG';
+    let nfc = 'NFC-TAG';
     let pet = null;
 
     if (petId && !isUnregistered) {
@@ -1319,7 +1578,7 @@ class ReportManager {
         pet = pets.find(p => String(p.id) === String(petId)) || (petId === 'registered' && pets.length > 0 ? pets[0] : null);
         if (pet) {
           petName = pet.name;
-          rfid = pet.rfidTag;
+          nfc = pet.nfcTag || '';
         } else {
           petName = 'Registered Pet';
         }
@@ -1336,9 +1595,9 @@ class ReportManager {
         lastSeenDate: date,
         lastSeenCoords: [this.pinnedLat, this.pinnedLng],
         ownerPhone: phone,
-        notes: notes,
-        photoUrl: finalPhoto,
-        photo: finalPhoto
+        notes: reportNotes,
+        // The current photo of an untagged pet belongs to this report; its profile photo stays as it was
+        ...(condition ? {} : { photoUrl: finalPhoto, photo: finalPhoto })
       });
     }
 
@@ -1356,7 +1615,8 @@ class ReportManager {
       lastSeenLocation: location,
       lastSeenCoords: [this.pinnedLat, this.pinnedLng],
       lastSeenDate: date,
-      notes: notes,
+      notes: reportNotes,
+      condition: condition,
       status: 'active'
     });
 
@@ -1366,7 +1626,7 @@ class ReportManager {
       petId: pet ? pet.id : 'pet-temp',
       missingReportId: missingReport.id,
       petName: petName,
-      rfidTag: rfid,
+      nfcTag: nfc,
       status: 'missing',
       location: location,
       coords: [this.pinnedLat, this.pinnedLng],
@@ -1380,7 +1640,7 @@ class ReportManager {
           type: 'missing',
           title: 'Missing Alert Broadcast Activated',
           location: location,
-          notes: `Guardian reported missing with pinned coordinates [${this.pinnedLat}, ${this.pinnedLng}]. Notes: ${notes}`,
+          notes: reportNotes,
           photoUrl: finalPhoto
         }
       ]
@@ -1389,7 +1649,7 @@ class ReportManager {
 
     window.pawStore.addNotification({
       title: `Emergency Alert: "${petName}" Missing`,
-      message: `Guardian reported ${petName} (${rfid}) missing near ${location}. Checkpoints & public map notified.`,
+      message: `Guardian reported ${petName}${nfc ? ` (${nfc})` : ''} missing near ${location}. Checkpoints & public map notified.`,
       type: 'missing',
       missingReportId: missingReport.id,
       petId: pet ? pet.id : null,
@@ -1400,6 +1660,9 @@ class ReportManager {
     if (window.notifManager) {
       window.notifManager.showToast(`Emergency Alert Broadcasted for "${petName}". Pinned on Incident Map.`, 'danger', 5000);
     }
+
+    // Save the missing status to the database too, so the pet's tap page shows the missing alert
+    if (pet && window.petsView) window.petsView.setStatus(pet.id, 'missing');
 
     this.closeModal();
 
@@ -1415,7 +1678,8 @@ class ReportManager {
   // COMMUNITY SIGHTING SUBMISSION FLOW METHODS
   // =========================================================
 
-  openSightingModal(missingReportId = null, petId = null) {
+  // context: optional {name, breed, photoUrl, place, lat, lng, seenAt} for pets that are not in the local store
+  openSightingModal(missingReportId = null, petId = null, context = null) {
     const modal = document.getElementById('sighting-submission-modal');
     if (!modal) return;
 
@@ -1472,7 +1736,7 @@ class ReportManager {
       if (hiddenReportId) hiddenReportId.value = resolvedReportId;
       if (hiddenPetId) hiddenPetId.value = resolvedPetId;
 
-      if (modalTitle) modalTitle.textContent = `Report Sighting: "${resolvedPetName}"`;
+      if (modalTitle) modalTitle.textContent = `Have you seen ${resolvedPetName}?`;
 
       if (prefillBanner) {
         prefillBanner.style.display = 'flex';
@@ -1481,7 +1745,11 @@ class ReportManager {
         const metaEl = document.getElementById('sighting-prefill-pet-meta');
         if (thumb) thumb.src = targetPet ? targetPet.photoUrl : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80';
         if (nameEl) nameEl.textContent = resolvedPetName;
-        if (metaEl) metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area')}`;
+        if (metaEl) {
+          const where = targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area');
+          const when = targetPet && targetPet.lastSeenDate ? ` · ${this.timeAgoLabel(targetPet.lastSeenDate)}` : '';
+          metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${where}${when}`;
+        }
       }
 
       // Default pinned coords to last seen location
@@ -1495,11 +1763,28 @@ class ReportManager {
 
       const initialLoc = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
       this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, initialLoc);
+    } else if (context) {
+      // A missing pet that only exists as a "last seen" record: use its details for the banner and the pin
+      if (hiddenReportId) hiddenReportId.value = '';
+      if (hiddenPetId) hiddenPetId.value = '';
+      if (modalTitle) modalTitle.textContent = `Have you seen ${context.name}?`;
+      if (prefillBanner) {
+        prefillBanner.style.display = 'flex';
+        const thumb = document.getElementById('sighting-prefill-pet-thumb');
+        const nameEl = document.getElementById('sighting-prefill-pet-name');
+        const metaEl = document.getElementById('sighting-prefill-pet-meta');
+        if (thumb) thumb.src = context.photoUrl || window.PET_PHOTO_PLACEHOLDER || '';
+        if (nameEl) nameEl.textContent = context.name;
+        if (metaEl) metaEl.textContent = `${context.breed || 'Missing pet'} · Last seen: ${context.place}${context.seenAt ? ' · ' + this.timeAgoLabel(context.seenAt) : ''}`;
+      }
+      this.sightingPinnedLat = context.lat + (Math.random() - 0.5) * 0.003;
+      this.sightingPinnedLng = context.lng + (Math.random() - 0.5) * 0.003;
+      this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, `Near ${context.place}`);
     } else {
       // General sighting flow
       if (hiddenReportId) hiddenReportId.value = '';
       if (hiddenPetId) hiddenPetId.value = '';
-      if (modalTitle) modalTitle.textContent = 'Report Pet Sighting';
+      if (modalTitle) modalTitle.textContent = 'Have you seen a missing pet?';
       if (prefillBanner) prefillBanner.style.display = 'none';
       this.sightingPinnedLat = 14.6500;
       this.sightingPinnedLng = 121.0400;
@@ -1509,9 +1794,46 @@ class ReportManager {
     modal.classList.add('active');
     modal.style.display = 'flex';
 
+    if (!this._sightingModalBound) {
+      this._sightingModalBound = true;
+      modal.addEventListener('mousedown', (e) => {
+        if (e.target === modal) this.closeSightingModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) this.closeSightingModal();
+      });
+    }
+    const body = modal.querySelector('.modal-body');
+    if (body) body.scrollTop = 0;
+
     setTimeout(() => {
       this.initSightingPinMap();
     }, 180);
+  }
+
+  timeAgoLabel(value) {
+    const minutes = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+    if (Number.isNaN(minutes)) return '';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+  }
+
+  // Quick time chips: set the "seen at" field to N minutes ago
+  setSightingQuickTime(minutesAgo) {
+    const input = document.getElementById('sighting-datetime-input');
+    if (!input) return;
+    const d = new Date(Date.now() - minutesAgo * 60000);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    input.value = d.toISOString().slice(0, 16);
+  }
+
+  // Quick note chips: append a phrase to the notes box once
+  addSightingNote(text) {
+    const box = document.getElementById('sighting-notes-input');
+    if (!box || box.value.includes(text)) return;
+    box.value = box.value.trim() ? `${box.value.trim()} ${text}` : text;
+    box.focus();
   }
 
   closeSightingModal() {
@@ -1528,34 +1850,28 @@ class ReportManager {
     }
   }
 
+  // The map and the photo are separate steps and always visible; 'upload' just brings the photo step into view
   setSightingViewMode(mode) {
     this.sightingViewMode = mode;
-    const mapBtn = document.getElementById('sighting-mode-map-btn');
-    const uploadBtn = document.getElementById('sighting-mode-upload-btn');
     const mapContainer = document.getElementById('sighting-map-view-container');
     const uploadContainer = document.getElementById('sighting-upload-view-container');
+    if (mapContainer) mapContainer.style.display = 'flex';
+    if (uploadContainer) uploadContainer.style.display = 'flex';
 
-    if (mapBtn) mapBtn.classList.toggle('active', mode === 'map');
-    if (uploadBtn) uploadBtn.classList.toggle('active', mode === 'upload');
-
-    if (mapContainer) mapContainer.style.display = (mode === 'map' ? 'flex' : 'none');
-    if (uploadContainer) uploadContainer.style.display = (mode === 'upload' ? 'flex' : 'none');
-
-    if (mode === 'map' && this.sightingMap) {
+    if (this.sightingMap) {
       setTimeout(() => {
         if (this.sightingMap) this.sightingMap.invalidateSize();
       }, 100);
     }
+    if (mode === 'upload' && uploadContainer) uploadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  setSightingNameMode(mode) {
+  setSightingNameMode(mode, focus = false) {
     this.sightingNameMode = mode;
-    const nameBtn = document.getElementById('sighting-name-btn');
-    const anonBtn = document.getElementById('sighting-anon-btn');
+    const anonBox = document.getElementById('sighting-anon-checkbox');
     const nameInput = document.getElementById('sighting-reporter-name');
 
-    if (nameBtn) nameBtn.classList.toggle('active', mode === 'named');
-    if (anonBtn) anonBtn.classList.toggle('active', mode === 'anonymous');
+    if (anonBox) anonBox.checked = mode === 'anonymous';
 
     if (nameInput) {
       if (mode === 'anonymous') {
@@ -1563,15 +1879,16 @@ class ReportManager {
           this.sightingSavedName = nameInput.value;
         }
         nameInput.value = 'Anonymous';
-        nameInput.placeholder = 'Anonymous';
-        nameInput.style.opacity = '0.75';
+        nameInput.readOnly = true;
+        nameInput.style.opacity = '0.6';
       } else {
         if (nameInput.value === 'Anonymous') {
           nameInput.value = this.sightingSavedName || '';
         }
+        nameInput.readOnly = false;
         nameInput.placeholder = 'e.g. Juan dela Cruz';
         nameInput.style.opacity = '1';
-        nameInput.focus();
+        if (focus) nameInput.focus();
       }
     }
   }
@@ -1579,14 +1896,18 @@ class ReportManager {
   handleSightingNameInput(value) {
     const trimmed = (value || '').trim();
     if (trimmed && trimmed.toLowerCase() !== 'anonymous' && this.sightingNameMode === 'anonymous') {
-      this.sightingNameMode = 'named';
-      const nameBtn = document.getElementById('sighting-name-btn');
-      const anonBtn = document.getElementById('sighting-anon-btn');
-      if (nameBtn) nameBtn.classList.add('active');
-      if (anonBtn) anonBtn.classList.remove('active');
-      const nameInput = document.getElementById('sighting-reporter-name');
-      if (nameInput) nameInput.style.opacity = '1';
+      this.setSightingNameMode('named');
     }
+  }
+
+  // Shows whether the required photo is attached
+  updateSightingPhotoTag() {
+    const tag = document.getElementById('sighting-photo-tag');
+    if (!tag) return;
+    const attached = !!this.sightingPhotoData;
+    tag.textContent = attached ? 'Attached' : 'Required';
+    tag.classList.toggle('is-done', attached);
+    tag.classList.toggle('is-required', !attached);
   }
 
   setSightingMapLayer(type) {
@@ -1623,23 +1944,7 @@ class ReportManager {
   }
 
   locateSightingMe() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          this.jumpToSightingLocation(lat, lng, 'My Current Location');
-          if (window.notifManager) window.notifManager.showToast('Centered on your current GPS location', 'success', 2500);
-        },
-        () => {
-          this.jumpToSightingLocation(14.6500, 121.0400, 'Quezon City Hall');
-          if (window.notifManager) window.notifManager.showToast('Location permission unavailable. Centered on QC.', 'info', 3000);
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    } else {
-      this.jumpToSightingLocation(14.6500, 121.0400, 'Quezon City Hall');
-    }
+    this.useMyLocation('sighting');
   }
 
   jumpToSightingLocation(lat, lng, name) {
@@ -1653,7 +1958,8 @@ class ReportManager {
   }
 
 
-  initSightingPinMap() {
+  async initSightingPinMap() {
+    await window.PawMapsReady;
     const container = document.getElementById('sighting-pin-map');
     if (!container || !window.L) return;
 
@@ -1664,7 +1970,9 @@ class ReportManager {
 
     this.sightingMap = window.L.map('sighting-pin-map', {
       scrollWheelZoom: true,
-      zoomControl: true
+      zoomControl: true,
+      doubleClickZoom: false,
+      cursor: 'crosshair'
     }).setView([this.sightingPinnedLat, this.sightingPinnedLng], 14);
 
     this.setSightingMapLayer(this.sightingMapType || 'roadmap');
@@ -1673,7 +1981,7 @@ class ReportManager {
     const greenSightingIcon = window.L.divIcon({
       className: 'sighting-pin-leaflet-icon',
       html: `
-        <div style="position:relative; transform:translate(-50%, -100%); cursor:grab;">
+        <div class="pin-drop" style="position:relative; transform:translate(-50%, -100%); cursor:grab;">
           <div style="width:34px; height:34px; border-radius:50% 50% 50% 0; background:linear-gradient(135deg, #22c55e, #15803d); transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(0,0,0,0.4); border:2px solid #ffffff;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
           </div>
@@ -1696,7 +2004,10 @@ class ReportManager {
 
     this.sightingMap.on('click', (e) => {
       this.updateSightingCoords(e.latlng.lat, e.latlng.lng);
-      if (this.sightingMarker) this.sightingMarker.setLatLng(e.latlng);
+      if (this.sightingMarker) {
+        this.sightingMarker.setLatLng(e.latlng);
+        this.sightingMarker.setIcon(greenSightingIcon); // replays the drop animation
+      }
     });
 
     setTimeout(() => {
@@ -1956,6 +2267,7 @@ class ReportManager {
     if (placeholder) placeholder.style.display = 'none';
     if (previewWrap) previewWrap.style.display = 'block';
     if (previewImg) previewImg.src = dataUrl;
+    this.updateSightingPhotoTag();
   }
 
   removeSightingUploadedPhoto(showToast = true) {
@@ -1971,6 +2283,7 @@ class ReportManager {
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
+    this.updateSightingPhotoTag();
 
     if (showToast && window.notifManager) {
       window.notifManager.showToast('Photo removed.', 'info', 2000);
@@ -2014,6 +2327,69 @@ class ReportManager {
     }
   }
 
+  // Copies a submitted sighting into the Supabase community_sightings table (best effort; the local copy is the source of truth for the app)
+  async saveSightingToSupabase(sighting, matchedPet) {
+    const client = window.pawApp && window.pawApp.supabase;
+    if (!client) return;
+    try {
+      // Photo: shrink the data URL, then store it in the public sighting-photos bucket
+      let photoUrl = null;
+      if (sighting.photoUrl && sighting.photoUrl.startsWith('data:')) {
+        const blob = await this.shrinkImage(sighting.photoUrl);
+        const path = `${sighting.id}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error: upErr } = await client.storage.from('sighting-photos').upload(path, blob, { contentType: 'image/jpeg' });
+        if (!upErr) photoUrl = client.storage.from('sighting-photos').getPublicUrl(path).data.publicUrl;
+      }
+
+      // Link to the missing_pets row with the same pet name, if there is one
+      let missingPetId = null;
+      if (matchedPet && matchedPet.name) {
+        const { data } = await client.from('missing_pets').select('id').ilike('pet_name', matchedPet.name).limit(1);
+        missingPetId = data && data[0] ? data[0].id : null;
+      }
+
+      const { error } = await client.from('community_sightings').insert({
+        missing_pet_id: missingPetId,
+        species: ['Dog', 'Cat', 'Other'].includes(sighting.species) ? sighting.species : 'Dog',
+        breed: sighting.breed || null,
+        color: sighting.color || null,
+        photo_url: photoUrl,
+        location: sighting.location,
+        lat: sighting.lat,
+        lng: sighting.lng,
+        seen_at: new Date(sighting.dateTimeSeen).toISOString(),
+        notes: (sighting.notes || '').slice(0, 1000) || null,
+        reporter_name: (sighting.reporterName || 'Anonymous').slice(0, 80),
+        status: 'possible_sighting'
+      });
+      if (error) {
+        console.warn('[Sighting] Could not save to Supabase:', error.message);
+        if (/rate limit/i.test(error.message) && window.notifManager) {
+          window.notifManager.showToast('You have sent several sightings recently, so this one was not added to the public list. The owner was still notified.', 'warning', 6000);
+        }
+      }
+    } catch (err) {
+      console.warn('[Sighting] Could not save to Supabase:', err);
+    }
+  }
+
+  // Downscales an image data URL to at most 1280px on the long side and returns a JPEG blob
+  shrinkImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Image conversion failed'))), 'image/jpeg', 0.82);
+      };
+      img.onerror = () => reject(new Error('Could not read the photo'));
+      img.src = dataUrl;
+    });
+  }
+
   submitCommunitySighting(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -2050,10 +2426,30 @@ class ReportManager {
       return;
     }
 
+    // 4. Validate reporter details (REQUIRED): a name, or "Stay anonymous", plus a mobile number
+    const nameInput = document.getElementById('sighting-reporter-name');
+    const phoneInput = document.getElementById('sighting-reporter-phone');
+    const anonymous = this.sightingNameMode === 'anonymous';
+    const reporterNameRaw = (nameInput?.value || '').trim();
+    if (!anonymous && !reporterNameRaw) {
+      if (window.notifManager) window.notifManager.showToast('Enter your name, or tick "Stay anonymous".', 'warning');
+      nameInput?.focus();
+      return;
+    }
+    const phone = (phoneInput?.value || '').trim();
+    if (!phone) {
+      if (window.notifManager) window.notifManager.showToast('A contact phone number is required so the owner can reach you.', 'warning');
+      phoneInput?.focus();
+      return;
+    }
+    if (!/^(\+?63|0)9\d{9}$/.test(phone.replace(/[\s\-().]/g, ''))) {
+      if (window.notifManager) window.notifManager.showToast('Enter a valid Philippine mobile number, for example 0917 123 4567.', 'warning');
+      phoneInput?.focus();
+      return;
+    }
+
     const notes = (document.getElementById('sighting-notes-input')?.value || '').trim();
-    const phone = (document.getElementById('sighting-reporter-phone')?.value || '').trim();
-    const reporterNameRaw = (document.getElementById('sighting-reporter-name')?.value || '').trim();
-    const reporterName = reporterNameRaw || 'Community Good Samaritan';
+    const reporterName = anonymous ? 'Anonymous' : reporterNameRaw;
     const missingReportId = document.getElementById('sighting-missing-report-id')?.value || null;
     const petId = document.getElementById('sighting-pet-id')?.value || null;
 
@@ -2085,12 +2481,13 @@ class ReportManager {
       photoUrl: this.sightingPhotoData,
       photo: this.sightingPhotoData,
       reporterName: reporterName,
-      reporterPhone: phone || '+63 9XX XXX XXXX',
+      reporterPhone: phone,
       status: 'possible_sighting',
       createdAt: new Date().toISOString()
     };
 
     window.pawStore.addSighting(sighting);
+    this.saveSightingToSupabase(sighting, matchedPet);
 
     // Trigger In-App Notification specifically for the pet owner
     const petDisplayName = matchedPet ? matchedPet.name : 'COMMUNITY PET';
@@ -2131,3 +2528,31 @@ class ReportManager {
 }
 
 window.reportManager = new ReportManager();
+
+// Shows the report form as a page. The form is built once in index.html; it is moved into the page
+// while #report is open and parked again before another view replaces the page content.
+class ReportPageView {
+  render(container) {
+    const page = document.getElementById('report-pet-modal');
+    const manager = window.reportManager;
+    if (!page || !manager) return;
+    if (page.parentElement === container) return; // already showing: keep what has been typed
+
+    if (!manager.formReady) manager.prepareForm('missing', null, {});
+    container.innerHTML = '';
+    page.hidden = false;
+    container.appendChild(page);
+    if (window.lucide) window.lucide.createIcons({ root: page });
+    window.scrollTo(0, 0);
+    setTimeout(() => manager.initPinMap(), 60);
+  }
+
+  park() {
+    const page = document.getElementById('report-pet-modal');
+    if (!page || page.parentElement === document.body) return;
+    page.hidden = true;
+    document.body.appendChild(page);
+  }
+}
+
+window.reportPageView = new ReportPageView();

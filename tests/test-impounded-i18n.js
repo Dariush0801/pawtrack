@@ -100,10 +100,10 @@ console.log('\n--- 3. Testing ImpoundedView Rendering & Semi-Minimized Accordion
 // Mock store
 window.pawStore = {
   getPets: () => [
-    { id: 'pet-1', name: 'Max', breed: 'Golden Retriever', photoUrl: 'images/sample-pets/max.jpg', rfidTag: 'RFID-990218' }
+    { id: 'pet-1', name: 'Max', breed: 'Golden Retriever', photoUrl: 'images/sample-pets/max.jpg', nfcTag: 'NFC-990218' }
   ],
   getImpoundments: () => [
-    { id: 'imp-1', petId: 'pet-1', shelterId: 'shelter-1', shelterName: 'Quezon City Animal Care & Adoption Facility', rfidTag: 'RFID-990218', status: 'active_impounded', cageNumber: 'B-04', intakeOfficer: 'Dr. Fernando Gomez, DVM' }
+    { id: 'imp-1', petId: 'pet-1', shelterId: 'shelter-1', shelterName: 'Quezon City Animal Care & Adoption Facility', nfcTag: 'NFC-990218', status: 'active_impounded', cageNumber: 'B-04', intakeOfficer: 'Dr. Fernando Gomez, DVM' }
   ],
   getShelters: () => [
     { id: 'shelter-1', name: 'Quezon City Animal Care & Adoption Facility', address: 'Payatas, Quezon City', phone: '+63 (2) 8988-4242', hours: 'Mon - Fri: 8:00 AM - 5:00 PM', capacity: 65, holdingPeriodDays: 3 }

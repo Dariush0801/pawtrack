@@ -29,7 +29,6 @@ class SightingsView {
     if (!this.container) return;
 
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
-    const pets = window.pawStore ? (window.pawStore.getPets() || []) : [];
     const sightings = window.pawStore ? (window.pawStore.getSightings() || []) : [];
     const stats = this._buildStats(sightings);
 
@@ -42,7 +41,7 @@ class SightingsView {
           </div>
         </div>
         <div style="display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="window.reportManager ? window.reportManager.openSightingModal() : null">
+          <button class="btn btn-primary btn-sm" onclick="window.location.hash = '#found'">
             <i data-lucide="eye"></i> Report Pet Sighting
           </button>
           <button class="btn ${this.currentFilter === 'archived' ? 'btn-primary' : 'btn-outline'} btn-sm" id="sightings-header-archived-btn" onclick="window.sightingsView.setFilter('${this.currentFilter === 'archived' ? 'all' : 'archived'}')" title="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'} (${stats.archived})" aria-label="${this.currentFilter === 'archived' ? 'Active Sightings' : 'Archived Sightings'}">
@@ -54,16 +53,7 @@ class SightingsView {
         </div>
       </div>
 
-      <!-- Stats Bar -->
-      <div class="sightings-stats-bar">
-        ${this._renderStatCard('Active Reports',   stats.active,    'eye',           '#ea9d1e')}
-        ${this._renderStatCard('Possible',         stats.possible,  'search',        '#ea9d1e')}
-        ${this._renderStatCard('Confirmed',        stats.confirmed, 'check-circle-2','#16a34a')}
-        ${this._renderStatCard('Archived',         stats.archived,  'archive',       '#b85410')}
-        ${this._renderStatCard('Linked to Alert',  stats.linked,    'link',          '#ffffff')}
-      </div>
-
-      <!-- Filters & Search -->
+      <!-- Filters & Search (pill counts double as the status summary) -->
       <div class="glass-card sightings-filter-bar">
         <!-- Search -->
         <div style="flex:1; min-width:220px;">
@@ -99,33 +89,6 @@ class SightingsView {
       <!-- Sighting Cards Grid -->
       <div id="sightings-grid" style="margin-bottom: 2.5rem;">
         ${this._renderGrid(sightings)}
-      </div>
-
-      <!-- Registered Pets Section (Placed Below Sightings) -->
-      <div class="registered-pets-section" style="margin-top: 2rem; margin-bottom: 2.25rem;">
-        <div style="margin-bottom: 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
-          <div>
-            <h2 id="registered-pets-heading" style="font-size:1.35rem; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.5rem;">
-              <span>${t('owner.registeredHeading', 'Registered Pets')}</span>
-              <span class="badge badge-outline" style="font-size:0.8rem; font-weight:700;">(${pets.length})</span>
-            </h2>
-            <div style="font-size:0.82rem; color:var(--text-muted);">
-              Track RFID collar statuses, report missing pets, or view pending founder matches.
-            </div>
-          </div>
-        </div>
-
-        <div class="pets-grid">
-          ${pets.length === 0 ? `
-            <div class="glass-card" style="grid-column: 1 / -1; text-align:center; padding: 3rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap: 0.75rem; border: 1.5px dashed var(--border-subtle, #cbd5e1);">
-              <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-surface-elevated, #f8fafc); display:flex; align-items:center; justify-content:center; color:var(--primary);">
-                <i data-lucide="shield-plus" style="width:28px; height:28px;"></i>
-              </div>
-              <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;">${t('owner.noPetsTitle', 'No Registered Pets Yet')}</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); max-width: 420px; margin:0; line-height: 1.45;">${t('owner.noPetsDesc', 'Register your pet with an RFID collar tag and microchip to enable municipal protection and real-time impoundment alerts.')}</p>
-            </div>
-          ` : pets.map(pet => (window.ownerView ? window.ownerView.renderPetCard(pet) : this.renderPetCard(pet))).join('')}
-        </div>
       </div>
     `;
 
@@ -293,20 +256,6 @@ class SightingsView {
   // ─────────────────────────────────────────────────
   // RENDER HELPERS
   // ─────────────────────────────────────────────────
-  _renderStatCard(label, value, icon, color) {
-    return `
-      <div class="sightings-stat-card glass-card">
-        <div class="sightings-stat-icon" style="color:${color};">
-          <i data-lucide="${icon}"></i>
-        </div>
-        <div>
-          <div class="sightings-stat-value" style="color:${color};">${value}</div>
-          <div class="sightings-stat-label">${label}</div>
-        </div>
-      </div>
-    `;
-  }
-
   _filterPill(filter, label, count, active) {
     return `
       <button
@@ -403,7 +352,7 @@ class SightingsView {
             <div>
               <div style="font-size:0.7rem; color:var(--primary); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Linked Missing Pet</div>
               <div style="font-size:0.85rem; font-weight:700; color:var(--text-main);">${this._esc(pet.name)}</div>
-              <div style="font-size:0.72rem; color:var(--text-muted);">${this._esc(pet.breed || '')} · RFID: ${this._esc(pet.rfidTag || 'N/A')}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${this._esc(pet.breed || '')} · NFC: ${this._esc(pet.nfcTag || 'N/A')}</div>
             </div>
           </div>
         `;
@@ -530,9 +479,9 @@ class SightingsView {
   // ─────────────────────────────────────────────────
   // OWNER / PET MANAGEMENT DELEGATION
   // ─────────────────────────────────────────────────
-  openRegisterModal(prefillRfid) {
+  openRegisterModal(prefillNfc) {
     if (window.ownerView) {
-      window.ownerView.openRegisterModal(prefillRfid);
+      window.ownerView.openRegisterModal(prefillNfc);
     }
   }
 

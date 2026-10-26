@@ -4,7 +4,7 @@
 
 class HardwareView {
   constructor() {
-    this.tagCode = 'RFID-882194';
+    this.tagCode = 'NFC-882194';
     this.patterns = ['paw', 'bone', 'cat'];
     this.selectedPatternIndex = 0;
     this.selectedPattern = 'paw'; // 'paw' (default signature), 'bone', 'cat'
@@ -102,7 +102,7 @@ class HardwareView {
     container.innerHTML = `
       <div class="view-header">
         <div class="view-title-group">
-          <h1>${t('hardware.title', 'Universal NFC & RFID Collar Tag Specifications')}</h1>
+          <h1>${t('hardware.title', 'Universal NFC Collar Tag Specifications')}</h1>
           <div class="view-subtitle">${t('hardware.subtitle', 'Review the standardized smartphone NFC collar tag, reader architecture, and municipal pet recovery integration.')}</div>
         </div>
       </div>
@@ -131,7 +131,7 @@ class HardwareView {
               <div class="tag-emboss-graphic" id="tag-emblem-slot">
                 ${this.getPatternSvg(this.selectedPattern)}
               </div>
-              <div class="tag-nfc-subtle-indicator">NFC • RFID</div>
+              <div class="tag-nfc-subtle-indicator">NFC</div>
             </div>
           </div>
 
@@ -176,7 +176,7 @@ class HardwareView {
 
           <div style="display:flex; flex-direction:column; gap:1rem;">
             <div style="background:var(--bg-surface-elevated); padding:1rem; border-radius:var(--radius-md); border-left:3px solid var(--primary);">
-              <strong style="font-size:0.9rem; color:var(--text-main);">${t('hardware.card1Title', '1. Dual-Frequency (13.56 MHz NFC + 134.2 kHz RFID)')}</strong>
+              <strong style="font-size:0.9rem; color:var(--text-main);">${t('hardware.card1Title', '1. NFC Collar Tag (13.56 MHz NTAG213)')}</strong>
               <p style="font-size:0.825rem; color:var(--text-muted); margin-top:0.25rem;">
                 ${t('hardware.card1Desc', 'Encapsulated inside a sealed waterproof enclosure. Features high-frequency NTAG213 NFC for citizen phone taps and 134.2 kHz FDX-B for municipal scanner reads.')}
               </p>
@@ -199,7 +199,7 @@ class HardwareView {
             <div style="background:var(--bg-surface-elevated); padding:1rem; border-radius:var(--radius-md); border-left:3px solid #16a34a;">
               <strong style="font-size:0.9rem; color:var(--text-main);">${t('hardware.card4Title', '4. Recorded Checkpoint Detection (No Battery or GPS Needed)')}</strong>
               <p style="font-size:0.825rem; color:var(--text-muted); margin-top:0.25rem;">
-                ${t('hardware.card4Desc', 'Passively powered by the interrogating NFC/RFID field. Eliminates heavy batteries and satellite fees while ensuring instant identification during recovery.')}
+                ${t('hardware.card4Desc', 'Passively powered by the interrogating NFC field. Eliminates heavy batteries and satellite fees while ensuring instant identification during recovery.')}
               </p>
             </div>
           </div>
@@ -207,7 +207,7 @@ class HardwareView {
           <div style="border-top:1px solid var(--border-subtle); padding-top:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <span style="font-size:0.8rem; color:var(--text-muted);">${t('hardware.audioVerify', 'Acoustic Hardware Verification')}</span>
             <div style="display:flex; gap:8px;">
-              <button class="btn btn-outline btn-sm" onclick="window.rfidScanner.playSuccessChirp()">
+              <button class="btn btn-outline btn-sm" onclick="window.nfcScanner.playSuccessChirp()">
                 <i data-lucide="volume-2"></i> ${t('hardware.testBeeperBtn', 'Test Reader Audio Beeper')}
               </button>
               <button class="btn btn-primary btn-sm" onclick="window.hardwareView.scanAndReport()">
@@ -223,14 +223,14 @@ class HardwareView {
     this.startCycleTimer();
   }
 
-  scanAndReport(rfidTag = 'RFID-882194') {
-    if (window.rfidScanner && typeof window.rfidScanner.scanAndReportTag === 'function') {
-      window.rfidScanner.scanAndReportTag(rfidTag);
+  scanAndReport(nfcTag = 'NFC-882194') {
+    if (window.nfcScanner && typeof window.nfcScanner.scanAndReportTag === 'function') {
+      window.nfcScanner.scanAndReportTag(nfcTag);
     } else {
       window.location.hash = 'owner';
       setTimeout(() => {
         if (window.reportManager) {
-          window.reportManager.openReportModal('found', null, { rfidTag });
+          window.reportManager.openReportModal('found', null, { nfcTag });
         }
       }, 200);
     }

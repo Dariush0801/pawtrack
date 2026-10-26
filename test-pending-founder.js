@@ -55,7 +55,7 @@ async function runTests() {
 
   // 4. Test Backend Sync & Shared DB Mutation
   console.log('\n--- 4. Verifying Backend & Admin DB Sync ---');
-  const testRfid = 'TEST-RFID-998811';
+  const testNfc = 'TEST-NFC-998811';
   const testPetId = 'test-pet-pending-' + Date.now();
 
   const testPet = {
@@ -65,7 +65,7 @@ async function runTests() {
     breed: 'Golden Retriever',
     gender: 'Male',
     color: 'Golden Amber',
-    rfidTag: testRfid,
+    nfcTag: testNfc,
     microchipNo: '982000109988112',
     status: 'lost',
     photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d',
@@ -94,14 +94,14 @@ async function runTests() {
 
   assert(savePetRes.status === 200, `POST /api/sync save_pet succeeded with HTTP ${savePetRes.status}`);
 
-  // Submit Found Sighting with matching RFID
+  // Submit Found Sighting with matching NFC
   const testSighting = {
     id: 'SIGHT-TEST-' + Date.now(),
     species: 'Dog',
     breed: 'Golden Retriever',
     location: 'Katipunan Ave, Quezon City',
     coords: [14.6400, 121.0700],
-    rfidTag: testRfid,
+    nfcTag: testNfc,
     reporterPhone: '+63 918 777 4321',
     reporterName: 'Carlos Dalisay',
     comments: 'Found friendly golden dog waiting near the convenience store.',
@@ -132,8 +132,8 @@ async function runTests() {
     const rawDb = fs.readFileSync(SHARED_DB_PATH, 'utf8');
     const parsedDb = JSON.parse(rawDb);
     const dbSighting = (parsedDb.sightings || []).find(s => s.id === testSighting.id);
-    const dbNotif = (parsedDb.notifications || []).find(n => n.rfidTag === testRfid || n.petId === testPetId);
-    const dbCase = (parsedDb.cases || []).find(c => c.petId === testPetId || c.rfidTag === testRfid);
+    const dbNotif = (parsedDb.notifications || []).find(n => n.nfcTag === testNfc || n.petId === testPetId);
+    const dbCase = (parsedDb.cases || []).find(c => c.petId === testPetId || c.nfcTag === testNfc);
 
     assert(Boolean(dbSighting), 'Sighting was persisted directly into pawtrack-shared-db.json for Admin Portal sync');
     assert(Boolean(dbNotif && dbNotif.type === 'pet_found_match'), 'High-priority pet_found_match notification was created in shared DB');

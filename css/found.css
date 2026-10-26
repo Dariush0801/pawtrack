@@ -1,0 +1,154 @@
+/* Found a Pet: photo, AI scan, similar missing pets, alert form */
+
+/* Progress: three equal steps, the connector runs from one circle to the next */
+.found-stepper { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 0 0 18px; padding: 14px 16px; }
+.found-stepper li { position: relative; display: grid; justify-items: center; gap: 8px; text-align: center; color: var(--text-muted); }
+.found-stepper li + li::before { content: ""; position: absolute; top: 15px; right: calc(50% + 24px); width: calc(100% - 48px); height: 3px; border-radius: 3px; background: var(--border-glass); }
+.found-stepper li.is-done + li::before, .found-stepper li.is-active::before { background: var(--primary); }
+.found-dot { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 0.86rem; font-weight: 800; background: var(--bg-surface-elevated); border: 2px solid var(--border-glass); color: var(--text-muted); transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+.found-dot i, .found-dot svg { width: 16px; height: 16px; }
+.found-step-text { display: grid; gap: 1px; min-width: 0; }
+.found-step-label { font-size: 0.86rem; font-weight: 700; }
+.found-step-hint { font-size: 0.72rem; color: var(--text-muted); }
+.found-stepper li.is-active .found-step-label, .found-stepper li.is-done .found-step-label { color: var(--text-main); }
+.found-stepper li.is-active .found-dot { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent); background: var(--bg-main); }
+.found-stepper li.is-done .found-dot { background: var(--primary); border-color: var(--primary); color: var(--text-inverse, #fff); }
+
+/* Layout: photo on the left (stays in view), results and the alert form on the right */
+.found-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.found-col { display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 960px) {
+  .found-grid { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
+  .found-col-photo { position: sticky; top: 16px; }
+}
+.found-flow { max-width: 560px; margin-inline: auto; }
+.found-card { padding: 18px; display: grid; gap: 14px; }
+.found-card-title { margin: 0; font-family: var(--font-heading); font-size: 1rem; }
+
+/* Photo */
+.found-drop { display: grid; justify-items: center; gap: 8px; padding: 30px 16px; text-align: center; border: 2px dashed var(--border-glass); border-radius: var(--radius-lg); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+.found-drop:hover, .found-drop:focus-visible, .found-drop.is-over { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, transparent); outline: none; }
+.found-drop-icon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+.found-drop-icon i, .found-drop-icon svg { width: 26px; height: 26px; }
+.found-drop strong { font-size: 0.98rem; }
+.found-drop p { margin: 0; max-width: 28ch; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+.found-drop-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
+.found-photo { position: relative; overflow: hidden; border-radius: var(--radius-lg); background: var(--bg-surface-elevated); }
+.found-photo img { display: block; width: 100%; max-height: 380px; object-fit: contain; }
+.found-scanline { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--primary), transparent); box-shadow: 0 0 14px var(--primary); animation: found-scan 1.6s ease-in-out infinite; }
+@keyframes found-scan { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }
+.found-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Before a photo: how it works (compact) */
+.found-empty { justify-items: stretch; text-align: left; padding: 14px 16px; gap: 8px; }
+.found-empty h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-heading); font-size: 0.98rem; }
+.found-empty h3 i, .found-empty h3 svg { width: 18px; height: 18px; color: var(--primary); }
+.found-how { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; }
+.found-how li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--bg-surface-elevated); font-size: 0.82rem; line-height: 1.3; }
+.found-how b { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--text-inverse, #fff); font-size: 0.7rem; }
+
+/* Scanning */
+.found-note { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--text-muted); }
+.found-note.is-error { color: var(--danger); font-weight: 600; align-items: flex-start; }
+.found-note i, .found-note svg { flex: none; width: 18px; height: 18px; }
+.found-retry { justify-self: start; }
+.found-spinner { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border-glass); border-top-color: var(--primary); animation: found-spin 0.8s linear infinite; }
+@keyframes found-spin { to { transform: rotate(360deg); } }
+.found-skeletons { display: grid; gap: 10px; }
+.found-skeleton { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--bg-surface-elevated); }
+.found-skeleton span { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--border-glass) 25%, color-mix(in srgb, var(--border-glass) 40%, transparent) 50%, var(--border-glass) 75%); background-size: 200% 100%; animation: found-shimmer 1.4s linear infinite; }
+.found-skeleton .sk-img { flex: none; width: 56px; height: 56px; border-radius: 12px; }
+.found-skeleton .sk-lines { flex: 1; display: grid; gap: 8px; background: none; animation: none; }
+.found-skeleton .sk-lines span { height: 10px; }
+.found-skeleton .sk-lines span:last-child { width: 60%; }
+.found-skeleton .sk-score { flex: none; width: 42px; height: 22px; }
+@keyframes found-shimmer { to { background-position: -200% 0; } }
+
+/* Results */
+.found-ai { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--primary) 8%, var(--bg-surface-elevated)); }
+.found-ai p { margin: 0; font-size: 0.9rem; line-height: 1.5; }
+.found-ai-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary); }
+.found-ai-tag i, .found-ai-tag svg { width: 14px; height: 14px; }
+.found-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.found-section-head span { font-size: 0.76rem; color: var(--text-muted); }
+.found-hint { margin: -6px 0 0; font-size: 0.8rem; color: var(--text-muted); }
+.found-matches { display: grid; gap: 10px; max-height: 520px; overflow-y: auto; padding: 3px; margin: -3px; }
+
+.found-match { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; text-align: left; border: 1.5px solid var(--border-subtle, var(--border-glass)); border-radius: var(--radius-lg); background: var(--bg-surface-elevated); color: var(--text-main); font: inherit; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease; }
+.found-match:hover { border-color: var(--primary); transform: translateY(-1px); }
+.found-match:focus-visible, .found-none:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+.found-match.is-selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--bg-surface-elevated)); box-shadow: 0 0 0 1px var(--primary); }
+.found-match-img { flex: none; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; display: grid; place-items: center; background: var(--bg-main); color: var(--primary); }
+.found-match-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.found-match-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.found-match-name strong { font-size: 0.98rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.found-badge { flex: none; font-style: normal; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: var(--radius-full); background: var(--primary); color: var(--text-inverse, #fff); }
+.found-match-meta { display: flex; align-items: center; gap: 4px; font-size: 0.76rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.found-match-meta i, .found-match-meta svg { flex: none; width: 12px; height: 12px; }
+.found-bar { display: block; height: 5px; margin-top: 4px; border-radius: 5px; background: var(--border-glass); overflow: hidden; }
+.found-bar span { display: block; height: 100%; border-radius: 5px; background: var(--danger); }
+.found-match.is-mid .found-bar span { background: #ea9d1e; }
+.found-match.is-high .found-bar span { background: #16a34a; }
+.found-score { flex: none; display: grid; justify-items: end; line-height: 1.15; }
+.found-score b { font-size: 1.15rem; font-weight: 800; color: var(--danger); }
+.found-match.is-mid .found-score b { color: #ea9d1e; }
+.found-match.is-high .found-score b { color: #16a34a; }
+.found-score small { font-size: 0.64rem; color: var(--text-muted); white-space: nowrap; }
+.found-check { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; display: none; place-items: center; background: var(--primary); color: var(--text-inverse, #fff); box-shadow: var(--shadow-md); }
+.found-check i, .found-check svg { width: 13px; height: 13px; }
+.found-match.is-selected .found-check { display: grid; }
+
+.found-nomatch { display: grid; justify-items: center; gap: 6px; padding: 20px 12px; text-align: center; color: var(--text-muted); }
+.found-nomatch i, .found-nomatch svg { width: 30px; height: 30px; color: var(--primary); }
+.found-nomatch p { margin: 0; font-size: 0.88rem; }
+.found-none { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border: 1.5px dashed var(--border-glass); border-radius: var(--radius-lg); background: none; color: var(--text-muted); font: inherit; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.found-none i, .found-none svg { width: 16px; height: 16px; }
+.found-none:hover, .found-none.is-selected { border-color: var(--primary); color: var(--primary); }
+
+/* Alert form */
+.found-alert { border: 1.5px solid var(--primary); }
+.found-alert-head { display: flex; align-items: center; gap: 12px; }
+.found-alert-head h3 { margin: 0; font-family: var(--font-heading); font-size: 1.15rem; }
+.found-alert-kicker { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.found-form { display: grid; gap: 12px; }
+.found-form .form-group { margin: 0; }
+.found-fine { font-size: 0.74rem; color: var(--text-muted); }
+.found-optional { font-weight: 500; color: var(--text-muted); }
+.found-send { width: 100%; justify-content: center; padding-block: 13px; font-size: 1rem; }
+
+/* Done */
+.found-sent { justify-items: center; text-align: center; padding: 34px 20px; }
+.found-sent-icon { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: #16a34a; color: #fff; animation: found-pop 0.35s ease-out; }
+.found-sent-icon i, .found-sent-icon svg { width: 30px; height: 30px; }
+@keyframes found-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.found-sent h3 { margin: 0; font-family: var(--font-heading); }
+.found-sent p { margin: 0; color: var(--text-muted); font-size: 0.9rem; max-width: 36ch; }
+.found-sent-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
+
+@media (max-width: 520px) {
+  .found-stepper { padding: 12px 8px; }
+  .found-step-hint { display: none; }
+  .found-step-label { font-size: 0.76rem; }
+  .found-match-img { width: 52px; height: 52px; }
+  .found-score small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .found-spinner, .found-scanline, .found-skeleton span, .found-sent-icon { animation: none; }
+}
+
+/* Two ways in: scan a photo, or choose from the missing list */
+.found-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--radius-lg); background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle, var(--border-glass)); }
+.found-mode-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; border: 0; border-radius: calc(var(--radius-lg) - 4px); background: none; color: var(--text-muted); font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.found-mode-btn i, .found-mode-btn svg { width: 16px; height: 16px; }
+.found-mode-btn:hover { color: var(--text-main); }
+.found-mode-btn.is-active { background: var(--primary); color: var(--text-inverse, #fff); box-shadow: var(--shadow-md); }
+.found-mode-btn:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+
+/* Scan tab before a photo: the instructions card stretches to end level with the photo card */
+.found-grid.is-empty { align-items: stretch; }
+.found-grid.is-empty .found-col-photo { position: static; }
+.found-grid.is-empty .found-col-photo .found-card { height: 100%; align-content: start; }
+.found-grid.is-empty .found-col-main { grid-template-rows: auto 1fr; }
+.found-grid.is-empty .found-empty { align-content: center; gap: 12px; }
+.found-grid.is-empty .found-how { gap: 10px; }
+.found-grid.is-empty .found-how li { padding: 9px 12px; }

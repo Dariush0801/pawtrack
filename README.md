@@ -1,17 +1,17 @@
-# 🐾 PawTrack - Universal NFC & RFID Pet Recovery Portal
+# 🐾 PawTrack - Universal NFC Pet Recovery Portal
 
 [![Vercel Deployment Ready](https://img.shields.io/badge/Deployment-Vercel%20Ready-black?style=flat&logo=vercel)](https://vercel.com)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dariush0801/pawtrack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-PawTrack is a modern, unified pet recovery system featuring **Smartphone NFC collar tag tap-to-report**, municipal RFID reader integration, AI pet image identification, 72-hour municipal shelter holding workflows, and interactive community recovery maps.
+PawTrack is a modern, unified pet recovery system featuring **Smartphone NFC collar tag tap-to-report**, municipal NFC reader integration, AI pet image identification, 72-hour municipal shelter holding workflows, and interactive community recovery maps.
 
 ---
 
 ## 🚀 Key Features
 
 - 📱 **Standardized Smartphone NFC Collar Tag**: Passive 13.56 MHz NFC Type 2 tag. Any finder can tap their iPhone or Android phone to instantly open the pet's profile and file a sighting report without installing any app.
-- 📡 **Dual-Frequency RFID Support**: Works seamlessly with 134.2 kHz FDX-B municipal handheld scanners and readers.
+- 📡 **NFC Support**: Tap-to-report from any NFC-enabled smartphone, plus municipal readers for NFC collar tags and 134.2 kHz FDX-B microchips.
 - 🏢 **Municipal Shelter & Pound Portal**: 72-hour legal holding window tracker, kennel intake logging, and statutory claim verification workflows.
 - 🗺️ **Interactive Pet Radar & Maps**: Live incident pins, filter by species/status, and one-touch turn-by-turn navigation.
 - 🌐 **Real-Time Cross-Tab & Multi-Role Sync**: Synchronized data stream with BroadcastChannel, Server-Sent Events (SSE), and LocalStorage fallback.
@@ -80,7 +80,7 @@ PawTrack/
 │   ├── i18n.js
 │   ├── notifications.js
 │   ├── report-manager.js
-│   ├── rfid-scanner.js
+│   ├── nfc-scanner.js
 │   ├── store.js
 │   └── views/             # Role-based views (Owner, Shelter, Map, Cases, Hardware)
 ├── scripts/               # Auto-sync watcher & tooling

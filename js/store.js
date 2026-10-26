@@ -2,6 +2,9 @@
  * PawTrack Unified Store with Cross-App Real-time SSE Sync & BroadcastBus
  */
 
+// Shown when a pet or report has no photo, so templates never render src="undefined"
+window.PET_PHOTO_PLACEHOLDER = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
+
 const STORAGE_KEYS = {
   PETS: 'pawtrack_pets',
   IMPOUNDMENTS: 'pawtrack_impoundments',
@@ -10,7 +13,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'pawtrack_current_user',
   THEME: 'pawtrack_theme',
   GOOGLE_AUTH: 'pawtrack_google_auth',
-  RFID_TAGS: 'pawtrack_rfid_tags',
+  NFC_TAGS: 'pawtrack_nfc_tags',
   SETTINGS: 'pawtrack_system_settings',
   SIGHTINGS: 'pawtrack_sightings',
   CASES: 'pawtrack_cases',
@@ -59,168 +62,22 @@ const SEED_SHELTERS = [
   }
 ];
 
-const SEED_PETS = [
-  {
-    id: 'pet-seed-01',
-    name: 'Max',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    gender: 'Male',
-    color: 'Golden brown with white chest patch',
-    rfidTag: 'RFID-882194',
-    microchipNo: '98514100882194',
-    status: 'lost',
-    medicalNotes: 'Friendly, microchipped, floppy ears, distinctive white patch on chest.',
-    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
-    owner: {
-      name: 'Maria Santos',
-      phone: '+63 917 555 3829',
-      email: 'maria.santos@gmail.com',
-      address: 'Philam Homes, Quezon City',
-      community: 'Philam Homes, Quezon City'
-    },
-    community: 'Philam Homes, Quezon City',
-    lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
-    lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
-    lastSeenCoords: [14.6360, 121.0370],
-    registeredDate: '2026-08-01',
-    missingReportId: 'mr-2026-001'
-  },
-  {
-    id: 'pet-seed-02',
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'Calico / Domestic Shorthair',
-    gender: 'Female',
-    color: 'Tri-color (Orange, Black, White)',
-    rfidTag: 'RFID-441920',
-    microchipNo: '98514100441920',
-    status: 'impounded',
-    medicalNotes: 'Spayed, calico coat pattern, wearing blue collar with bell.',
-    photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
-    owner: {
-      name: 'Maria Santos',
-      phone: '+63 918 222 9182',
-      email: 'maria.santos@gmail.com',
-      address: 'Brgy. Payatas, Quezon City',
-      community: 'Payatas, Quezon City'
-    },
-    community: 'Payatas, Quezon City',
-    lastSeenLocation: 'Lupang Pangako, Payatas, Quezon City',
-    lastSeenDate: new Date(Date.now() - 18 * 3600000).toISOString(),
-    lastSeenCoords: [14.7118, 121.1037],
-    registeredDate: '2026-07-15'
-  },
-  {
-    id: 'pet-seed-03',
-    name: 'Rocky',
-    species: 'Dog',
-    breed: 'Beagle',
-    gender: 'Male',
-    color: 'Tricolor (White, Brown, Black)',
-    rfidTag: 'RFID-912044',
-    microchipNo: '98514100912044',
-    status: 'safe',
-    medicalNotes: 'Fully vaccinated, active tracker collar, highly energetic.',
-    photoUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80',
-    owner: {
-      name: 'Carlos Mendoza',
-      phone: '+63 920 444 8812',
-      email: 'carlos.m@gmail.com',
-      address: 'Kapitolyo, Pasig City',
-      community: 'Kapitolyo, Pasig City'
-    },
-    community: 'Kapitolyo, Pasig City',
-    lastSeenLocation: 'Kapitolyo, Pasig City',
-    lastSeenCoords: [14.5750, 121.0620],
-    registeredDate: '2026-08-10'
-  }
-];
+// Demo data shipped by earlier versions (pets, one missing report, sightings, an alert). Never kept or accepted from a sync.
+const isDemoRecord = (x) => {
+  if (!x || typeof x !== 'object') return false;
+  return ['id', 'petId', 'matchedPetId', 'missing_report_id', 'missingReportId', 'sightingId'].some((k) => {
+    const v = x[k];
+    return typeof v === 'string' && (v.startsWith('pet-seed-') || v === 'mr-2026-001' || /^sight-2026-00\d$/.test(v) || v === 'notif-sight-review-01');
+  });
+};
 
-const SEED_MISSING_REPORTS = [
-  {
-    id: 'mr-2026-001',
-    petId: 'pet-seed-01',
-    petName: 'Max',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    ownerEmail: 'maria.santos@gmail.com',
-    ownerPhone: '+63 917 555 3829',
-    community: 'Philam Homes, Quezon City',
-    lastSeenLocation: 'Scout Gandia cor. Tomas Morato, Quezon City',
-    lastSeenCoords: [14.6360, 121.0370],
-    lastSeenDate: new Date(Date.now() - 5 * 3600000).toISOString(),
-    notes: 'Friendly golden retriever with white chest patch. Wearing red collar with RFID-882194.',
-    status: 'active',
-    createdAt: new Date(Date.now() - 5 * 3600000).toISOString()
-  }
-];
+const SEED_PETS = []; // no demo records: pets, reports and sightings come from real registrations
 
-const SEED_SIGHTINGS = [
-  {
-    id: 'sight-2026-001',
-    missing_report_id: 'mr-2026-001',
-    petId: 'pet-seed-01',
-    matchedPetId: 'pet-seed-01',
-    species: 'Dog',
-    breed: 'Golden Retriever Mix',
-    color: 'Golden brown with white chest patch',
-    location: 'Near Scout Gandia & Timog Ave., Quezon City',
-    coords: [14.6375, 121.0362],
-    lat: 14.6375,
-    lng: 121.0362,
-    dateTimeSeen: new Date(Date.now() - 4 * 3600000).toISOString(),
-    comments: 'Spotted friendly golden dog near convenience store wearing brown leather collar. Approached by local guard.',
-    notes: 'Spotted friendly golden dog near convenience store wearing brown leather collar. Approached by local guard.',
-    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    photo: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    reporterName: 'Resident in South Triangle',
-    reporterPhone: '+63 928 333 4411',
-    confidenceScore: 94,
-    createdAt: new Date(Date.now() - 4 * 3600000).toISOString(),
-    status: 'possible_sighting'
-  },
-  {
-    id: 'sight-2026-003',
-    missing_report_id: 'mr-2026-001',
-    petId: 'pet-seed-01',
-    matchedPetId: 'pet-seed-01',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    color: 'Golden brown with white chest patch',
-    location: 'EDSA cor. West Avenue pedestrian walkway',
-    coords: [14.6530, 121.0310],
-    lat: 14.6530,
-    lng: 121.0310,
-    dateTimeSeen: new Date(Date.now() - 1 * 3600000).toISOString(),
-    comments: 'Spotted near overpass walking toward Philam Homes perimeter gate. Alert and active.',
-    notes: 'Spotted near overpass walking toward Philam Homes perimeter gate. Alert and active.',
-    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    photo: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    reporterName: 'Kuya Ronald (Tricycle Driver)',
-    reporterPhone: '+63 919 777 2201',
-    confidenceScore: 96,
-    createdAt: new Date(Date.now() - 1 * 3600000).toISOString(),
-    status: 'possible_sighting'
-  }
-];
+const SEED_MISSING_REPORTS = []; // no demo records: pets, reports and sightings come from real registrations
 
-const SEED_NOTIFICATIONS = [
-  {
-    id: 'notif-sight-review-01',
-    type: 'sighting_verification',
-    title: 'POSSIBLE SIGHTING: "MAX" REPORTED NEAR WEST AVENUE',
-    message: 'A community member submitted a sighting report for your missing pet Max near EDSA cor. West Avenue. Please verify if this is your pet.',
-    petId: 'pet-seed-01',
-    missingReportId: 'mr-2026-001',
-    sightingId: 'sight-2026-003',
-    location: 'EDSA cor. West Avenue pedestrian walkway',
-    coords: [14.6530, 121.0310],
-    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    timestamp: new Date(Date.now() - 1 * 3600000).toISOString(),
-    read: false
-  }
-];
+const SEED_SIGHTINGS = []; // no demo records: pets, reports and sightings come from real registrations
+
+const SEED_NOTIFICATIONS = []; // no demo records: pets, reports and sightings come from real registrations
 
 class Store {
   constructor() {
@@ -235,7 +92,44 @@ class Store {
     this.initRealtimeSync();
   }
 
+  // Brings data saved before the RFID -> NFC rename up to date (field names, tag prefixes, storage key)
+  migrateLegacyNfcData() {
+    try {
+      const legacyTags = localStorage.getItem('pawtrack_rfid_tags');
+      if (legacyTags !== null) {
+        if (localStorage.getItem(STORAGE_KEYS.NFC_TAGS) === null) localStorage.setItem(STORAGE_KEYS.NFC_TAGS, legacyTags);
+        localStorage.removeItem('pawtrack_rfid_tags');
+      }
+      [STORAGE_KEYS.PETS, STORAGE_KEYS.IMPOUNDMENTS, STORAGE_KEYS.NOTIFICATIONS, STORAGE_KEYS.SIGHTINGS,
+        STORAGE_KEYS.CASES, STORAGE_KEYS.MISSING_REPORTS, STORAGE_KEYS.NFC_TAGS].forEach(key => {
+        const raw = localStorage.getItem(key);
+        if (!raw || !/rfid/i.test(raw)) return;
+        localStorage.setItem(key, JSON.stringify(window.migrateLegacyNfc(JSON.parse(raw))));
+      });
+    } catch (e) {
+      console.warn('[Store] Could not migrate legacy RFID data:', e);
+    }
+  }
+
+  // Earlier versions saved demo pets, a missing report, sightings and an alert into every browser
+  purgeDemoRecords() {
+    try {
+      [STORAGE_KEYS.PETS, STORAGE_KEYS.MISSING_REPORTS, STORAGE_KEYS.SIGHTINGS, STORAGE_KEYS.NOTIFICATIONS, STORAGE_KEYS.CASES].forEach((key) => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const kept = list.filter((x) => !isDemoRecord(x));
+        if (kept.length !== list.length) localStorage.setItem(key, JSON.stringify(kept));
+      });
+    } catch (e) {
+      console.warn('[Store] Could not remove demo records:', e);
+    }
+  }
+
   init() {
+    this.migrateLegacyNfcData();
+    this.purgeDemoRecords();
     if (localStorage.getItem(STORAGE_KEYS.SHELTERS) === null) {
       localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(SEED_SHELTERS));
     }
@@ -290,10 +184,14 @@ class Store {
       list.push(window.location.origin);
     }
     list.push(''); // relative
-    list.push('http://localhost:3000'); // Owner server
-    list.push('http://localhost:8080'); // Admin server
-    list.push('http://127.0.0.1:3000');
-    list.push('http://127.0.0.1:8080');
+    const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
+    const devHost = !host || host === 'localhost' || host === '127.0.0.1' || /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(host);
+    if (devHost) {
+      list.push('http://localhost:3000'); // Owner server
+      list.push('http://localhost:8080'); // Admin server
+      list.push('http://127.0.0.1:3000');
+      list.push('http://127.0.0.1:8080');
+    }
     return Array.from(new Set(list));
   }
 
@@ -322,6 +220,10 @@ class Store {
     try {
       // A newly deployed serverless backend may not have state yet. Do not
       // erase locally seeded or user-created records with empty collections.
+      ['pets', 'notifications', 'sightings', 'cases', 'missingReports'].forEach((k) => {
+        if (Array.isArray(db[k])) db[k] = db[k].filter((x) => !isDemoRecord(x));
+      });
+
       const shouldApplyCollection = (key, collection) => {
         if (!Array.isArray(collection)) return false;
         if (collection.length > 0) return true;
@@ -333,31 +235,24 @@ class Store {
         }
       };
 
-      if (shouldApplyCollection(STORAGE_KEYS.PETS, db.pets)) {
-        localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(db.pets));
-      }
-      if (shouldApplyCollection(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments)) {
-        localStorage.setItem(STORAGE_KEYS.IMPOUNDMENTS, JSON.stringify(db.impoundments));
-      }
-      if (shouldApplyCollection(STORAGE_KEYS.NOTIFICATIONS, db.notifications)) {
-        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(db.notifications));
-      }
-      if (shouldApplyCollection(STORAGE_KEYS.SIGHTINGS, db.sightings)) {
-        localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(db.sightings));
-      }
-      if (shouldApplyCollection(STORAGE_KEYS.CASES, db.cases)) {
-        localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(db.cases));
-      }
-      if (shouldApplyCollection(STORAGE_KEYS.MISSING_REPORTS, db.missingReports)) {
-        localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(db.missingReports));
-      }
-      if (Array.isArray(db.shelters) && db.shelters.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(db.shelters));
-      }
-      if (Array.isArray(db.rfidTags) && db.rfidTags.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.RFID_TAGS, JSON.stringify(db.rfidTags));
-      }
-      this.notify(source);
+      // Re-render only when something actually changed: a poll that returns the same data must not rebuild the view
+      let changed = false;
+      const store = (key, collection) => {
+        const next = JSON.stringify(collection);
+        if (localStorage.getItem(key) === next) return;
+        localStorage.setItem(key, next);
+        changed = true;
+      };
+
+      if (shouldApplyCollection(STORAGE_KEYS.PETS, db.pets)) store(STORAGE_KEYS.PETS, db.pets);
+      if (shouldApplyCollection(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments)) store(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments);
+      if (shouldApplyCollection(STORAGE_KEYS.NOTIFICATIONS, db.notifications)) store(STORAGE_KEYS.NOTIFICATIONS, db.notifications);
+      if (shouldApplyCollection(STORAGE_KEYS.SIGHTINGS, db.sightings)) store(STORAGE_KEYS.SIGHTINGS, db.sightings);
+      if (shouldApplyCollection(STORAGE_KEYS.CASES, db.cases)) store(STORAGE_KEYS.CASES, db.cases);
+      if (shouldApplyCollection(STORAGE_KEYS.MISSING_REPORTS, db.missingReports)) store(STORAGE_KEYS.MISSING_REPORTS, db.missingReports);
+      if (Array.isArray(db.shelters) && db.shelters.length > 0) store(STORAGE_KEYS.SHELTERS, db.shelters);
+      if (Array.isArray(db.nfcTags) && db.nfcTags.length > 0) store(STORAGE_KEYS.NFC_TAGS, db.nfcTags);
+      if (changed) this.notify(source);
     } catch (e) {
       console.error('Error applying db state:', e);
     }
@@ -380,6 +275,7 @@ class Store {
       this.eventSource = new EventSource(sseUrl);
 
       this.eventSource.onopen = () => {
+        this.sseFailures = 0;
         this.syncStatus = 'live_sse';
         this.notify('connection_open');
       };
@@ -399,6 +295,15 @@ class Store {
         try { this.eventSource.close(); } catch (e) {}
         this.eventSource = null;
         this.syncStatus = 'reconnecting';
+        this.sseFailures = (this.sseFailures || 0) + 1;
+
+        // Serverless hosts (Vercel) have no /api/events stream: fall back to polling.
+        if (this.sseFailures >= 3) {
+          if (!this.pollTimer) {
+            this.pollTimer = setInterval(() => { if (!document.hidden) this.syncFromBackend(); }, 30000);
+          }
+          return;
+        }
 
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(async () => {
@@ -523,10 +428,10 @@ class Store {
     return this.getPets().find(p => p.id === id);
   }
 
-  getPetByRFID(rfidTag) {
-    if (!rfidTag) return null;
-    const cleanTag = rfidTag.trim().toUpperCase();
-    return this.getPets().find(p => (p.rfidTag || '').toUpperCase() === cleanTag);
+  getPetByNFC(nfcTag) {
+    if (!nfcTag) return null;
+    const cleanTag = window.normalizeNfcCode(nfcTag);
+    return this.getPets().find(p => window.normalizeNfcCode(p.nfcTag) === cleanTag);
   }
 
   savePet(pet) {
@@ -536,6 +441,7 @@ class Store {
     if (existingIndex >= 0) {
       pets[existingIndex] = { ...pets[existingIndex], ...pet, updatedAt: new Date().toISOString() };
     } else {
+      if (!pet.name) return pet; // a partial update for a pet that is not saved here must not create a nameless pet
       const newPet = {
         ...pet,
         id: pet.id || 'pet-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -572,6 +478,34 @@ class Store {
       this.pushBackendMutation('update_pet_status', { petId, status, extra: extraData });
       this.notify('pet_status_changed');
     }
+    if (status === 'safe') this.resolveCasesForPet(petId);
+  }
+
+  // Closes any open case for a pet that is back home so it leaves the missing counts
+  // A case made for a pet that is not saved on this device has petId 'pet-temp', so it is also matched by report or tag
+  resolveCasesForPet(petId, { missingReportId, nfcTag } = {}) {
+    this.getCases()
+      .filter(c => c.status !== 'reunited' && (
+        c.petId === petId ||
+        (missingReportId && c.missingReportId === missingReportId) ||
+        (nfcTag && c.nfcTag === nfcTag)
+      ))
+      .forEach(c => {
+        this.saveCase({
+          ...c,
+          status: 'reunited',
+          timeline: [
+            {
+              timestamp: new Date().toISOString(),
+              type: 'reunited',
+              title: 'Pet Reunited & Safe at Home',
+              location: 'Home / Safe',
+              notes: 'Guardian confirmed pet is safely recovered.'
+            },
+            ...(Array.isArray(c.timeline) ? c.timeline : [])
+          ]
+        });
+      });
   }
 
   getImpoundments() {
@@ -954,7 +888,7 @@ class Store {
         id: 'CASE-' + new Date().getFullYear() + '-' + String(cases.length + 1).padStart(4, '0'),
         petId: pet ? pet.id : petIdOrCaseId,
         petName: pet ? pet.name : 'Unknown Pet',
-        rfidTag: pet ? pet.rfidTag : null,
+        nfcTag: pet ? pet.nfcTag : null,
         status: event.type || 'missing',
         createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
@@ -1023,7 +957,7 @@ class Store {
       // 2. Color / Coat Pattern Match (25%)
       let colorScore = 45;
       const sColor = (sighting.color || sighting.breed || sighting.comments || '').toLowerCase();
-      const pColor = ((pet.color || '') + ' ' + (pet.breed || '') + ' ' + (pet.medicalNotes || '')).toLowerCase();
+      const pColor = ((pet.color || '') + ' ' + (pet.breed || '') + ' ' + (pet.medicalNotes || '') + ' ' + (pet.description || '')).toLowerCase();
       const colorKeywords = ['golden', 'brown', 'black', 'white', 'calico', 'orange', 'grey', 'gray', 'tan', 'brindle', 'spotted', 'tricolor', 'yellow', 'cream', 'chocolate', 'rust'];
       let matchedColors = 0;
       let totalPetColors = 0;
@@ -1059,7 +993,7 @@ class Store {
       // 4. Distinctive Markings Match (15%)
       let markingsScore = 65;
       const sNotes = (sighting.comments || sighting.distinctMarkings || '').toLowerCase();
-      const pNotes = ((pet.medicalNotes || '') + ' ' + (pet.color || '')).toLowerCase();
+      const pNotes = ((pet.medicalNotes || '') + ' ' + (pet.color || '') + ' ' + (pet.description || '')).toLowerCase();
       const markTerms = ['collar', 'tag', 'patch', 'spots', 'ear', 'tail', 'socks', 'chest', 'scar', 'fluffy', 'short', 'white patch'];
       let marksMatched = 0;
       markTerms.forEach(term => {
@@ -1139,7 +1073,22 @@ class Store {
     const sightedCount = sightings.length;
     const impoundedCount = impoundments.filter(i => i.status === 'active_impounded').length;
     const reunitedCount = pets.filter(p => p.status === 'reunited' || p.status === 'safe').length;
-    const recoveryRate = totalRegistered > 0 ? Math.round(((reunitedCount) / (missingCount + impoundedCount + reunitedCount || 1)) * 100) : 100;
+    // Share of cases that ended with the pet back home
+    const reunitedCases = cases.filter(c => c.status === 'reunited' || c.status === 'safe');
+    const recoveryRate = cases.length ? Math.round(reunitedCases.length / cases.length * 100) : 0;
+
+    // Average time from opening a case to its reunion, in hours
+    const spans = reunitedCases.map(c => {
+      const done = (Array.isArray(c.timeline) ? c.timeline.find(e => e.type === 'reunited') : null);
+      const end = new Date((done && done.timestamp) || c.lastUpdated);
+      const start = new Date(c.createdAt);
+      return (end - start) / 36e5;
+    }).filter(h => Number.isFinite(h) && h >= 0);
+    const avgHours = spans.length ? spans.reduce((n, h) => n + h, 0) / spans.length : null;
+
+    // Share of registered pets that have an NFC tag linked
+    const tagged = pets.filter(p => p.nfcTag).length;
+    const nfcAdoption = totalRegistered ? Math.round(tagged / totalRegistered * 100) : 0;
 
     return {
       totalRegistered,
@@ -1148,19 +1097,49 @@ class Store {
       impoundedCount,
       reunitedCount,
       totalCases: cases.length,
-      recoveryRate: Math.min(100, Math.max(75, recoveryRate)),
-      avgRecoveryHours: '14.2 Hours',
-      rfidScanAdoption: '96.5%'
+      recoveryRate,
+      avgRecoveryHours: avgHours === null ? null : Math.round(avgHours * 10) / 10,
+      nfcScanAdoption: nfcAdoption,
+      nfcTagged: tagged,
+      nfcUntagged: totalRegistered - tagged
     };
   }
 
-  getHotspotAreas() {
-    return [
-      { name: 'Brgy. South Triangle & Scout Area, Quezon City', count: 6, risk: 'High Sighting Density', coords: [14.6360, 121.0370], percent: 85 },
-      { name: 'Brgy. Payatas & Batasan Hills, Quezon City', count: 4, risk: 'Facility Intake Hub', coords: [14.7118, 121.1037], percent: 65 },
-      { name: 'Kapitolyo & San Nicolas, Pasig City', count: 3, risk: 'Moderate Sighting Zone', coords: [14.5750, 121.0620], percent: 45 },
-      { name: 'Tondo & Vitas Compound, Manila City', count: 3, risk: 'Municipal Holding Area', coords: [14.6231, 120.9634], percent: 40 }
-    ];
+  // Areas ranked by the incidents reported there: missing-pet reports, community sightings and impound intakes.
+  // The area is the last two parts of the address (for example "Diliman, Quezon City").
+  getHotspotAreas(limit = 5) {
+    const areaOf = (loc) => String(loc || '').split(',').map(x => x.trim())
+      .filter(x => x && !/^(philippines|metro manila|ncr|national capital region)$/i.test(x))
+      .slice(-2).join(', ');
+    const groups = new Map();
+    const seen = new Set();
+    const add = (kind, id, loc, coords) => {
+      const area = areaOf(loc);
+      const key = `${kind}:${id}`;
+      if (!area || (id && seen.has(key))) return; // the same report can be stored twice after a sync
+      if (id) seen.add(key);
+      if (!groups.has(area)) groups.set(area, { name: area, reports: 0, sightings: 0, impounds: 0, lat: 0, lng: 0, located: 0 });
+      const g = groups.get(area);
+      g[kind]++;
+      if (Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) { g.lat += coords[0]; g.lng += coords[1]; g.located++; }
+    };
+
+    this.getMissingReports().forEach(r => add('reports', r.id, r.lastSeenLocation, r.lastSeenCoords));
+    this.getSightings().filter(x => x.status !== 'dismissed').forEach(x => add('sightings', x.id, x.location, x.coords));
+    this.getImpoundments().forEach(i => add('impounds', i.id, i.foundLocation || i.location, i.coords));
+
+    const list = [...groups.values()].map(g => {
+      const count = g.reports + g.sightings + g.impounds;
+      const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+      const parts = [];
+      if (g.reports) parts.push(plural(g.reports, 'missing report'));
+      if (g.sightings) parts.push(plural(g.sightings, 'sighting'));
+      if (g.impounds) parts.push(plural(g.impounds, 'impound'));
+      return { name: g.name, count, risk: parts.join(' · '), coords: g.located ? [g.lat / g.located, g.lng / g.located] : null };
+    }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, limit);
+
+    const max = list.length ? list[0].count : 1;
+    return list.map(h => ({ ...h, percent: Math.round(h.count / max * 100) }));
   }
 
   subscribe(fn) {
