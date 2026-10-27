@@ -327,8 +327,88 @@
     'BEFORE: Preventive Protection & Registration': 'BAGO: Proteksyon at Pagpaparehistro',
     'DURING: When Pet is Missing or Impounded': 'HABANG: Kapag Nawawala o Na-impound ang Alaga',
     'AFTER: Safe Claiming, Reunion & Follow-up': 'PAGKATAPOS: Ligtas na Pag-angkin at Pagkikita',
-    'Close Guide': 'Isara ang Gabay'
+    'Close Guide': 'Isara ang Gabay',
+
+    // Pets page and pet details
+    'My Pets': 'Aking mga Alaga',
+    'Tap a pet to see its details and keep its vaccination records.': 'Pindutin ang alaga para makita ang detalye at ingatan ang talaan ng bakuna.',
+    'No vaccines recorded': 'Walang naitalang bakuna',
+    'No vaccinations recorded yet. Add the first one below.': 'Wala pang naitalang bakuna. Idagdag ang una sa ibaba.',
+    'Safe': 'Ligtas',
+    'Missing': 'Nawawala',
+    'Impounded': 'Nasa Pound',
+    'Reunited': 'Nakauwi Na',
+    'Species': 'Uri',
+    'Breed': 'Lahi',
+    'Age': 'Edad',
+    'Color & markings': 'Kulay at marka',
+    'Enter the vaccine name.': 'Ilagay ang pangalan ng bakuna.',
+    'Pick a date that is not in the future.': 'Pumili ng petsang hindi pa dumarating.',
+    'Next due must be after the date given.': 'Dapat mas huli ang susunod na bakuna kaysa sa petsa ng pagbigay.',
+    '(optional)': '(opsyonal)',
+    'Notes (optional)': 'Mga tala (opsyonal)',
+    'Marked as found. Glad they are safe.': 'Namarkahan bilang natagpuan. Mabuti at ligtas sila.',
+    'Could not load your pets': 'Hindi ma-load ang iyong mga alaga',
+    'Check your connection and try again.': 'Suriin ang iyong koneksyon at subukan muli.',
+    'Open in Google Maps': 'Buksan sa Google Maps',
+    'Show Directions': 'Ipakita ang Direksyon',
+    'Close Simulator': 'Isara ang Simulator',
+    'Admin Console ↗': 'Admin Console ↗',
+    'Receive push & SMS notifications when your pet is scanned.': 'Makatanggap ng push at SMS na abiso kapag na-scan ang iyong alaga.',
+    'Daily SMS reminders until pet is claimed from pound.': 'Araw-araw na SMS paalala hanggang makuha ang alaga mula sa pound.',
+    'Alerts when missing pets are sighted in your barangay.': 'Mga abiso kapag may nawawalang alagang namataan sa iyong barangay.',
+    'Upload a photo of a pet. AI reads its species, breed, colors, and markings, then compares them against every pet currently reported missing.': 'Mag-upload ng larawan ng alaga. Babasahin ng AI ang uri, lahi, kulay, at marka nito, saka ihahambing sa bawat alagang naiulat na nawawala.',
+    'SkinWise-Style AI Multi-Trait Pet Matcher': 'AI na Panghanap ng Kahawig na Alaga',
+    'Redeeming Pet:': 'Tutubusing Alaga:',
+    'Check all official credentials presented at the facility intake window.': 'Suriin ang lahat ng opisyal na dokumentong ipinakita sa bintana ng pagtanggap ng pasilidad.',
+    'Official Fee Receipt / OR Number': 'Opisyal na Resibo / OR Number',
+    '2. Pet Registration / Anti-Rabies Vaccination Book': '2. Rehistro ng Alaga / Aklat ng Bakuna Laban sa Rabies',
+    'Search by pet name, breed, or barangay...': 'Maghanap ayon sa pangalan, lahi, o barangay...',
+    'Last Seen': 'Huling Nakita',
+    'Found': 'Nakita',
+    'Sightings Only': 'Mga Namataan Lamang',
+    'Reporting': 'Ang pag-uulat kay',
+    'Pet': 'Alaga',
+    'as missing activates real-time alert broadcasts on the public recovery board and alerts animal facilities.': 'bilang nawawala ay magpapadala ng real-time na abiso sa pampublikong recovery board at aabisuhan ang mga pasilidad ng hayop.',
+    'To register a new pet, issue municipal NFC collar transponders, and manage emergency recovery alerts, you must first sign in with your Google account.': 'Para magrehistro ng bagong alaga, mag-isyu ng NFC collar tag ng munisipyo, at mamahala ng mga abiso sa paghahanap, kailangan mo munang mag-sign in gamit ang iyong Google account.',
+    'Clear photo of the spotted pet helps the guardian verify immediately': 'Malinaw na larawan ng namataang alaga ang tutulong sa tagapag-alaga na makumpirma agad',
+    'Initial Status:': 'Unang Katayuan:',
+    'Strictly recorded as': 'Itinatala bilang',
+    'until visually verified by the registered guardian.': 'hanggang makumpirma sa paningin ng nakarehistrong tagapag-alaga.',
+    'Owner Verification: Community Pet Sighting': 'Beripikasyon ng May-ari: Namataang Alaga sa Komunidad',
+    'Compare your registered pet profile with the community sighting report to verify identity.': 'Ihambing ang profile ng iyong rehistradong alaga sa ulat ng komunidad para makumpirma kung ito nga.',
+    'Current Report Status:': 'Kasalukuyang Katayuan ng Ulat:'
   };
+
+  // Strings built from parts ("Persian · Cat · 4 years", "3 vaccines recorded"): translate each piece
+  const WORDS = { year: 'taon', years: 'taon', month: 'buwan', months: 'buwan', mo: 'buwan', day: 'araw', days: 'araw' };
+  const PATTERNS = [
+    [/^Last Seen \((\d+)\)$/, (m) => `Huling Nakita (${m[1]})`],
+    [/^(.+) · Last seen near (.+)$/, (m) => `${m[1]} · Huling nakita malapit sa ${m[2]}`],
+    [/^(\d+) (years?|months?|days?)(?: (\d+) mo)?$/, (m) => `${m[1]} ${WORDS[m[2]]}${m[3] ? ` ${m[3]} buwan` : ''}`],
+    [/^(\d+) vaccines? recorded$/, (m) => `${m[1]} bakunang naitala`],
+    [/^Due in (\d+) days?$/, (m) => `Dapat sa loob ng ${m[1]} araw`],
+    [/^Next due (.+)$/, (m) => `Susunod na bakuna ${m[1]}`],
+    [/^Given (.+)$/, (m) => `Binigay noong ${m[1]}`],
+    [/^(\d+) Registered Pets?$/, (m) => `${m[1]} Rehistradong Alaga`],
+    [/^(.+) added\.$/, (m) => `Naidagdag ang ${m[1]}.`],
+    [/^Delete (.+)$/, (m) => `Burahin ang ${m[1]}`],
+    [/^(.+) is reported missing\. Anyone who taps the tag sees an alert\.$/, (m) => `Naiulat na nawawala si ${m[1]}. Sinumang mag-tap ng tag ay makakakita ng abiso.`]
+  ];
+
+  function phrase(text) {
+    if (FIL[text]) return FIL[text];
+    for (const [re, fn] of PATTERNS) {
+      const m = text.match(re);
+      if (m) return fn(m);
+    }
+    if (text.indexOf(' · ') > 0) {
+      const parts = text.split(' · ');
+      const out = parts.map((x) => phrase(x) || x);
+      if (out.some((x, i) => x !== parts[i])) return out.join(' · ');
+    }
+    return undefined;
+  }
 
   const ATTRS = ['placeholder', 'title', 'aria-label'];
   const originals = new Map();      // text node -> { orig: English text, tr: the Tagalog text written in }
@@ -336,7 +416,7 @@
   let observer = null;
   let active = false;
 
-  const lookup = (raw) => FIL[raw.replace(/\s+/g, ' ').trim()];
+  const lookup = (raw) => phrase(raw.replace(/\s+/g, ' ').trim());
 
   function translateTextNode(node) {
     if (originals.has(node)) return;

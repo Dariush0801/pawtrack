@@ -1438,6 +1438,7 @@ class ReportManager {
       };
 
       window.pawStore.addNotification(ownerNotif);
+      if (window.pawApp) window.pawApp.alertOwnerFound(matchedPet.id, phone, location, notes);
 
       // Add timeline event to pet case if available
       window.pawStore.addCaseTimelineEvent(matchedPet.id, {

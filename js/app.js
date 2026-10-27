@@ -1666,6 +1666,17 @@ class App {
     }
   }
 
+  // Tells the owner of a missing pet (in Supabase) that someone found it, so the alert reaches their own device.
+  // Best effort: the local notification is already written, and pets that only exist on this device have no owner row.
+  async alertOwnerFound(petId, phone, location, notes) {
+    if (!this.supabase || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(petId || ''))) return false;
+    const { data, error } = await this.supabase.rpc('notify_owner_found_by_pet', {
+      p_pet_id: petId, p_phone: phone, p_location: location, p_notes: notes || null
+    });
+    if (error) console.warn('[Found] owner alert failed:', error.message);
+    return !error && !!data;
+  }
+
   updateNotifBadge() {
     const notifs = window.pawStore.getNotifications();
     const unread = notifs.filter(n => !n.read).length;

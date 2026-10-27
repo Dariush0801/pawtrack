@@ -469,6 +469,7 @@ class FoundView {
           timestamp: now,
           read: false
         });
+        window.pawApp?.alertOwnerFound(pet.id, phone.trim(), location.trim(), comments);
         store.addCaseTimelineEvent(pet.id, {
           type: 'sighting',
           title: 'Pet Located by Good Samaritan',

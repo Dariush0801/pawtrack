@@ -382,9 +382,9 @@ class PublicView {
               <strong>Comments:</strong> ${s.comments || s.notes || 'No comments provided.'}
             </div>
             <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
-              <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.publicView.showDirections(${sLat}, ${sLng}, '${(s.breed || 'Pet Sighting').replace(/'/g, "\\'")}', '${s.location.replace(/'/g, "\\'")}', '${s.photoUrl || ''}', 'sighting')">
-                Directions
-              </button>
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${sLat},${sLng}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem; justify-content:center; text-decoration:none;" onclick="event.stopPropagation();">
+              <i data-lucide="map-pin"></i> Show Directions
+            </a>
             </div>
           </div>
         `;
@@ -418,9 +418,9 @@ class PublicView {
             </div>
           </div>
           <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
-            <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.publicView.showDirections(${pCoords[0]}, ${pCoords[1]}, '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${(pet.lastSeenLocation || 'Metro Manila').replace(/'/g, "\\'")}', '${pet.photoUrl}', 'pet')">
-              Directions
-            </button>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${pCoords[0]},${pCoords[1]}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="flex:1; padding:4px 8px; font-size:0.75rem; justify-content:center; text-decoration:none;" onclick="event.stopPropagation();">
+              <i data-lucide="map-pin"></i> Show Directions
+            </a>
           </div>
         </div>
       `;
