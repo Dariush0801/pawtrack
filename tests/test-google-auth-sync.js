@@ -19,10 +19,9 @@ const compCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'components.cs
 const notifJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'notifications.js'), 'utf8');
 const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
-// Ensure serverless and backend notification handler exists
-const serverlessHandlerPath = path.join(__dirname, '..', 'api', 'send-auth-notification.js');
-assert(fs.existsSync(serverlessHandlerPath), 'api/send-auth-notification.js must exist');
-assert(serverJs.includes('/api/send-auth-notification'), 'server.js must contain /api/send-auth-notification endpoint');
+// Ensure the notification Edge Function exists (secrets live in Supabase, not in .env)
+const notificationFnPath = path.join(__dirname, '..', 'supabase', 'functions', 'send-auth-email', 'index.ts');
+assert(fs.existsSync(notificationFnPath), 'supabase/functions/send-auth-email must exist');
 console.log('[PASS] Google authorization security notification API is present.');
 
 // Real sign-in: Supabase Auth (email + password with Turnstile captcha, or Google) and the guardians table

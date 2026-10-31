@@ -1,5 +1,6 @@
 /**
- * PawTrack Unified Store with Cross-App Real-time SSE Sync & BroadcastBus
+ * PawTrack store. Supabase is the database: lists are read from it into a local cache the views read from,
+ * and every change is written to it (see "Supabase: the only database" below).
  */
 
 // Shown when a pet or report has no photo, so templates never render src="undefined"
@@ -17,8 +18,13 @@ const STORAGE_KEYS = {
   SETTINGS: 'pawtrack_system_settings',
   SIGHTINGS: 'pawtrack_sightings',
   CASES: 'pawtrack_cases',
-  MISSING_REPORTS: 'pawtrack_missing_reports'
+  MISSING_REPORTS: 'pawtrack_missing_reports',
+  LOCAL_NOTIFICATIONS: 'pawtrack_local_notifications'
 };
+
+// Bumped when the cached lists change meaning; older caches are cleared on load (v1: Supabase replaces the
+// local JSON database, whose ids and records do not exist in Supabase)
+const DATA_SOURCE_VERSION = 'supabase-v1';
 
 const SEED_SHELTERS = [
   {
@@ -82,14 +88,11 @@ const SEED_NOTIFICATIONS = []; // no demo records: pets, reports and sightings c
 class Store {
   constructor() {
     this.listeners = [];
-    this.activeBackendUrl = null;
-    this.eventSource = null;
     this.broadcastChannel = null;
-    this.reconnectTimer = null;
     this.syncStatus = 'connecting';
     this.init();
     this.initBroadcastBus();
-    this.initRealtimeSync();
+    this.startSupabaseSync();
   }
 
   // Brings data saved before the RFID -> NFC rename up to date (field names, tag prefixes, storage key)
@@ -128,11 +131,15 @@ class Store {
   }
 
   init() {
+    // Lists cached from the old local JSON database are cleared once; Supabase fills them again
+    if (localStorage.getItem('pawtrack_data_source') !== DATA_SOURCE_VERSION) {
+      [STORAGE_KEYS.PETS, STORAGE_KEYS.IMPOUNDMENTS, STORAGE_KEYS.NOTIFICATIONS, STORAGE_KEYS.SHELTERS,
+        STORAGE_KEYS.NFC_TAGS, STORAGE_KEYS.SIGHTINGS, STORAGE_KEYS.CASES, STORAGE_KEYS.MISSING_REPORTS,
+        STORAGE_KEYS.LOCAL_NOTIFICATIONS].forEach((key) => localStorage.removeItem(key));
+      localStorage.setItem('pawtrack_data_source', DATA_SOURCE_VERSION);
+    }
     this.migrateLegacyNfcData();
     this.purgeDemoRecords();
-    if (localStorage.getItem(STORAGE_KEYS.SHELTERS) === null) {
-      localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify(SEED_SHELTERS));
-    }
     if (localStorage.getItem(STORAGE_KEYS.PETS) === null) {
       localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(SEED_PETS));
     }
@@ -174,217 +181,278 @@ class Store {
 
   handleIncomingBroadcast(data) {
     if (data.type === 'mutation' || data.type === 'state_push') {
-      this.syncFromBackend();
+      this.syncFromSupabase();
     }
   }
 
-  getEndpoints() {
-    const list = [];
-    if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.startsWith('http')) {
-      list.push(window.location.origin);
-    }
-    list.push(''); // relative
-    const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
-    const devHost = !host || host === 'localhost' || host === '127.0.0.1' || /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(host);
-    if (devHost) {
-      list.push('http://localhost:3000'); // Owner server
-      list.push('http://localhost:8080'); // Admin server
-      list.push('http://127.0.0.1:3000');
-      list.push('http://127.0.0.1:8080');
-    }
-    return Array.from(new Set(list));
+  // ---------- Supabase: the only database ----------
+  // Everything the views show is read from Supabase into a local cache (the STORAGE_KEYS lists), so the views can
+  // keep reading synchronously. Every change is written to Supabase, then the cache is refreshed. Only the theme,
+  // the signed-in profile, cases and alerts this device raised for itself stay on the device.
+
+  client() {
+    return (window.pawApp && window.pawApp.supabase) || null;
   }
 
-  async discoverBackend() {
-    const endpoints = this.getEndpoints();
-    for (const url of endpoints) {
-      try {
-        const testUrl = (url ? url : '') + '/api/sync';
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
-        const res = await fetch(testUrl, { signal: controller.signal, mode: 'cors' });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          this.activeBackendUrl = url;
-          this.syncStatus = 'connected';
-          return url;
-        }
-      } catch (err) {}
+  // pawApp (which creates the Supabase client) is built after the store
+  async waitForClient(timeoutMs = 15000) {
+    const started = Date.now();
+    while (!this.client() && Date.now() - started < timeoutMs) {
+      await new Promise((r) => setTimeout(r, 150));
     }
-    this.syncStatus = 'offline_local';
-    return null;
+    return this.client();
   }
 
-  applyDatabaseState(db, source = 'backend') {
-    if (!db) return;
-    try {
-      // A newly deployed serverless backend may not have state yet. Do not
-      // erase locally seeded or user-created records with empty collections.
-      ['pets', 'notifications', 'sightings', 'cases', 'missingReports'].forEach((k) => {
-        if (Array.isArray(db[k])) db[k] = db[k].filter((x) => !isDemoRecord(x));
-      });
+  startSupabaseSync() {
+    this.syncFromSupabase();
+    this.pollTimer = setInterval(() => { if (!document.hidden) this.syncFromSupabase(); }, 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.syncFromSupabase(); });
+  }
 
-      const shouldApplyCollection = (key, collection) => {
-        if (!Array.isArray(collection)) return false;
-        if (collection.length > 0) return true;
-        const current = localStorage.getItem(key);
-        try {
-          return !current || JSON.parse(current).length === 0;
-        } catch {
-          return true;
-        }
-      };
+  // Loads the public lists (missing reports, sightings, shelters, impounds) and, when signed in, the guardian's own
+  // pets and notifications. A list whose request fails keeps its previous copy.
+  syncFromSupabase() {
+    if (this.syncing) return this.syncing;
+    this.syncing = (async () => {
+      const sb = await this.waitForClient();
+      if (!sb) { this.syncStatus = 'offline'; return false; }
+      const user = this.getGoogleUser();
+      const signedIn = !!(user && user.id);
+      const none = Promise.resolve({ data: [] });
+      const [reports, sightings, shelters, impounded, pets, notifs] = await Promise.all([
+        sb.from('missing_pets').select('*').in('status', ['missing', 'sighted']).order('last_seen_at', { ascending: false }),
+        sb.from('community_sightings').select('*').order('created_at', { ascending: false }).limit(500),
+        sb.from('shelters').select('*').order('name'),
+        sb.from('impounded_pets').select('*').order('intake_at', { ascending: false }).limit(200),
+        signedIn ? sb.from('registered_pets').select('*').order('created_at') : none,
+        signedIn ? sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(100) : none
+      ].map((p) => Promise.resolve(p).catch((error) => ({ error }))));
 
-      // Re-render only when something actually changed: a poll that returns the same data must not rebuild the view
       let changed = false;
-      const store = (key, collection) => {
-        const next = JSON.stringify(collection);
+      const put = (key, list) => {
+        const next = JSON.stringify(list);
         if (localStorage.getItem(key) === next) return;
         localStorage.setItem(key, next);
         changed = true;
       };
+      const warn = (what, res) => { if (res && res.error) console.warn(`[Store] Could not load ${what}:`, res.error.message || res.error); };
+      [['missing reports', reports], ['sightings', sightings], ['shelters', shelters], ['impounds', impounded], ['pets', pets], ['notifications', notifs]].forEach(([w, r]) => warn(w, r));
 
-      if (shouldApplyCollection(STORAGE_KEYS.PETS, db.pets)) store(STORAGE_KEYS.PETS, db.pets);
-      if (shouldApplyCollection(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments)) store(STORAGE_KEYS.IMPOUNDMENTS, db.impoundments);
-      if (shouldApplyCollection(STORAGE_KEYS.NOTIFICATIONS, db.notifications)) store(STORAGE_KEYS.NOTIFICATIONS, db.notifications);
-      if (shouldApplyCollection(STORAGE_KEYS.SIGHTINGS, db.sightings)) store(STORAGE_KEYS.SIGHTINGS, db.sightings);
-      if (shouldApplyCollection(STORAGE_KEYS.CASES, db.cases)) store(STORAGE_KEYS.CASES, db.cases);
-      if (shouldApplyCollection(STORAGE_KEYS.MISSING_REPORTS, db.missingReports)) store(STORAGE_KEYS.MISSING_REPORTS, db.missingReports);
-      if (Array.isArray(db.shelters) && db.shelters.length > 0) store(STORAGE_KEYS.SHELTERS, db.shelters);
-      if (Array.isArray(db.nfcTags) && db.nfcTags.length > 0) store(STORAGE_KEYS.NFC_TAGS, db.nfcTags);
-      if (changed) this.notify(source);
-    } catch (e) {
-      console.error('Error applying db state:', e);
-    }
+      const reportList = reports.error ? this.getMissingReports() : (reports.data || []).map((r) => this.fromReportRow(r));
+      if (!reports.error) put(STORAGE_KEYS.MISSING_REPORTS, reportList);
+      if (!sightings.error) put(STORAGE_KEYS.SIGHTINGS, (sightings.data || []).map((s) => this.fromSightingRow(s)));
+      const shelterList = shelters.error ? this.getShelters() : (shelters.data || []).map((s) => this.fromShelterRow(s));
+      if (!shelters.error) put(STORAGE_KEYS.SHELTERS, shelterList);
+      if (!impounded.error) put(STORAGE_KEYS.IMPOUNDMENTS, (impounded.data || []).map((i) => this.fromImpoundRow(i, shelterList)));
+      if (!pets.error) put(STORAGE_KEYS.PETS, (pets.data || []).map((p) => this.fromPetRow(p, reportList)));
+      if (!notifs.error) {
+        const before = new Set(this.getNotifications().map((n) => n.id));
+        const list = (notifs.data || []).map((n) => this.fromNotificationRow(n));
+        put(STORAGE_KEYS.NOTIFICATIONS, list);
+        // A new unread alert (a finder found or saw the pet) pops up, except on the first load after signing in
+        const fresh = list.filter((n) => !n.read && !before.has(n.id));
+        const uid = signedIn ? user.id : null;
+        if (uid && this.notifsLoadedFor === uid && fresh.length && window.notifManager) window.notifManager.showToast(fresh[0].title, 'success', 7000);
+        this.notifsLoadedFor = uid;
+      }
+
+      this.syncStatus = 'connected';
+      if (changed) this.notify('supabase_sync');
+      return true;
+    })().finally(() => { this.syncing = null; });
+    return this.syncing;
   }
 
-  async initRealtimeSync() {
-    await this.discoverBackend();
-    await this.syncFromBackend();
-    this.connectSSE();
+  isDbId(id) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id || ''));
   }
 
-  connectSSE() {
-    if (this.eventSource) {
-      try { this.eventSource.close(); } catch (e) {}
-      this.eventSource = null;
-    }
+  // ----- rows from Supabase, in the shapes the views use -----
 
-    const sseUrl = (this.activeBackendUrl !== null ? this.activeBackendUrl : '') + '/api/events';
+  fromReportRow(r) {
+    return {
+      id: r.id,
+      petId: r.pet_id || null,
+      petName: r.pet_name,
+      species: r.species,
+      breed: r.breed || '',
+      gender: r.gender || '',
+      color: r.color || '',
+      photoUrl: r.photo_url || '',
+      photo: r.photo_url || '',
+      description: r.description || '',
+      community: r.community || '',
+      lastSeenLocation: r.last_seen_location,
+      lastSeenCoords: [r.lat, r.lng],
+      lastSeenDate: r.last_seen_at,
+      notes: r.notes || '',
+      status: 'active', // only open reports (missing or sighted) are loaded
+      dbStatus: r.status,
+      reportedByOwner: r.reported_by_owner !== false,
+      reporterId: r.reporter_id,
+      createdAt: r.created_at
+    };
+  }
+
+  fromPetRow(p, reports) {
+    const open = (reports || []).find((r) => r.petId === p.id);
+    return {
+      id: p.id,
+      name: p.name,
+      species: p.species,
+      breed: p.breed || '',
+      gender: p.gender || '',
+      color: p.color || '',
+      status: p.status === 'missing' ? 'lost' : (p.status || 'safe'),
+      nfcTag: p.nfc_tag || '',
+      photoUrl: p.photo_url || '',
+      photo: p.photo_url || '',
+      description: p.description || '',
+      ageMonths: p.age_months,
+      community: p.community || '',
+      registeredDate: p.registered_on,
+      owner: { name: p.owner_name || '', phone: p.owner_phone || '', email: p.owner_email || '' },
+      ownerId: p.owner_id,
+      ownerPhone: p.owner_phone || '',
+      ...(open ? {
+        missingReportId: open.id,
+        lastSeenLocation: open.lastSeenLocation,
+        lastSeenCoords: open.lastSeenCoords,
+        lastSeenDate: open.lastSeenDate
+      } : {})
+    };
+  }
+
+  fromSightingRow(s) {
+    return {
+      id: s.id,
+      missing_report_id: s.missing_pet_id || null,
+      species: s.species || '',
+      breed: s.breed || '',
+      color: s.color || '',
+      location: s.location,
+      lat: s.lat,
+      lng: s.lng,
+      coords: [s.lat, s.lng],
+      dateTimeSeen: s.seen_at,
+      createdAt: s.created_at,
+      comments: s.notes || '',
+      notes: s.notes || '',
+      photoUrl: s.photo_url || '',
+      photo: s.photo_url || '',
+      reporterName: s.reporter_name || '',
+      confidenceScore: s.confidence_score,
+      status: s.status || 'possible_sighting'
+    };
+  }
+
+  fromShelterRow(s) {
+    return {
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      phone: s.phone || '',
+      email: s.email || '',
+      hours: s.hours || '',
+      lat: s.lat,
+      lng: s.lng,
+      fee: s.daily_fee_php != null ? `PHP ${s.daily_fee_php} / day` : '',
+      holdingPeriodDays: s.holding_period_days,
+      photoUrl: s.photo_url || ''
+    };
+  }
+
+  fromImpoundRow(i, shelters) {
+    const shelter = (shelters || []).find((s) => s.id === i.shelter_id);
+    return {
+      id: i.id,
+      petId: i.pet_id,
+      petName: i.pet_name,
+      species: i.species,
+      breed: i.breed || '',
+      photoUrl: i.photo_url || '',
+      nfcTag: i.nfc_tag || '',
+      kennel: i.kennel || '',
+      impoundLocation: i.impound_location || '',
+      healthCondition: i.health_condition || '',
+      shelterId: i.shelter_id,
+      shelterName: shelter ? shelter.name : 'Animal facility',
+      intakeDate: i.intake_at,
+      claimDeadline: i.claim_deadline,
+      status: i.status === 'in_holding' ? 'active_impounded' : i.status
+    };
+  }
+
+  // Supabase notifications are already only the signed-in guardian's (row level security)
+  fromNotificationRow(n) {
+    const message = n.message || '';
+    const found = n.type === 'sighting_verification' && !/^POSSIBLE SIGHTING/i.test(n.title || '');
+    const pet = this.getPets().find((p) => p.name === n.pet_name);
+    const report = this.getMissingReports().find((r) => r.petName === n.pet_name);
+    return {
+      id: 'sb-' + n.id,
+      dbId: n.id,
+      type: found ? 'pet_found_match' : n.type,
+      title: n.title,
+      message,
+      petName: n.pet_name,
+      petId: pet ? pet.id : undefined,
+      missingReportId: report ? report.id : undefined,
+      location: n.location || '',
+      finderName: 'Community Good Samaritan',
+      finderPhone: (message.match(/Finder phone: ([^.]+)/) || [])[1] || '',
+      finderNotes: (message.match(/Message: "([^"]*)"/) || [])[1] || '',
+      timestamp: n.created_at,
+      read: !!n.is_read
+    };
+  }
+
+  // Photos go to the public sighting-photos bucket; rows only keep the link (https URLs pass through)
+  async uploadPhoto(photo, folder) {
+    const value = String(photo || '');
+    if (/^https:\/\//.test(value)) return value;
+    if (!value.startsWith('data:')) return null;
+    const sb = this.client();
+    if (!sb) return null;
     try {
-      this.eventSource = new EventSource(sseUrl);
-
-      this.eventSource.onopen = () => {
-        this.sseFailures = 0;
-        this.syncStatus = 'live_sse';
-        this.notify('connection_open');
-      };
-
-      this.eventSource.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'full_sync' && msg.db) {
-            this.applyDatabaseState(msg.db, 'realtime_sync');
-          } else if (msg.type === 'mutation') {
-            this.syncFromBackend();
-          }
-        } catch (e) {}
-      };
-
-      this.eventSource.onerror = () => {
-        try { this.eventSource.close(); } catch (e) {}
-        this.eventSource = null;
-        this.syncStatus = 'reconnecting';
-        this.sseFailures = (this.sseFailures || 0) + 1;
-
-        // Serverless hosts (Vercel) have no /api/events stream: fall back to polling.
-        if (this.sseFailures >= 3) {
-          if (!this.pollTimer) {
-            this.pollTimer = setInterval(() => { if (!document.hidden) this.syncFromBackend(); }, 30000);
-          }
-          return;
-        }
-
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = setTimeout(async () => {
-          await this.discoverBackend();
-          this.connectSSE();
-        }, 3500);
-      };
-    } catch (err) {}
+      const blob = await this.shrinkPhoto(value);
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await sb.storage.from('sighting-photos').upload(path, blob, { contentType: 'image/jpeg' });
+      if (error) throw error;
+      return sb.storage.from('sighting-photos').getPublicUrl(path).data.publicUrl;
+    } catch (e) {
+      console.warn('[Store] Photo upload failed:', e.message || e);
+      return null;
+    }
   }
 
-  async syncFromBackend() {
-    const candidateUrls = [this.activeBackendUrl, ...this.getEndpoints()].filter(u => u !== undefined && u !== null);
-    const unique = Array.from(new Set(candidateUrls));
-
-    for (const url of unique) {
-      try {
-        const fetchUrl = (url ? url : '') + '/api/sync';
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1800);
-        const res = await fetch(fetchUrl, { signal: controller.signal, mode: 'cors' });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const db = await res.json();
-          if (db) {
-            this.activeBackendUrl = url;
-            this.applyDatabaseState(db, 'backend_fetch');
-            return true;
-          }
-        }
-      } catch (err) {}
-    }
-    return false;
-  }
-
-  syncToBackend(key, data) {
-    if (this.broadcastChannel) {
-      try {
-        this.broadcastChannel.postMessage({ type: 'mutation', key, data, timestamp: Date.now() });
-      } catch (e) {}
-    }
-
-    const payloadStr = JSON.stringify({ action: 'set_key', key, data });
-    const endpoints = Array.from(new Set([this.activeBackendUrl, ...this.getEndpoints()].filter(Boolean)));
-    if (endpoints.length === 0) endpoints.push('');
-
-    endpoints.forEach(url => {
-      try {
-        const dest = (url ? url : '') + '/api/sync';
-        fetch(dest, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payloadStr,
-          mode: 'cors'
-        }).catch(() => {});
-      } catch (e) {}
+  // Phone photos are several megabytes: stored as a JPEG of at most 1280px on the long side
+  shrinkPhoto(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Image conversion failed'))), 'image/jpeg', 0.82);
+      };
+      img.onerror = () => reject(new Error('Could not read the photo'));
+      img.src = dataUrl;
     });
   }
 
-  pushBackendMutation(action, payload = {}) {
-    if (this.broadcastChannel) {
-      try {
-        this.broadcastChannel.postMessage({ type: 'mutation', action, payload, timestamp: Date.now() });
-      } catch (e) {}
-    }
-
-    const payloadStr = JSON.stringify({ action, ...payload });
-    const endpoints = Array.from(new Set([this.activeBackendUrl, ...this.getEndpoints()].filter(Boolean)));
-    if (endpoints.length === 0) endpoints.push('');
-
-    endpoints.forEach(url => {
-      try {
-        const dest = (url ? url : '') + '/api/sync';
-        fetch(dest, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payloadStr,
-          mode: 'cors'
-        }).catch(() => {});
-      } catch (e) {}
-    });
+  // Shows a database error to the person, once per action
+  dbError(what, error) {
+    console.warn(`[Store] ${what}:`, error && (error.message || error));
+    if (window.notifManager) window.notifManager.showToast(`${what}: ${(error && error.message) || 'please try again.'}`, 'error', 5000);
   }
+
+  // Kept so older callers still work: there is no separate sync step any more
+  syncToBackend() {}
+  pushBackendMutation() {}
+  syncFromBackend() { return this.syncFromSupabase(); }
 
   getTheme() {
     return localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
@@ -404,6 +472,8 @@ class Store {
   }
 
   setGoogleUser(user) {
+    const before = (this.getGoogleUser() || {}).id;
+    if (before !== (user && user.id)) setTimeout(() => this.syncFromSupabase(), 0);
     if (user) {
       localStorage.setItem(STORAGE_KEYS.GOOGLE_AUTH, JSON.stringify(user));
     } else {
@@ -434,6 +504,8 @@ class Store {
     return this.getPets().find(p => window.normalizeNfcCode(p.nfcTag) === cleanTag);
   }
 
+  // Pets are registered and edited in Supabase by the Pets page (nfc-link.js, pets-view.js); this only keeps
+  // the cached copy in step until the next sync.
   savePet(pet) {
     const pets = this.getPets();
     const existingIndex = pets.findIndex(p => p.id === pet.id);
@@ -441,7 +513,7 @@ class Store {
     if (existingIndex >= 0) {
       pets[existingIndex] = { ...pets[existingIndex], ...pet, updatedAt: new Date().toISOString() };
     } else {
-      if (!pet.name) return pet; // a partial update for a pet that is not saved here must not create a nameless pet
+      if (!pet.name) return pet; // a partial update for a pet that is not cached here must not create a nameless pet
       const newPet = {
         ...pet,
         id: pet.id || 'pet-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -454,20 +526,18 @@ class Store {
     }
 
     localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets));
-    this.pushBackendMutation('save_pet', { pet });
     this.notify('pets_updated');
     return pet;
   }
 
   deletePet(id) {
-    let pets = this.getPets();
-    pets = pets.filter(p => p.id !== id);
+    const pets = this.getPets().filter(p => p.id !== id);
     localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets));
-    this.pushBackendMutation('delete_pet', { petId: id });
     this.notify('pets_updated');
   }
 
-  updatePetStatus(petId, status, extraData = {}) {
+  // Status of a registered pet ('lost' here is 'missing' in the database). 'safe' also closes its open reports.
+  async updatePetStatus(petId, status, extraData = {}) {
     const pets = this.getPets();
     const pet = pets.find(p => p.id === petId);
     if (pet) {
@@ -475,14 +545,24 @@ class Store {
       Object.assign(pet, extraData);
       pet.updatedAt = new Date().toISOString();
       localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets));
-      this.pushBackendMutation('update_pet_status', { petId, status, extra: extraData });
       this.notify('pet_status_changed');
     }
-    if (status === 'safe') this.resolveCasesForPet(petId);
+    if (status === 'safe') {
+      this.resolveCasesForPet(petId);
+      this.getMissingReports()
+        .filter(r => r.petId === petId && r.status === 'active')
+        .forEach(r => this.updateMissingReport(r.id, { status: 'resolved', resolvedAt: new Date().toISOString() }));
+    }
+
+    const sb = this.client();
+    if (!sb || !this.isDbId(petId)) return;
+    const dbStatus = { lost: 'missing', missing: 'missing', safe: 'safe', impounded: 'impounded', reunited: 'reunited' }[status];
+    if (!dbStatus) return;
+    const { error } = await sb.from('registered_pets').update({ status: dbStatus }).eq('id', petId);
+    if (error) this.dbError('Could not save the pet\'s status', error);
   }
 
-  // Closes any open case for a pet that is back home so it leaves the missing counts
-  // A case made for a pet that is not saved on this device has petId 'pet-temp', so it is also matched by report or tag
+  // Cases are a device-only timeline (the admin portal builds its own from reports and sightings)
   resolveCasesForPet(petId, { missingReportId, nfcTag } = {}) {
     this.getCases()
       .filter(c => c.status !== 'reunited' && (
@@ -521,104 +601,105 @@ class Store {
     return impoundments.find(i => i.petId === petId && (i.status === 'active_impounded' || i.status === 'active'));
   }
 
+  // Impounds are recorded by shelters in the admin portal; guardians only read them
   createImpoundment(impoundment) {
     return this.addImpoundment(impoundment);
   }
 
   addImpoundment(impoundment) {
-    const impoundments = this.getImpoundments();
-    const newImpound = {
-      ...impoundment,
-      id: impoundment.id || 'imp-' + Date.now(),
-      status: impoundment.status || 'active_impounded',
-      intakeDate: impoundment.intakeDate || new Date().toISOString(),
-      claimDeadline: impoundment.claimDeadline || new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
-    };
-    impoundments.unshift(newImpound);
-    localStorage.setItem(STORAGE_KEYS.IMPOUNDMENTS, JSON.stringify(impoundments));
-    this.updatePetStatus(newImpound.petId, 'impounded');
-    this.pushBackendMutation('create_impoundment', { impoundment: newImpound });
-
-    this.addNotification({
-      type: 'impound_alert',
-      title: 'Official Impound Notice: ' + newImpound.petName,
-      message: 'Your pet has been recorded at ' + newImpound.shelterName + '. 72-Hour holding window initiated.',
-      petId: newImpound.petId,
-      impoundId: newImpound.id
-    });
-
-    this.notify('impoundment_added');
-    return newImpound;
+    console.warn('[Store] Impounds are recorded in the admin portal, not here:', impoundment && impoundment.petName);
+    return null;
   }
 
+  // A guardian claims at the shelter; the shelter closes the impound in the admin portal. Here the pet is shown as
+  // safe right away so the guardian is not left looking at an impound alert.
   claimImpoundment(impoundId) {
-    const impoundments = this.getImpoundments();
-    const impound = impoundments.find(i => i.id === impoundId);
-    if (impound) {
-      impound.status = 'claimed';
-      impound.claimedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.IMPOUNDMENTS, JSON.stringify(impoundments));
-      this.updatePetStatus(impound.petId, 'safe');
-      this.pushBackendMutation('claim_impoundment', { impoundId });
-
-      this.addNotification({
-        type: 'reunited',
-        title: 'Pet Reunited: ' + impound.petName,
-        message: impound.petName + ' has been safely claimed and released from ' + impound.shelterName + '.',
-        petId: impound.petId
-      });
-
-      this.notify('impoundment_claimed');
-    }
+    const impound = this.getImpoundments().find(i => i.id === impoundId);
+    if (impound && impound.petId) this.updatePetStatus(impound.petId, 'safe');
+    this.notify('impoundment_claimed');
   }
 
   getShelters() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.SHELTERS)) || SEED_SHELTERS;
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHELTERS));
+      return Array.isArray(list) && list.length ? list : SEED_SHELTERS;
     } catch {
       return SEED_SHELTERS;
     }
   }
 
+  // Supabase notifications (the signed-in guardian's) followed by alerts this device raised for itself
   getNotifications() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) || [];
-    } catch {
-      return [];
-    }
+    const read = (key) => {
+      try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+    };
+    return [...read(STORAGE_KEYS.NOTIFICATIONS), ...read(STORAGE_KEYS.LOCAL_NOTIFICATIONS)]
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
   }
 
+  // What the signed-in guardian sees: their Supabase notifications, and device alerts about their own pets.
+  // "Pet is missing" alerts are not shown (none are created any more).
+  getMyNotifications() {
+    const user = this.getGoogleUser();
+    if (!user || !user.email) return [];
+    const missingAlert = (n) => n.type === 'missing' || (n.type === 'broadcast' && /missing pet alert/i.test(n.title || ''));
+    const myReports = new Set(this.getMissingReports().filter(r => this.isMyPet(this.reportAsPet(r))).map(r => String(r.id)));
+    return this.getNotifications().filter(n => !missingAlert(n)).filter(n =>
+      String(n.id).startsWith('sb-') ||
+      (n.petId && this.isMyPet(this.getPetById(n.petId))) ||
+      (n.missingReportId && myReports.has(String(n.missingReportId)))
+    );
+  }
+
+  // A device-only alert (other people are notified through Supabase, see notifyReporter)
   addNotification(notif) {
-    const notifs = this.getNotifications();
-    const newNotif = {
-      ...notif,
-      id: notif.id || 'notif-' + Date.now(),
-      timestamp: new Date().toISOString(),
-      read: false
-    };
-    notifs.unshift(newNotif);
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
-    this.syncToBackend('notifications', notifs);
+    let list;
+    try { list = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOCAL_NOTIFICATIONS)) || []; } catch { list = []; }
+    list.unshift({ ...notif, id: notif.id || 'notif-' + Date.now(), timestamp: new Date().toISOString(), read: false });
+    localStorage.setItem(STORAGE_KEYS.LOCAL_NOTIFICATIONS, JSON.stringify(list.slice(0, 50)));
     this.notify('notification_added');
   }
 
   markNotificationRead(notifId) {
-    const notifs = this.getNotifications();
-    const notif = notifs.find(n => String(n.id) === String(notifId));
-    if (notif && !notif.read) {
-      notif.read = true;
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
-      this.syncToBackend('notifications', notifs);
-      this.notify('notification_read');
-    }
+    const id = String(notifId);
+    const key = id.startsWith('sb-') ? STORAGE_KEYS.NOTIFICATIONS : STORAGE_KEYS.LOCAL_NOTIFICATIONS;
+    let list;
+    try { list = JSON.parse(localStorage.getItem(key)) || []; } catch { list = []; }
+    const notif = list.find(n => String(n.id) === id);
+    if (!notif || notif.read) return;
+    notif.read = true;
+    localStorage.setItem(key, JSON.stringify(list));
+    this.notify('notification_read');
+    const sb = this.client();
+    if (sb && notif.dbId) sb.from('notifications').update({ is_read: true }).eq('id', notif.dbId).then(({ error }) => { if (error) console.warn('[Store] mark read:', error.message); });
   }
 
   markAllNotificationsRead() {
-    const notifs = this.getNotifications();
-    notifs.forEach(n => { n.read = true; });
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
-    this.syncToBackend('notifications', notifs);
+    [STORAGE_KEYS.NOTIFICATIONS, STORAGE_KEYS.LOCAL_NOTIFICATIONS].forEach((key) => {
+      let list;
+      try { list = JSON.parse(localStorage.getItem(key)) || []; } catch { list = []; }
+      list.forEach(n => { n.read = true; });
+      localStorage.setItem(key, JSON.stringify(list));
+    });
     this.notify('notifications_read');
+    const sb = this.client();
+    if (sb && this.getGoogleUser()) sb.from('notifications').update({ is_read: true }).eq('is_read', false).then(({ error }) => { if (error) console.warn('[Store] mark all read:', error.message); });
+  }
+
+  // Alerts whoever reported a missing pet: kind 'found' (Found a Pet) or 'sighting' ("Seen this pet?").
+  // Works for signed-out finders; the database never hands out the reporter's details.
+  async notifyReporter(missingReportId, kind, { phone, location, notes } = {}) {
+    const sb = await this.waitForClient(5000);
+    if (!sb || !this.isDbId(missingReportId)) return false;
+    const { data, error } = await sb.rpc('notify_missing_pet_reporter', {
+      p_missing_pet_id: missingReportId,
+      p_kind: kind,
+      p_phone: String(phone || '').trim(),
+      p_location: String(location || '').trim().slice(0, 300),
+      p_notes: notes ? String(notes).slice(0, 1000) : null
+    });
+    if (error) { this.dbError('Could not alert the owner', error); return false; }
+    return !!data;
   }
 
   getSightings() {
@@ -629,19 +710,51 @@ class Store {
     }
   }
 
+  // Shown at once, saved to community_sightings (with its photo), then replaced by the saved row on the next sync
   addSighting(sighting) {
     const sightings = this.getSightings();
     const newSighting = {
       ...sighting,
       id: sighting.id || 'sight-' + Date.now(),
       createdAt: sighting.createdAt || new Date().toISOString(),
-      status: sighting.status || 'possible_sighting'
+      status: 'possible_sighting'
     };
     sightings.unshift(newSighting);
     localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-    this.pushBackendMutation('create_sighting', { sighting: newSighting });
     this.notify('sighting_added');
+    this.saveSightingRow(newSighting);
     return newSighting;
+  }
+
+  async saveSightingRow(s) {
+    const sb = await this.waitForClient(5000);
+    const coords = Array.isArray(s.coords) ? s.coords : [s.lat, s.lng];
+    if (!sb || !Number.isFinite(+coords[0]) || !Number.isFinite(+coords[1])) return;
+    const reportId = [s.missing_report_id, s.missingReportId, s.matchedReportId].find((id) => this.isDbId(id)) || null;
+    const photoUrl = await this.uploadPhoto(s.photoUrl || s.photo, 'sightings');
+    const { error } = await sb.from('community_sightings').insert({
+      missing_pet_id: reportId,
+      species: ['Dog', 'Cat', 'Other'].includes(s.species) ? s.species : 'Other',
+      breed: s.breed || null,
+      color: s.color || null,
+      photo_url: photoUrl,
+      location: String(s.location || 'Pinned location').slice(0, 300),
+      lat: +coords[0],
+      lng: +coords[1],
+      seen_at: new Date(s.dateTimeSeen || s.timestamp || s.createdAt || Date.now()).toISOString(),
+      notes: String(s.comments || s.notes || '').slice(0, 1000) || null,
+      reporter_name: String(s.reporterName || 'Anonymous').slice(0, 80),
+      status: 'possible_sighting'
+    });
+    if (error) {
+      if (/rate limit/i.test(error.message)) {
+        if (window.notifManager) window.notifManager.showToast('You have sent several sightings recently, so this one was not added to the public map. The owner was still alerted.', 'warning', 6000);
+      } else {
+        this.dbError('Could not save the sighting', error);
+      }
+      return;
+    }
+    this.syncFromSupabase();
   }
 
   getMissingReports() {
@@ -662,42 +775,124 @@ class Store {
     return this.getMissingReports().find(r => r.petId === petId && r.status === 'active');
   }
 
-  createMissingReport(reportData) {
-    const reports = this.getMissingReports();
-    const newReport = {
-      ...reportData,
-      id: reportData.id || 'mr-' + Date.now(),
-      status: reportData.status || 'active',
-      createdAt: reportData.createdAt || new Date().toISOString()
+  // A missing report in the shape of a pet, for the map, the missing list and the counts
+  reportAsPet(r) {
+    return {
+      id: r.id,
+      name: r.petName || 'Missing pet',
+      species: r.species || 'Other',
+      breed: r.breed || '',
+      description: r.description || '', // what the reporter wrote: breed or mix, size, colours, collar
+      gender: r.gender || '',
+      color: r.description || r.color || '',
+      status: 'lost',
+      photoUrl: r.photoUrl || r.photo,
+      photo: r.photo || r.photoUrl,
+      lastSeenLocation: r.lastSeenLocation,
+      lastSeenDate: r.lastSeenDate,
+      lastSeenCoords: r.lastSeenCoords,
+      community: r.community,
+      notes: r.notes,
+      missingReportId: r.id,
+      registeredPetId: r.petId || null,
+      reporterId: r.reporterId, // the person who reported it: finders notify them
+      reportedByOwner: r.reportedByOwner !== false,
+      unregistered: !r.petId, // reported through "Another pet"
+      reportOnly: true
     };
-    reports.unshift(newReport);
-    localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(reports));
-
-    if (newReport.petId) {
-      this.updatePetStatus(newReport.petId, 'lost', {
-        lastSeenLocation: newReport.lastSeenLocation,
-        lastSeenDate: newReport.lastSeenDate,
-        lastSeenCoords: newReport.lastSeenCoords,
-        missingReportId: newReport.id
-      });
-    }
-
-    this.pushBackendMutation('create_missing_report', { report: newReport });
-    this.notify('missing_report_created');
-    return newReport;
   }
 
+  // Open reports for pets that are not the guardian's own registered pets: other people's missing pets and
+  // pets reported without registering. (The guardian's own registered pets come from getPets.)
+  getUnregisteredMissingPets() {
+    const mine = new Set(this.getPets().map(p => String(p.id)));
+    return this.getMissingReports()
+      .filter(r => r.status === 'active' && !mine.has(String(r.petId)))
+      .map(r => this.reportAsPet(r));
+  }
+
+  // Whether the signed-in guardian owns this pet: their registered pet, or a report they filed
+  isMyPet(pet) {
+    const user = this.getGoogleUser();
+    if (!user || !pet) return false;
+    if (pet.reportOnly) return !!user.id && pet.reporterId === user.id;
+    if (pet.ownerId && user.id) return pet.ownerId === user.id;
+    return String((pet.owner && pet.owner.email) || '').toLowerCase() === String(user.email || '').toLowerCase();
+  }
+
+  // The guardian's own registered pets plus every other open missing report
+  getMapPets() {
+    return [...this.getPets(), ...this.getUnregisteredMissingPets()];
+  }
+
+  // Files a report in missing_pets (as the signed-in guardian). Returns the saved report, or null.
+  async createMissingReport(reportData) {
+    const sb = await this.waitForClient(5000);
+    if (!sb) { this.dbError('Could not file the report', { message: 'no connection to the database' }); return null; }
+    const petId = this.isDbId(reportData.petId) ? reportData.petId : null;
+    const coords = reportData.lastSeenCoords || [];
+    const photoUrl = await this.uploadPhoto(reportData.photoUrl || reportData.photo, 'reports');
+    const { data, error } = await sb.from('missing_pets').insert({
+      pet_id: petId,
+      pet_name: String(reportData.petName || 'Missing pet').slice(0, 80),
+      species: ['Dog', 'Cat', 'Other'].includes(reportData.species) ? reportData.species : 'Other',
+      breed: reportData.breed || null,
+      gender: ['Male', 'Female'].includes(reportData.gender) ? reportData.gender : null,
+      color: reportData.color || null,
+      photo_url: photoUrl,
+      description: reportData.description ? String(reportData.description).slice(0, 1000) : null,
+      community: reportData.community || null,
+      last_seen_location: String(reportData.lastSeenLocation || '').slice(0, 300),
+      lat: +coords[0],
+      lng: +coords[1],
+      last_seen_at: new Date(reportData.lastSeenDate || Date.now()).toISOString(),
+      notes: reportData.notes ? String(reportData.notes).slice(0, 1000) : null,
+      reported_by_owner: reportData.reportedByOwner !== false,
+      status: 'missing'
+    }).select('*').single();
+    if (error) {
+      this.dbError('Could not file the report', /one_open_per_pet/.test(error.message) ? { message: 'this pet already has an open missing report' } : error);
+      return null;
+    }
+
+    const report = this.fromReportRow(data);
+    localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify([report, ...this.getMissingReports()]));
+    if (petId) {
+      await this.updatePetStatus(petId, 'lost', {
+        lastSeenLocation: report.lastSeenLocation,
+        lastSeenDate: report.lastSeenDate,
+        lastSeenCoords: report.lastSeenCoords,
+        missingReportId: report.id
+      });
+    }
+    this.notify('missing_report_created');
+    this.syncFromSupabase();
+    return report;
+  }
+
+  // 'resolved' closes the report (database status 'found'); a closed report leaves the open list
   updateMissingReport(id, updates) {
     const reports = this.getMissingReports();
-    const idx = reports.findIndex(r => r.id === id);
-    if (idx >= 0) {
-      reports[idx] = { ...reports[idx], ...updates, updatedAt: new Date().toISOString() };
-      localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(reports));
-      this.pushBackendMutation('update_missing_report', { report: reports[idx] });
-      this.notify('missing_report_updated');
-      return reports[idx];
+    const report = reports.find(r => r.id === id);
+    if (!report) return null;
+    const closing = updates.status === 'resolved';
+    const next = closing ? reports.filter(r => r.id !== id) : reports.map(r => (r.id === id ? { ...r, ...updates } : r));
+    localStorage.setItem(STORAGE_KEYS.MISSING_REPORTS, JSON.stringify(next));
+    this.notify('missing_report_updated');
+
+    const sb = this.client();
+    if (sb && this.isDbId(id)) {
+      const row = { updated_at: new Date().toISOString() };
+      if (closing) row.status = 'found';
+      if (updates.lastSeenLocation) row.last_seen_location = String(updates.lastSeenLocation).slice(0, 300);
+      if (Array.isArray(updates.lastSeenCoords)) { row.lat = +updates.lastSeenCoords[0]; row.lng = +updates.lastSeenCoords[1]; }
+      if (updates.notes !== undefined) row.notes = updates.notes ? String(updates.notes).slice(0, 1000) : null;
+      sb.from('missing_pets').update(row).eq('id', id).then(({ error }) => {
+        if (error) this.dbError('Could not update the report', error);
+        else this.syncFromSupabase();
+      });
     }
-    return null;
+    return { ...report, ...updates };
   }
 
   getSightingsForMissingReport(missingReportId) {
@@ -710,142 +905,70 @@ class Store {
     return this.getSightings().find(s => s.id === id);
   }
 
-  updateSighting(sightingId, updates) {
+  // The reporter of a missing pet reviews its sightings (the database allows only them, and admins)
+  setSightingStatus(sightingId, status, eventName) {
     const sightings = this.getSightings();
     const s = sightings.find(item => item.id === sightingId);
-    if (s) {
-      Object.assign(s, updates);
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-      this.pushBackendMutation('update_sighting_status', { sightingId, status: s.status, updates });
-      this.notify('sighting_updated');
-      return s;
+    if (!s) return null;
+    s.status = status;
+    localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+    this.notify(eventName);
+    const sb = this.client();
+    if (sb && this.isDbId(sightingId)) {
+      sb.from('community_sightings').update({ status }).eq('id', sightingId).select('id').then(({ data, error }) => {
+        if (error) this.dbError('Could not update the sighting', error);
+        else if (!data || !data.length) this.dbError('Could not update the sighting', { message: 'only the person who reported this pet can review its sightings' });
+      });
     }
-    return null;
+    return s;
+  }
+
+  updateSighting(sightingId, updates) {
+    if (updates && updates.status) return this.setSightingStatus(sightingId, updates.status, 'sighting_updated');
+    const sightings = this.getSightings();
+    const s = sightings.find(item => item.id === sightingId);
+    if (!s) return null;
+    Object.assign(s, updates);
+    localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
+    this.notify('sighting_updated');
+    return s;
   }
 
   confirmSighting(sightingId) {
-    const sightings = this.getSightings();
-    const s = sightings.find(item => item.id === sightingId);
-    if (s) {
-      s.status = 'confirmed_sighting';
-      s.confirmedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-
-      // Case timeline update
-      const timelineEvent = {
-        timestamp: new Date().toISOString(),
+    const s = this.setSightingStatus(sightingId, 'confirmed_sighting', 'sighting_confirmed');
+    if (s && s.missing_report_id) {
+      this.addCaseTimelineEvent(s.missing_report_id, {
         type: 'sighting',
         title: 'Guardian Confirmed Sighting Match',
         location: s.location || 'Metro Manila',
-        finder: s.reporterName ? `${s.reporterName} (${s.reporterPhone || 'Phone on file'})` : 'Community Good Samaritan',
-        notes: `Owner visually verified photo and details. Status updated to Confirmed Sighting.`,
+        finder: s.reporterName || 'Community Good Samaritan',
+        notes: 'Owner visually verified photo and details. Status updated to Confirmed Sighting.',
         photoUrl: s.photoUrl || s.photo
-      };
-
-      if (s.petId) {
-        this.addCaseTimelineEvent(s.petId, timelineEvent);
-      }
-
-      this.pushBackendMutation('confirm_sighting', {
-        sightingId,
-        petId: s.petId,
-        caseTimeline: timelineEvent
       });
-      this.notify('sighting_confirmed');
-      return s;
     }
-    return null;
+    return s;
   }
 
   dismissSighting(sightingId) {
-    const sightings = this.getSightings();
-    const s = sightings.find(item => item.id === sightingId);
-    if (s) {
-      s.status = 'dismissed';
-      s.dismissedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-
-      if (s.petId) {
-        this.addCaseTimelineEvent(s.petId, {
-          timestamp: new Date().toISOString(),
-          type: 'status_update',
-          title: 'Sighting Dismissed by Guardian',
-          location: s.location || 'Metro Manila',
-          notes: 'Guardian reviewed sighting report and marked as non-matching (archived from active map).'
-        });
-      }
-
-      this.pushBackendMutation('dismiss_sighting', { sightingId });
-      this.notify('sighting_dismissed');
-      return s;
-    }
-    return null;
+    return this.setSightingStatus(sightingId, 'dismissed', 'sighting_dismissed');
   }
 
   archiveSighting(sightingId) {
-    const sightings = this.getSightings();
-    const s = sightings.find(item => item.id === sightingId);
-    if (s) {
-      s.status = 'dismissed';
-      s.archivedAt = new Date().toISOString();
-      s.dismissedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-
-      if (s.petId) {
-        this.addCaseTimelineEvent(s.petId, {
-          timestamp: new Date().toISOString(),
-          type: 'status_update',
-          title: 'Sighting Archived by Guardian',
-          location: s.location || 'Metro Manila',
-          notes: 'Guardian archived this community sighting report from the active board.'
-        });
-      }
-
-      this.pushBackendMutation('archive_sighting', { sightingId });
-      this.notify('sighting_archived');
-      return s;
-    }
-    return null;
+    return this.setSightingStatus(sightingId, 'archived', 'sighting_archived');
   }
 
   retrieveSighting(sightingId) {
-    const sightings = this.getSightings();
-    const s = sightings.find(item => item.id === sightingId);
-    if (s) {
-      s.status = 'possible_sighting';
-      delete s.dismissedAt;
-      delete s.archivedAt;
-      s.retrievedAt = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-
-      if (s.petId) {
-        this.addCaseTimelineEvent(s.petId, {
-          timestamp: new Date().toISOString(),
-          type: 'status_update',
-          title: 'Sighting Retrieved by Guardian',
-          location: s.location || 'Metro Manila',
-          notes: 'Guardian restored this community sighting report back to the active board.'
-        });
-      }
-
-      this.pushBackendMutation('restore_sighting', { sightingId });
-      this.notify('sighting_updated');
-      return s;
-    }
-    return null;
+    return this.setSightingStatus(sightingId, 'possible_sighting', 'sighting_updated');
   }
 
+  // Sightings are not deleted from the database: the reporter archives them instead
   deleteSighting(sightingId) {
-    let sightings = this.getSightings();
-    const initialLen = sightings.length;
-    sightings = sightings.filter(item => item.id !== sightingId);
-    if (sightings.length !== initialLen) {
-      localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(sightings));
-      this.pushBackendMutation('delete_sighting', { sightingId });
-      this.notify('sighting_deleted');
-      return true;
-    }
-    return false;
+    const sightings = this.getSightings();
+    if (!sightings.some(item => item.id === sightingId)) return false;
+    this.setSightingStatus(sightingId, 'archived', 'sighting_deleted');
+    localStorage.setItem(STORAGE_KEYS.SIGHTINGS, JSON.stringify(this.getSightings().filter(item => item.id !== sightingId)));
+    this.notify('sighting_deleted');
+    return true;
   }
 
   getCases() {
@@ -874,14 +997,14 @@ class Store {
       });
     }
     localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(cases));
-    this.pushBackendMutation('update_case', { caseData: idx >= 0 ? cases[idx] : cases[0] });
     this.notify('case_updated');
     return idx >= 0 ? cases[idx] : cases[0];
   }
 
   addCaseTimelineEvent(petIdOrCaseId, event) {
     const cases = this.getCases();
-    let petCase = cases.find(c => c.id === petIdOrCaseId || c.petId === petIdOrCaseId);
+    // A pet reported without registering is found by its report id
+    let petCase = cases.find(c => c.id === petIdOrCaseId || c.petId === petIdOrCaseId || c.missingReportId === petIdOrCaseId);
     if (!petCase) {
       const pet = this.getPetById(petIdOrCaseId);
       petCase = {
@@ -910,13 +1033,11 @@ class Store {
     });
     petCase.lastUpdated = new Date().toISOString();
     localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(cases));
-    this.pushBackendMutation('update_case', { caseData: petCase });
     this.notify('case_timeline_added');
     return petCase;
   }
 
-  verifyClaimDocuments(impoundId, documents, receiptNo) {
-    this.pushBackendMutation('verify_claim_documents', { impoundId, documents, receiptNo });
+  verifyClaimDocuments(impoundId) {
     this.claimImpoundment(impoundId);
   }
 

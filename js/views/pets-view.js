@@ -371,18 +371,22 @@ class PetsView {
 
   // Saves a pet's status (safe / missing) to the database so the tap page shows the right state
   async setStatus(petId, status) {
+    // The pet may not be in this list yet (it loads when My Pets opens, and a missing report can be filed from
+    // another page), so the database is updated by id either way; the list is only refreshed when it has the pet
     const pet = this.pets.find((p) => p.id === petId);
     const client = this.client();
-    if (!pet || !client || !/^[0-9a-f-]{36}$/i.test(petId)) return false;
+    if (!client || !/^[0-9a-f-]{36}$/i.test(petId)) return false;
     const { error } = await client.from('registered_pets').update({ status }).eq('id', petId);
     if (error) {
       console.warn('[Pets] status update failed:', error.message);
       if (window.notifManager) window.notifManager.showToast(`Could not update the status: ${error.message}`, 'error', 5000);
       return false;
     }
-    pet.status = status;
-    this.draw();
-    if (this.openPetId === petId) this.renderDetail();
+    if (pet) {
+      pet.status = status;
+      this.draw();
+      if (this.openPetId === petId) this.renderDetail();
+    }
     return true;
   }
 

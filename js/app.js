@@ -66,6 +66,11 @@ class App {
     }
   }
 
+  // Pages a signed-out visitor may open: the missing pets map, and Found a Pet for finders without an account
+  isGuestView(view) {
+    return view === 'owner' || view === 'found';
+  }
+
   setGuestMode(enabled) {
     try {
       if (enabled) sessionStorage.setItem('pawtrack_guest_mode', '1');
@@ -419,6 +424,7 @@ class App {
         const isShown = notifDropdown.style.display === 'block';
         notifDropdown.style.display = isShown ? 'none' : 'block';
         if (!isShown) {
+          window.notifManager.pickCategoryWithUnread();
           window.notifManager.renderNotifDropdown();
         }
       }
@@ -460,7 +466,7 @@ class App {
     authLandingReport?.addEventListener('click', () => {
       this.setGuestMode(true);
       this.hideStartScreen();
-      if (window.reportManager) window.reportManager.openReportModal('found');
+      window.location.hash = 'found';
     });
 
     // Terms & Privacy Links
@@ -715,11 +721,8 @@ class App {
       } catch (e) {}
       if (isFresh) window.notifManager.showToast(`Signed in as ${guardian.full_name}.`, 'success');
 
-      this.syncFoundAlerts();
-      if (!this.foundAlertTimer) {
-        this.foundAlertTimer = setInterval(() => this.syncFoundAlerts(), 60000);
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) this.syncFoundAlerts(); });
-      }
+      // The guardian's pets, reports and notifications load from Supabase (the store keeps them fresh)
+      window.pawStore.syncFromSupabase();
     };
 
     // First Google sign-in: ask for the name and phone shelters need
@@ -1389,14 +1392,10 @@ class App {
       if (userBtn) userBtn.style.display = 'none';
     }
 
-    // Role Navigation Tabs: When logged out, only Home ('owner') and Report Pet ('report') are visible
+    // Role Navigation Tabs: when logged out, only Missing Pets and Found a Pet are visible.
+    // Reporting a missing pet needs an account, so Report Pet is for signed-in guardians.
     document.querySelectorAll('.role-tab-btn').forEach(btn => {
-      const view = btn.dataset.view;
-      if (view === 'owner' || view === 'report') {
-        btn.style.display = '';
-      } else {
-        btn.style.display = isLoggedIn ? '' : 'none';
-      }
+      btn.style.display = isLoggedIn || this.isGuestView(btn.dataset.view) ? '' : 'none';
     });
   }
 
@@ -1492,7 +1491,7 @@ class App {
         const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
         const isLoggedIn = !!(user && user.name);
 
-        if (!isLoggedIn && targetView !== 'owner') {
+        if (!isLoggedIn && !this.isGuestView(targetView)) {
           e.preventDefault();
           const warningModal = document.getElementById('google-required-modal');
           const onetapPrompt = document.getElementById('google-onetap-prompt');
@@ -1560,8 +1559,14 @@ class App {
     const user = window.pawStore ? window.pawStore.getGoogleUser() : null;
     const isLoggedIn = !!(user && user.name);
 
-    // If logged out, only 'owner' (Home) is accessible. Any other view redirects to 'owner'.
-    if (!isLoggedIn && hash && hash !== 'owner') {
+    // A signed-out visitor reporting a pet is a finder: send them to Found a Pet instead of the missing-pet form
+    if (!isLoggedIn && hash === 'report') {
+      window.location.hash = 'found';
+      return;
+    }
+
+    // If logged out, only the guest views are accessible. Any other view redirects to 'owner'.
+    if (!isLoggedIn && hash && !this.isGuestView(hash)) {
       window.location.hash = 'owner';
       const warningModal = document.getElementById('google-required-modal');
       const onetapPrompt = document.getElementById('google-onetap-prompt');
@@ -1629,56 +1634,8 @@ class App {
     });
   }
 
-  // Pulls "your pet was found" alerts that finders sent from the tap page (stored in Supabase) into the notification list
-  async syncFoundAlerts() {
-    if (!this.supabase || !window.pawStore || !window.pawStore.getGoogleUser()) return;
-    const { data, error } = await this.supabase
-      .from('notifications')
-      .select('id, title, message, pet_name, location, created_at')
-      .eq('type', 'sighting_verification')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (error || !data) return;
-
-    const known = new Set(window.pawStore.getNotifications().map((n) => n.id));
-    const fresh = data.filter((row) => !known.has('sb-' + row.id)).reverse(); // oldest first so the newest ends on top
-    fresh.forEach((row) => {
-      const phone = (row.message.match(/Finder phone: ([^.]+)/) || [])[1] || '';
-      const note = (row.message.match(/Message: "([^"]*)"/) || [])[1] || '';
-      const pet = window.pawStore.getPets().find((p) => p.name === row.pet_name);
-      window.pawStore.addNotification({
-        id: 'sb-' + row.id,
-        title: row.title,
-        message: row.message,
-        type: 'pet_found_match',
-        petId: pet ? pet.id : undefined,
-        petName: row.pet_name,
-        nfcTag: pet ? pet.nfcTag : undefined,
-        finderName: 'Community Good Samaritan',
-        finderPhone: phone.trim(),
-        finderNotes: note,
-        location: row.location,
-        timestamp: row.created_at
-      });
-    });
-    if (fresh.length && window.notifManager) {
-      window.notifManager.showToast(`${fresh[fresh.length - 1].title}`, 'success', 7000);
-    }
-  }
-
-  // Tells the owner of a missing pet (in Supabase) that someone found it, so the alert reaches their own device.
-  // Best effort: the local notification is already written, and pets that only exist on this device have no owner row.
-  async alertOwnerFound(petId, phone, location, notes) {
-    if (!this.supabase || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(petId || ''))) return false;
-    const { data, error } = await this.supabase.rpc('notify_owner_found_by_pet', {
-      p_pet_id: petId, p_phone: phone, p_location: location, p_notes: notes || null
-    });
-    if (error) console.warn('[Found] owner alert failed:', error.message);
-    return !error && !!data;
-  }
-
   updateNotifBadge() {
-    const notifs = window.pawStore.getNotifications();
+    const notifs = window.pawStore.getMyNotifications();
     const unread = notifs.filter(n => !n.read).length;
     const badge = document.getElementById('notif-count-badge');
     const dropdownCount = document.getElementById('notif-dropdown-count');
@@ -1819,13 +1776,7 @@ class App {
         if (petId) {
           const pet = window.pawStore.getPetById(petId);
           window.pawStore.updatePetStatus(petId, 'lost', { lastSeenLocation: location, lostNotes: notes });
-
-          window.pawStore.addNotification({
-            type: 'broadcast',
-            title: `Missing Pet Alert: "${pet ? pet.name : 'Pet'}"`,
-            message: `Guardian reported ${pet ? pet.name : 'pet'} (${pet ? pet.nfcTag : 'NFC'}) missing near ${location}. All municipal scanners and responder patrols alerted.`,
-            petId
-          });
+          // No notification: a pet going missing is not news to its own guardian, and nobody else is notified
 
           window.notifManager.closeModal('report-lost-modal');
           lostForm.reset();
@@ -1886,12 +1837,7 @@ class App {
             window.notifManager.showToast(`AI Match Found! ${topMatch.confidenceScore}% similarity with missing pet "${topMatch.pet.name}". Guardian notified.`, 'success', 6000);
           }
         } else {
-          window.pawStore.addSighting(sighting);
-          window.pawStore.addNotification({
-            type: 'broadcast',
-            title: `Community Stray Sighting: ${species} (${breed})`,
-            message: `Sighted near ${location}. Tag UID: ${nfc || 'None'}. Finder: ${phone || 'Community Member'}.`
-          });
+          window.pawStore.addSighting(sighting); // no notification: it matches nobody's pet
 
           if (window.notifManager) {
             window.notifManager.showToast('Community sighting pinned to Incident Map & Recovery Feed.', 'success', 4000);

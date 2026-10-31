@@ -10,6 +10,8 @@ class OwnerView {
   render(container) {
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
     const pets = window.pawStore.getPets();
+    // The missing list, the map and the missing counts also include pets reported without registering
+    const mapPets = window.pawStore.getMapPets();
     const impoundedPet = pets.find(p => p.status === 'impounded');
     const activeImpoundment = impoundedPet ? window.pawStore.getActiveImpoundmentForPet(impoundedPet.id) : null;
 
@@ -97,7 +99,7 @@ class OwnerView {
     const layoutClass = hasImpound ? 'owner-hero-layout impound-active' : 'owner-hero-layout status-active';
     const statsGridClass = hasImpound ? 'stats-sidebar-col-1' : 'stats-sidebar-grid-2x2';
 
-    const alertCount = pets.filter(p => p.status === 'lost' || p.status === 'impounded').length;
+    const alertCount = mapPets.filter(p => p.status === 'lost' || p.status === 'impounded').length;
     const safeCount = pets.filter(p => p.status === 'safe' || p.status === 'reunited').length;
     const showAlerts = "if (window.publicView) window.publicView.setFilter('lost'); document.getElementById('incident-map-section')?.scrollIntoView({behavior:'smooth'});";
 
@@ -195,7 +197,7 @@ class OwnerView {
         <div class="map-layout-grid">
           <!-- Sidebar Cards List -->
           <div class="map-sidebar-list" id="public-pets-list">
-            ${window.publicView ? window.publicView.renderFilteredList(pets) : ''}
+            ${window.publicView ? window.publicView.renderFilteredList(mapPets) : ''}
           </div>
 
           <!-- Interactive Leaflet Map with Google Maps Styled Controls & Directions HUD -->
@@ -243,7 +245,7 @@ class OwnerView {
 
     if (window.publicView) {
       const shelters = window.pawStore ? window.pawStore.getShelters() : [];
-      setTimeout(() => window.publicView.initMap(pets, shelters), 100);
+      setTimeout(() => window.publicView.initMap(mapPets, shelters), 100);
     }
 
     if (activeImpoundment) {
@@ -279,7 +281,7 @@ class OwnerView {
               <i data-lucide="alert-circle"></i>
             </div>
             <div class="stat-info">
-              <div class="stat-value">${pets.filter(p => p.status === 'lost' || p.status === 'impounded').length}</div>
+              <div class="stat-value">${mapPets.filter(p => p.status === 'lost' || p.status === 'impounded').length}</div>
               <div class="stat-label">${t('owner.statActiveAlerts', 'Active Alerts / In Recovery')}</div>
             </div>
           </div>

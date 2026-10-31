@@ -6,8 +6,6 @@ console.log('=== Running Test: Sightings Navigation Archive, Retrieve & Delete =
 
 const storeJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'store.js'), 'utf8');
 const sightingsViewJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'sightings-view.js'), 'utf8');
-const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
-const apiSyncJs = fs.readFileSync(path.join(__dirname, '..', 'api', 'sync.js'), 'utf8');
 
 // 1. PawStore methods
 assert(storeJs.includes('archiveSighting(sightingId)'), 'PawStore must have archiveSighting method');
@@ -15,14 +13,9 @@ assert(storeJs.includes('retrieveSighting(sightingId)'), 'PawStore must have ret
 assert(storeJs.includes('deleteSighting(sightingId)'), 'PawStore must have deleteSighting method');
 console.log('[PASS] PawStore archive, retrieve, and delete methods present.');
 
-// 2. Server & API Sync handlers
-assert(serverJs.includes('archive_sighting'), 'server.js must handle archive_sighting');
-assert(serverJs.includes('restore_sighting'), 'server.js must handle restore_sighting');
-assert(serverJs.includes('delete_sighting'), 'server.js must handle delete_sighting');
-assert(apiSyncJs.includes('archive_sighting'), 'api/sync.js must handle archive_sighting');
-assert(apiSyncJs.includes('restore_sighting'), 'api/sync.js must handle restore_sighting');
-assert(apiSyncJs.includes('delete_sighting'), 'api/sync.js must handle delete_sighting');
-console.log('[PASS] Server & API Sync mutation handlers present.');
+// 2. Sighting reviews are saved in Supabase (community_sightings), not a local sync server
+assert(storeJs.includes("from('community_sightings').update({ status })"), 'PawStore must save sighting status changes to Supabase');
+console.log('[PASS] Sighting status changes are saved to Supabase.');
 
 // 3. SightingsView buttons and actions
 assert(sightingsViewJs.includes('id="sightings-header-archived-btn"'), 'SightingsView must have header Archived button');

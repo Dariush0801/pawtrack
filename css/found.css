@@ -14,27 +14,30 @@
 .found-stepper li.is-active .found-dot { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent); background: var(--bg-main); }
 .found-stepper li.is-done .found-dot { background: var(--primary); border-color: var(--primary); color: var(--text-inverse, #fff); }
 
-/* Layout: photo on the left (stays in view), results and the alert form on the right */
-.found-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-.found-col { display: grid; gap: 16px; min-width: 0; }
-@media (min-width: 960px) {
-  .found-grid { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
-  .found-col-photo { position: sticky; top: 16px; }
-}
+/* Layout: one column, each step on its own row (mode, progress, photo, then results and the alert form) */
+.found-stack { display: grid; gap: 16px; width: 100%; }
+.found-row { display: grid; gap: 16px; min-width: 0; }
+.found-stack > .found-stepper { margin: 0; }
 .found-flow { max-width: 560px; margin-inline: auto; }
 .found-card { padding: 18px; display: grid; gap: 14px; }
-.found-card-title { margin: 0; font-family: var(--font-heading); font-size: 1rem; }
+.found-card-title { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-heading); font-size: 1rem; }
+.found-card-title i, .found-card-title svg { flex: none; width: 18px; height: 18px; color: var(--primary); }
 
-/* Photo */
-.found-drop { display: grid; justify-items: center; gap: 8px; padding: 30px 16px; text-align: center; border: 2px dashed var(--border-glass); border-radius: var(--radius-lg); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+/* Photo: wide drop zone before a photo, thumbnail with its status after */
+.found-drop { display: flex; align-items: center; gap: 16px; padding: 18px; border: 2px dashed var(--border-glass); border-radius: var(--radius-lg); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
 .found-drop:hover, .found-drop:focus-visible, .found-drop.is-over { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, transparent); outline: none; }
-.found-drop-icon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+.found-drop-icon { flex: none; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
 .found-drop-icon i, .found-drop-icon svg { width: 26px; height: 26px; }
+.found-drop-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .found-drop strong { font-size: 0.98rem; }
-.found-drop p { margin: 0; max-width: 28ch; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
-.found-drop-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
-.found-photo { position: relative; overflow: hidden; border-radius: var(--radius-lg); background: var(--bg-surface-elevated); }
-.found-photo img { display: block; width: 100%; max-height: 380px; object-fit: contain; }
+.found-drop p { margin: 0; max-width: 46ch; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+.found-drop-actions { flex: none; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.found-photo-row { display: flex; align-items: center; gap: 18px; }
+.found-photo { position: relative; flex: none; width: 180px; height: 180px; overflow: hidden; border-radius: var(--radius-lg); background: var(--bg-surface-elevated); }
+.found-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.found-photo-side { flex: 1; min-width: 0; display: grid; gap: 12px; align-content: center; }
+.found-photo-state { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; }
+.found-photo-state i, .found-photo-state svg { flex: none; width: 18px; height: 18px; color: #16a34a; }
 .found-scanline { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--primary), transparent); box-shadow: 0 0 14px var(--primary); animation: found-scan 1.6s ease-in-out infinite; }
 @keyframes found-scan { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }
 .found-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -72,12 +75,13 @@
 .found-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .found-section-head span { font-size: 0.76rem; color: var(--text-muted); }
 .found-hint { margin: -6px 0 0; font-size: 0.8rem; color: var(--text-muted); }
-.found-matches { display: grid; gap: 10px; max-height: 520px; overflow-y: auto; padding: 3px; margin: -3px; }
+.found-matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; max-height: 560px; overflow-y: auto; padding: 3px; margin: -3px; align-content: start; }
+.found-matches > .found-nomatch { grid-column: 1 / -1; }
 
 .found-match { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; text-align: left; border: 1.5px solid var(--border-subtle, var(--border-glass)); border-radius: var(--radius-lg); background: var(--bg-surface-elevated); color: var(--text-main); font: inherit; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease; }
 .found-match:hover { border-color: var(--primary); transform: translateY(-1px); }
 .found-match:focus-visible, .found-none:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
-.found-match.is-selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--bg-surface-elevated)); box-shadow: 0 0 0 1px var(--primary); }
+.found-match.is-selected { padding-right: 38px; border-color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--bg-surface-elevated)); box-shadow: 0 0 0 1px var(--primary); }
 .found-match-img { flex: none; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; display: grid; place-items: center; background: var(--bg-main); color: var(--primary); }
 .found-match-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .found-match-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -94,7 +98,7 @@
 .found-match.is-mid .found-score b { color: #ea9d1e; }
 .found-match.is-high .found-score b { color: #16a34a; }
 .found-score small { font-size: 0.64rem; color: var(--text-muted); white-space: nowrap; }
-.found-check { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; display: none; place-items: center; background: var(--primary); color: var(--text-inverse, #fff); box-shadow: var(--shadow-md); }
+.found-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; display: none; place-items: center; background: var(--primary); color: var(--text-inverse, #fff); box-shadow: var(--shadow-md); }
 .found-check i, .found-check svg { width: 13px; height: 13px; }
 .found-match.is-selected .found-check { display: grid; }
 
@@ -144,11 +148,78 @@
 .found-mode-btn.is-active { background: var(--primary); color: var(--text-inverse, #fff); box-shadow: var(--shadow-md); }
 .found-mode-btn:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
 
-/* Scan tab before a photo: the instructions card stretches to end level with the photo card */
-.found-grid.is-empty { align-items: stretch; }
-.found-grid.is-empty .found-col-photo { position: static; }
-.found-grid.is-empty .found-col-photo .found-card { height: 100%; align-content: start; }
-.found-grid.is-empty .found-col-main { grid-template-rows: auto 1fr; }
-.found-grid.is-empty .found-empty { align-content: center; gap: 12px; }
-.found-grid.is-empty .found-how { gap: 10px; }
-.found-grid.is-empty .found-how li { padding: 9px 12px; }
+/* Search and species filter */
+.found-filter { display: grid; gap: 10px; }
+.found-search { position: relative; display: block; }
+.found-search > i, .found-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
+.found-search .form-control { padding-left: 38px; }
+.found-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.found-chip { padding: 6px 14px; border: 1.5px solid var(--border-glass); border-radius: var(--radius-full); background: none; color: var(--text-muted); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.found-chip:hover { border-color: var(--primary); color: var(--text-main); }
+.found-chip.is-active { background: var(--primary); border-color: var(--primary); color: var(--text-inverse, #fff); }
+.found-chip:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+
+/* Alert form: fields side by side when there is room */
+@media (min-width: 640px) {
+  .found-form { grid-template-columns: 1fr 1fr; }
+  .found-form .found-where, .found-send { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .found-drop { flex-direction: column; text-align: center; }
+  .found-drop p { margin-inline: auto; }
+  .found-drop-actions { justify-content: center; }
+  .found-photo-row { flex-direction: column; align-items: stretch; }
+  .found-photo { width: 100%; height: 220px; }
+  .found-matches { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Where the pet was found: search, current location, then a map with a draggable pin (like the report form) */
+.found-where { display: grid; gap: 0; }
+.found-place-wrap { position: relative; z-index: 1100; margin-bottom: 10px; }
+.found-place-wrap .use-location-btn { margin-top: 8px; }
+.found-map-wrap { position: relative; height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-subtle, var(--border-glass)); }
+#found-pin-map { width: 100%; height: 100%; }
+.found-where.has-error .found-map-wrap { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.found-place-label { margin-top: 12px; }
+@media (max-width: 640px) { .found-map-wrap { height: 240px; } }
+
+/* Alert form fields: a clear outline on a lighter fill (they used to blend into the card), a stronger edge on
+   hover, an accent ring on focus and a red edge on a field with an error. The search box matches the fields. */
+.found-form .form-control,
+.found-form .report-location-search-box {
+  background: var(--bg-surface);
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 38%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.found-form .form-control { min-height: 44px; padding: 10px 14px; font-size: 0.92rem; }
+.found-form .report-location-search-box { min-height: 44px; padding: 0 12px; }
+.found-form .report-location-search-input { font-size: 0.9rem !important; }
+.found-form .form-control:hover,
+.found-form .report-location-search-box:hover { border-color: color-mix(in srgb, var(--text-muted) 62%, transparent); }
+.found-form .form-control:focus,
+.found-form .report-location-search-box:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+  outline: none;
+}
+.found-form .form-control::placeholder { color: color-mix(in srgb, var(--text-muted) 85%, transparent); }
+.found-form textarea.form-control { height: 44px; resize: vertical; line-height: 1.4; }
+.found-form .has-error .form-control { border-color: var(--danger); }
+.found-form .has-error .form-control:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent); }
+.found-form .found-where.has-error .form-control { border-color: color-mix(in srgb, var(--text-muted) 38%, transparent); } /* only the map is outlined for a missing pin */
+.found-form .form-label { font-weight: 700; }
+
+/* Place name is set by the map pin only: shown as read-only text, not as a field to type in */
+.found-form .form-control.found-place-name,
+.found-form .form-control.found-place-name:hover,
+.found-form .form-control.found-place-name:focus {
+  background: color-mix(in srgb, var(--text-muted) 8%, var(--bg-surface));
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--text-muted) 38%, transparent);
+  box-shadow: none;
+  cursor: default;
+  color: var(--text-main);
+}

@@ -51,13 +51,14 @@ class PetAI {
     return data.description;
   }
 
-  // Reads a photo with Gemini (through /api/photo-match) and returns the traits it can see
+  // Reads a photo with Gemini (through the photo-match Edge Function) and returns the traits it can see
   async readPhoto(photo) {
     const image = await this.imagePayload(photo);
     if (!image) throw new Error('This photo could not be read.');
-    const response = await fetch('/api/photo-match', {
+    const cfg = window.PAWTRACK_SUPABASE;
+    const response = await fetch(`${cfg.url}/functions/v1/photo-match`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', apikey: cfg.publishableKey },
       body: JSON.stringify({ image: `data:${image.mimeType};base64,${image.imageBase64}` })
     });
     const data = await response.json().catch(() => ({}));
@@ -80,7 +81,7 @@ class PetAI {
   // Ranks the pets already reported missing against what the photo shows. Their descriptions are part of the comparison.
   matchMissing(traits, limit = 3) {
     const store = window.pawStore;
-    const missing = store.getPets().filter((p) => p.status === 'lost');
+    const missing = store.getMapPets().filter((p) => p.status === 'lost');
     const colors = (traits.colors || []).join(' ');
     const sighting = {
       species: traits.species && traits.species !== 'Unknown' ? traits.species : '',

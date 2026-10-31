@@ -11,7 +11,8 @@ const MAP_LAYER_PRESETS = {
   lastseen:  { missing: false, lastSeen: true,  sightings: false, impounded: false, reunited: false, shelters: false },
   sighted:   { missing: false, lastSeen: false, sightings: true,  impounded: false, reunited: false, shelters: false },
   impounded: { missing: false, lastSeen: false, sightings: false, impounded: true,  reunited: false, shelters: true },
-  reunited:  { missing: false, lastSeen: false, sightings: false, impounded: false, reunited: true,  shelters: false }
+  reunited:  { missing: false, lastSeen: false, sightings: false, impounded: false, reunited: true,  shelters: false },
+  mine:      { missing: true,  lastSeen: false, sightings: false, impounded: true,  reunited: false, shelters: false }
 };
 
 const MAP_LAYER_DEFS = [
@@ -27,6 +28,7 @@ class PublicView {
   constructor() {
     this.map = null;
     this.currentFilter = 'all';
+    this.mineOnly = false; // "My pets" filter: only the signed-in guardian's own pets
     this.searchQuery = '';
     this.petMarkers = {};
     this.shelterMarkers = [];
@@ -56,7 +58,7 @@ class PublicView {
   render(container) {
     this.focusPoint = null;
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
-    const pets = window.pawStore.getPets();
+    const pets = window.pawStore.getMapPets();
     const shelters = window.pawStore.getShelters();
 
     container.innerHTML = `
@@ -131,7 +133,7 @@ class PublicView {
 
   renderFilterButtons() {
     const t = (k, d) => (window.pawI18n ? window.pawI18n.t(k, d) : d);
-    const pets = window.pawStore.getPets();
+    const pets = window.pawStore.getMapPets();
     const sightings = window.pawStore.getSightings();
     const lostCount = pets.filter(p => p.status === 'lost').length;
     const sightedCount = sightings.length;
@@ -139,6 +141,9 @@ class PublicView {
     const impoundedCount = pets.filter(p => p.status === 'impounded' || p.status === 'active_impounded').length;
     const reunitedCount = pets.filter(p => p.status === 'reunited').length;
 
+    // Owners get a "My pets" filter for their own pets that are missing or impounded
+    const mineCount = pets.filter(p => window.pawStore.isMyPet(p) && ['missing', 'impounded'].includes(this.layerFor(p))).length;
+    const isMine = this.currentFilter === 'mine';
     const isAll = this.currentFilter === 'all';
     const isLost = this.currentFilter === 'lost';
     const isLastSeen = this.currentFilter === 'lastseen';
@@ -150,6 +155,9 @@ class PublicView {
       <button type="button" class="btn btn-sm ${isAll ? 'btn-primary active' : 'btn-outline'}" onclick="window.publicView.setFilter('all')">
         ${t('map.filterAll', 'All Records')} (${pets.length + sightings.length + lastSeenCount})
       </button>
+      ${mineCount ? `<button type="button" class="btn btn-sm ${isMine ? 'btn-primary active' : 'btn-outline'}" onclick="window.publicView.setFilter('mine')" title="Only your own pets">
+        ${t('map.filterMine', 'My Pets')} (${mineCount})
+      </button>` : ''}
       <button type="button" class="btn btn-sm ${isLost ? 'btn-danger active' : 'btn-outline'}" onclick="window.publicView.setFilter('lost')">
         ${t('map.filterLost', 'Missing')} (${lostCount})
       </button>
@@ -205,6 +213,13 @@ class PublicView {
     } else {
       this.render(document.getElementById('app-viewport'));
     }
+  }
+
+  // "Breed • Gender" under a pet's name; a pet reported without registering says so instead of a gender
+  petSubtitle(pet) {
+    const kind = pet.unregistered ? (pet.reportedByOwner ? 'Not registered' : 'Not registered · Reported by someone else') : pet.gender;
+    const looks = pet.unregistered && pet.description ? pet.description : pet.breed;
+    return [looks, kind].filter(Boolean).join(' • '); // plain text: escaped where it is used
   }
 
   isInSelectedCommunity(item) {
@@ -285,6 +300,7 @@ class PublicView {
     pets.forEach(p => {
       if (!this.isInSelectedCommunity(p)) return;
       if (!this.layers[this.layerFor(p)]) return;
+      if (this.mineOnly && !window.pawStore.isMyPet(p)) return;
 
       if (this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
@@ -404,17 +420,22 @@ class PublicView {
         'pet-4': [14.5880, 121.0450]
       };
       const pCoords = petCoordinates[pet.id] || (pet.lastSeenCoords || [14.6400, 121.0500]);
+      const mine = window.pawStore.isMyPet(pet);
+      const tap = mine && pet.status === 'lost' ? `window.publicView.openMarkFound('${pet.id}')` : `window.publicView.focusPetOnMap('${pet.id}')`;
 
       return `
-        <div class="glass-card" style="padding:0.9rem; display:flex; flex-direction:column; gap:0.6rem; cursor:pointer;" onclick="window.publicView.focusPetOnMap('${pet.id}')">
+        <div class="glass-card" style="padding:0.9rem; display:flex; flex-direction:column; gap:0.6rem; cursor:pointer;" onclick="${tap}">
           <div style="display:flex; gap:0.85rem; align-items:center;">
-            <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${pet.photoUrl}', '${(pet.name || 'Pet').replace(/'/g, "\\'")}', '${pet.breed} • ${pet.gender}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
+            <img src="${pet.photoUrl || window.PET_PHOTO_PLACEHOLDER}" style="width:58px; height:58px; border-radius:var(--radius-md); object-fit:cover; border:2px solid ${statusColor}; flex-shrink:0; cursor:zoom-in;" onclick="event.stopPropagation(); window.pawApp.openLightbox('${this.jsArg(pet.photoUrl)}', '${this.jsArg(pet.name || 'Pet')}', '${this.jsArg(this.petSubtitle(pet))}')" title="Click to view full photo" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'" />
             <div style="flex:1; min-width:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:2px;">
-                <h4 style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">${pet.name}</h4>
-                <span style="font-size:0.68rem; font-weight:700; color:${statusColor}; text-transform:uppercase; white-space:nowrap; flex-shrink:0;">${statusLabel}</span>
+                <h4 style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">${this.escapeHtml(pet.name)}</h4>
+                <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                  ${mine ? `<span class="pet-mine-tag">${pet.unregistered && !pet.reportedByOwner ? 'You reported' : 'Your pet'}</span>` : ''}
+                  <span style="font-size:0.68rem; font-weight:700; color:${statusColor}; text-transform:uppercase; white-space:nowrap;">${statusLabel}</span>
+                </span>
               </div>
-              <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pet.breed} • ${pet.gender}</div>
+              <div style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(this.petSubtitle(pet))}</div>
             </div>
           </div>
           <div style="display:flex; gap:6px; border-top:1px solid var(--border-subtle); padding-top:6px;">
@@ -463,6 +484,7 @@ class PublicView {
     // Apply active tile layer (Roadmap default)
     this.setMapLayer(this.currentMapType || 'roadmap', false);
     this.map.on('click', () => this.clearFocus());
+    this.map.on('zoomend', () => this.spreadOverlapping());
 
     this.petMarkers = {};
     this.shelterMarkers = [];
@@ -554,7 +576,8 @@ class PublicView {
           rows: [
             { icon: 'pin', label: p.status === 'lost' ? 'Last seen at' : 'Location', value: p.lastSeenLocation, hint: p.lastSeenDate ? this.getTimeAgo(p.lastSeenDate) : '' }
           ],
-          actions: `${p.status === 'lost' ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Seen this pet?</button><button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
+          note: p.unregistered ? p.description : '',
+          actions: `${p.status === 'lost' ? `${window.pawStore.isMyPet(p) ? `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.openMarkFound('${p.id}')">Mark as found</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.reportManager.openSightingModal('${p.missingReportId || ''}', '${p.id}')">Seen this pet?</button>`}<button type="button" class="pt-btn pt-btn-ghost" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>` : `<button type="button" class="pt-btn pt-btn-primary" onclick="window.publicView.showDirections(${coords[0]}, ${coords[1]}, '${this.jsArg(p.name)}', '${this.jsArg(p.lastSeenLocation || 'Metro Manila')}', '${this.jsArg(p.photoUrl)}', 'pet')">Directions</button>`}${this.popupMapsLink(coords[0], coords[1])}`
         })}
       `);
 
@@ -683,6 +706,103 @@ class PublicView {
     });
 
     this.updateFilterUI();
+    this.spreadOverlapping();
+  }
+
+  // Pins at (nearly) the same place sit on top of each other and hide all but one. Pins that land within
+  // PIN_GAP pixels of each other on screen are fanned out in a ring around their shared spot, with a thin
+  // line back to the real location. Measured in screen pixels (Web Mercator at the current zoom), so it works
+  // with Leaflet and Google Maps alike and re-runs on every zoom. Zoomed out past MIN_ZOOM the pins go back to
+  // their true positions: a ring that size would be miles wide there and look like the pets are scattered.
+  spreadOverlapping() {
+    const map = this.map;
+    if (!map || !window.L || typeof map.getZoom !== 'function') return;
+    const PIN_GAP = 40;
+    const MIN_ZOOM = 13;
+    const scale = 256 * Math.pow(2, map.getZoom());
+    const toPx = ({ lat, lng }) => {
+      const sin = Math.sin(lat * Math.PI / 180);
+      return { x: (lng + 180) / 360 * scale, y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale };
+    };
+    const toLatLng = ({ x, y }) => ({
+      lat: 90 - 360 * Math.atan(Math.exp(((y / scale) - 0.5) * 2 * Math.PI)) / Math.PI,
+      lng: x / scale * 360 - 180
+    });
+
+    const pins = [];
+    const take = (marker) => {
+      if (!marker || !map.hasLayer(marker)) return;
+      if (!marker._trueLatLng) { const at = marker.getLatLng(); marker._trueLatLng = { lat: at.lat, lng: at.lng }; }
+      pins.push(marker);
+    };
+    Object.values(this.petMarkers || {}).forEach(take);
+    (this.sightingMarkers || []).forEach(item => take(item.marker));
+    (this.lastSeenItems || []).forEach(item => take(item.marker));
+
+    (this.spreadLayers || []).forEach(layer => map.removeLayer(layer));
+    this.spreadLayers = [];
+
+    const groups = [];
+    pins.forEach(marker => {
+      const px = toPx(marker._trueLatLng);
+      const group = groups.find(g => Math.hypot(g.center.x - px.x, g.center.y - px.y) < PIN_GAP);
+      if (group) group.pins.push(marker); else groups.push({ center: px, pins: [marker] });
+    });
+
+    // Zoomed out: pins stay on their true spots, and a stack shows how many pets are there.
+    // Tapping the count zooms in far enough for the stack to fan out.
+    if (map.getZoom() < MIN_ZOOM) {
+      pins.forEach(marker => {
+        const at = marker.getLatLng();
+        if (at.lat !== marker._trueLatLng.lat || at.lng !== marker._trueLatLng.lng) marker.setLatLng(marker._trueLatLng);
+      });
+      // The count is of pets reported at the same spot (within about 30 m), not of every pin that happens to
+      // overlap at this zoom: a pet a kilometre away can touch the stack zoomed out but is not "here"
+      const SAME_SPOT_DEG = 0.0003;
+      const spots = [];
+      groups.forEach(({ pins: members }) => members.forEach(marker => {
+        const at = marker._trueLatLng;
+        const spot = spots.find(s => Math.abs(s.at.lat - at.lat) < SAME_SPOT_DEG && Math.abs(s.at.lng - at.lng) < SAME_SPOT_DEG);
+        if (spot) spot.pins.push(marker); else spots.push({ at, pins: [marker] });
+      }));
+      spots.filter(s => s.pins.length > 1).forEach(({ pins: members }) => {
+        const spot = members[0]._trueLatLng;
+        const badge = window.L.marker([spot.lat, spot.lng], {
+          // A 24px circle on the top-left of the 44x54 pin head (the pin's anchor is its bottom tip)
+          icon: window.L.divIcon({ className: 'pin-stack-wrap', html: `<span class="pin-stack-count" title="${members.length} pets here. Tap to zoom in">${members.length}</span>`, iconSize: [24, 24], iconAnchor: [30, 62] }),
+          zIndexOffset: 3000
+        }).addTo(map);
+        badge.on('click', () => map.setView([spot.lat, spot.lng], MIN_ZOOM + 2));
+        this.spreadLayers.push(badge);
+      });
+      return;
+    }
+
+    groups.forEach(({ center, pins: members }) => {
+      if (members.length === 1) {
+        const only = members[0];
+        const at = only.getLatLng();
+        if (at.lat !== only._trueLatLng.lat || at.lng !== only._trueLatLng.lng) only.setLatLng(only._trueLatLng);
+        return;
+      }
+      // Each pin carries a name label on its right (about 130px wide with the pin), so the ring is wide enough
+      // that neighbours on the lower half do not cover each other's labels
+      const radius = Math.max(80, (members.length * 70) / (2 * Math.PI));
+      members.forEach((marker, i) => {
+        const angle = -Math.PI / 2 + (i * 2 * Math.PI) / members.length;
+        const spot = toLatLng({ x: center.x + radius * Math.cos(angle), y: center.y + radius * Math.sin(angle) });
+        marker.setLatLng(spot);
+        const line = window.L.polyline([[marker._trueLatLng.lat, marker._trueLatLng.lng], [spot.lat, spot.lng]], {
+          color: '#64748b', weight: 1.5, opacity: 0.7, dashArray: '3 4', interactive: false
+        }).addTo(map);
+        this.spreadLayers.push(line);
+      });
+      // A small dot on the real location the fanned pins belong to
+      const dot = window.L.circle([members[0]._trueLatLng.lat, members[0]._trueLatLng.lng], {
+        radius: 1, color: '#64748b', weight: 2, opacity: 0.9, fillColor: '#ffffff', fillOpacity: 1, interactive: false
+      }).addTo(map);
+      this.spreadLayers.push(dot);
+    });
   }
 
   // "Have you seen this pet?" on a last-seen record: open the sighting form pre-filled with that pet
@@ -1183,7 +1303,7 @@ class PublicView {
     if (!this.map || !window.L) return;
     const visibleCoords = [];
 
-    const pets = window.pawStore.getPets();
+    const pets = window.pawStore.getMapPets();
     pets.forEach(p => {
       const marker = this.petMarkers[p.id];
       if (marker && this.map.hasLayer(marker)) {
@@ -1208,6 +1328,86 @@ class PublicView {
       const bounds = window.L.latLngBounds(visibleCoords);
       this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
+  }
+
+  // "Mark as found" for the guardian's own missing pet: confirm, then take it off the missing map
+  openMarkFound(petId) {
+    const pet = window.pawStore.getMapPets().find(p => String(p.id) === String(petId));
+    if (!pet || !window.pawStore.isMyPet(pet)) return;
+    this.map?.closePopup();
+    let modal = document.getElementById('mark-found-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'mark-found-modal';
+      modal.addEventListener('mousedown', (e) => { if (e.target === modal) window.notifManager.closeModal('mark-found-modal'); });
+      document.body.appendChild(modal);
+    }
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const seen = pet.lastSeenDate ? this.getTimeAgo(pet.lastSeenDate) : '';
+    modal.innerHTML = `
+      <div class="modal-box mark-found-box" role="dialog" aria-modal="true" aria-labelledby="mark-found-title">
+        <div class="modal-header">
+          <h3 id="mark-found-title">Mark as found</h3>
+          <button type="button" class="btn-outline btn-sm" onclick="window.notifManager.closeModal('mark-found-modal')" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body mark-found-body">
+          <div class="mark-found-pet">
+            <img src="${esc(pet.photoUrl || window.PET_PHOTO_PLACEHOLDER)}" alt="" />
+            <div>
+              <strong>${esc(pet.name)}</strong>
+              <span>${esc([pet.unregistered && pet.description ? pet.description : pet.breed, pet.unregistered ? 'Not registered' : pet.gender].filter(Boolean).join(' · '))}</span>
+              <span class="mark-found-seen"><i data-lucide="map-pin"></i>${esc(pet.lastSeenLocation || 'Last seen location not set')}${seen ? ` · ${esc(seen)}` : ''}</span>
+            </div>
+          </div>
+          <p class="mark-found-question">${pet.unregistered && !pet.reportedByOwner ? `Is ${esc(pet.name)} found and safe?` : `Is ${esc(pet.name)} back home and safe?`}</p>
+          <ul class="mark-found-effects">
+            <li><i data-lucide="map-pin-off"></i><span>The missing alert comes off the map and the missing list.</span></li>
+            <li><i data-lucide="check-circle-2"></i><span>The report is closed, so finders stop sending sightings.</span></li>
+          </ul>
+        </div>
+        <div class="modal-footer mark-found-footer">
+          <button type="button" class="btn btn-outline" onclick="window.notifManager.closeModal('mark-found-modal')">Not yet</button>
+          <button type="button" class="btn btn-primary" id="mark-found-confirm" onclick="window.publicView.markFound('${esc(pet.id)}')"><i data-lucide="check"></i> Yes, mark as found</button>
+        </div>
+      </div>`;
+    window.notifManager.openModal('mark-found-modal');
+  }
+
+  async markFound(petId) {
+    const store = window.pawStore;
+    const pet = store.getMapPets().find(p => String(p.id) === String(petId));
+    if (!pet || !store.isMyPet(pet)) return;
+    const btn = document.getElementById('mark-found-confirm');
+    if (btn) btn.disabled = true;
+
+    if (pet.unregistered) {
+      // Exists only as its report: closing the report takes it off the map
+      store.updateMissingReport(pet.missingReportId, { status: 'resolved', resolvedAt: new Date().toISOString() });
+      store.resolveCasesForPet(pet.id, { missingReportId: pet.missingReportId });
+    } else {
+      // Registered pet: save the status where its tag page reads it, then on this device
+      // (updatePetStatus also closes its cases and missing reports)
+      const client = window.pawApp && window.pawApp.supabase;
+      if (client && /^[0-9a-f-]{36}$/i.test(pet.id)) {
+        const { error } = await client.from('registered_pets').update({ status: 'safe' }).eq('id', pet.id);
+        if (error) {
+          if (btn) btn.disabled = false;
+          window.notifManager.showToast(`Could not mark ${pet.name} as found: ${error.message}`, 'error', 5000);
+          return;
+        }
+      }
+      store.updatePetStatus(pet.id, 'safe');
+    }
+
+    window.notifManager.closeModal('mark-found-modal');
+    window.notifManager.showToast(`${pet.name} is marked as found. Glad they are home.`, 'success', 4000);
+    if (this.currentFilter === 'mine' && !store.getMapPets().some(p => store.isMyPet(p) && ['missing', 'impounded'].includes(this.layerFor(p)))) {
+      this.setFilter('all'); // nothing of yours is left to show
+    }
+    const viewport = document.getElementById('app-viewport');
+    const view = window.pawApp && window.pawApp.views[window.pawApp.currentView];
+    if (view && viewport) view.render(viewport);
   }
 
   focusPetOnMap(petId) {
@@ -1238,7 +1438,7 @@ class PublicView {
   }
 
   layerCounts() {
-    const pets = window.pawStore.getPets();
+    const pets = window.pawStore.getMapPets();
     const countBy = (key) => pets.filter(p => this.layerFor(p) === key).length;
     return {
       missing: countBy('missing'),
@@ -1293,13 +1493,14 @@ class PublicView {
   toggleLayer(key) {
     this.layers[key] = !this.layers[key];
     const same = (a, b) => Object.keys(a).every(k => a[k] === b[k]);
-    this.currentFilter = Object.keys(MAP_LAYER_PRESETS).find(name => same(this.layers, MAP_LAYER_PRESETS[name])) || 'custom';
+    this.currentFilter = Object.keys(MAP_LAYER_PRESETS).filter(name => name !== 'mine' || this.mineOnly).find(name => same(this.layers, MAP_LAYER_PRESETS[name])) || 'custom';
     this.updateFilterUI(false);
   }
 
   setFilter(filter) {
     this.focusPoint = null;
     this.currentFilter = filter;
+    this.mineOnly = filter === 'mine';
     this.layers = { ...(MAP_LAYER_PRESETS[filter] || MAP_LAYER_PRESETS.all) };
     this.updateFilterUI();
   }
@@ -1318,7 +1519,7 @@ class PublicView {
 
     const listElem = document.getElementById('public-pets-list');
     if (listElem) {
-      listElem.innerHTML = this.renderFilteredList(window.pawStore.getPets());
+      listElem.innerHTML = this.renderFilteredList(window.pawStore.getMapPets());
       if (window.lucide) window.lucide.createIcons({ root: listElem });
     }
 
@@ -1328,7 +1529,7 @@ class PublicView {
 
   updateMapMarkers(fit = true) {
     if (!this.map || !this.petMarkers) return;
-    const pets = window.pawStore.getPets();
+    const pets = window.pawStore.getMapPets();
     const visibleCoords = [];
 
     // Filter pet markers
@@ -1337,6 +1538,7 @@ class PublicView {
       if (!marker) return;
 
       let isMatch = this.layers[this.layerFor(p)];
+      if (isMatch && this.mineOnly) isMatch = window.pawStore.isMyPet(p);
 
       if (isMatch && this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
@@ -1396,6 +1598,7 @@ class PublicView {
         this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       } catch (e) {}
     }
+    this.spreadOverlapping();
   }
 
   // =========================================================
@@ -1454,9 +1657,10 @@ class PublicView {
     results.innerHTML = `<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:12px;">Analyzing photo...</div>`;
 
     try {
-      const response = await fetch('/api/photo-match', {
+      const cfg = window.PAWTRACK_SUPABASE;
+      const response = await fetch(`${cfg.url}/functions/v1/photo-match`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', apikey: cfg.publishableKey },
         body: JSON.stringify({ image: this.photoMatchImage })
       });
       const data = await response.json().catch(() => ({}));
@@ -1485,7 +1689,7 @@ class PublicView {
       distinctMarkings: traits.distinctMarkings || '',
       comments: `${colors} ${traits.distinctMarkings || ''}`.trim()
     };
-    const missingPets = window.pawStore.getPets().filter(p => p.status === 'lost');
+    const missingPets = window.pawStore.getMapPets().filter(p => p.status === 'lost');
     const matches = window.pawStore.runAiPetMatch(sighting, missingPets).slice(0, 5);
     const checkedLabel = `${missingPets.length} missing pet${missingPets.length === 1 ? '' : 's'}`;
 

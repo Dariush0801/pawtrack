@@ -6,7 +6,7 @@
  * Google Maps JavaScript API, so those maps render with Google Maps without rewriting their code.
  *
  * Boot sequence:
- *   1. Load Google Maps with the key from /api/config (see js/google-maps.js).
+ *   1. Load Google Maps with the key from the public-config Edge Function (see js/google-maps.js).
  *   2. On success, window.L is replaced by this adapter (Leaflet stays at window.LeafletOriginal).
  *   3. If no key is set or loading fails, Leaflet stays in place and the maps keep working as before.
  *
@@ -104,7 +104,7 @@
             gmpClickable: true,
             zIndex: 1000 + (this._opts.zIndexOffset || 0)
           });
-          this._g.addListener('click', () => {
+          this._g.addEventListener('gmp-click', () => {
             if (this._popupHtml) this.openPopup();
             this._handlers.filter(h => h.type === 'click').forEach(h => h.fn({ target: this }));
           });
@@ -340,6 +340,10 @@
         });
         this._g.addListener('mouseout', () => {
           this._handlers.filter(h => h.type === 'mouseout').forEach(h => h.fn({}));
+        });
+        // Zoom changed (Leaflet's 'zoomend'), used to re-spread pins that overlap on screen
+        this._g.addListener('zoom_changed', () => {
+          this._handlers.filter(h => h.type === 'zoomend').forEach(h => h.fn({}));
         });
         // The user dragging the map (turn-by-turn stops following their position)
         this._g.addListener('dragstart', () => {

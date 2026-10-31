@@ -21,7 +21,10 @@ class FoundView {
     this.sent = null;         // { name } once an alert has gone out
     this.mode = 'pick';       // 'pick' (choose it from the missing list) | 'scan' (find the pet from a photo)
     this.query = '';          // search text in the missing list
-    this.form = { location: '', phone: '', notes: '' };
+    this.species = '';        // species chip in the missing list ('' = all)
+    this.form = { location: '', placedesc: '', phone: '', notes: '' };
+    this.pin = null;          // { lat, lng } where the finder dropped the pin
+    this.pinChosen = false;   // the finder placed it (map tap, drag, search pick or current location)
   }
 
   esc(v) {
@@ -42,21 +45,23 @@ class FoundView {
       <div class="view-header">
         <div class="view-title-group">
           <h1>Found a Pet</h1>
-          <div class="view-subtitle">Choose the missing pet you found, or scan a photo and let the AI find a match. Then alert the owner.</div>
+          <div class="view-subtitle">Choose the missing pet you found, or scan the pet and let the AI find a match. Then alert the owner.</div>
         </div>
       </div>
       ${this.sent ? `<div class="found-flow">${this.sentHtml()}</div>` : `
-        ${this.stepperHtml()}
-        <div class="found-grid${this.mode === 'scan' && !this.photo ? ' is-empty' : ''}">
-          <div class="found-col found-col-photo">${this.photoHtml()}</div>
-          <div class="found-col found-col-main">${this.mainHtml()}</div>
+        <div class="found-stack">
+          ${this.modeHtml()}
+          ${this.stepperHtml()}
+          <div class="found-row found-row-photo">${this.photoHtml()}</div>
+          <div class="found-row found-row-main">${this.mainHtml()}</div>
         </div>`}`;
     this.bind();
+    if (document.getElementById('found-pin-map')) this.initPinMap();
     if (window.lucide) window.lucide.createIcons({ root: this.container });
   }
 
   keepForm() {
-    ['location', 'phone', 'notes'].forEach((k) => {
+    ['location', 'placedesc', 'phone', 'notes'].forEach((k) => {
       const el = document.getElementById(`found-${k}`);
       if (el) this.form[k] = el.value;
     });
@@ -87,25 +92,43 @@ class FoundView {
 
   photoHtml() {
     const scanning = this.status === 'scanning';
+    const optional = this.mode === 'pick' ? ' <span class="found-optional">(optional)</span>' : '';
+    let body;
+    if (this.photo) {
+      const state = this.mode === 'pick'
+        ? 'Sent to the owner with your alert.'
+        : scanning ? 'Reading the photo...'
+        : this.status === 'done' ? `${this.matches.length} similar missing ${this.matches.length === 1 ? 'pet' : 'pets'} found.`
+        : this.status === 'error' ? 'The scan did not finish.' : 'Ready to scan.';
+      body = `<div class="found-photo-row">
+          <div class="found-photo"><img src="${this.esc(this.photo)}" alt="The pet you found" />
+            ${scanning ? '<div class="found-scanline" aria-hidden="true"></div>' : ''}</div>
+          <div class="found-photo-side">
+            <span class="found-photo-state" role="status">${scanning ? '<span class="found-spinner"></span>' : '<i data-lucide="check-circle-2"></i>'}${state}</span>
+            <div class="found-photo-actions">
+              <button type="button" class="btn btn-outline btn-sm" id="found-change" ${scanning ? 'disabled' : ''}><i data-lucide="image"></i> Change photo</button>
+              ${this.mode === 'scan' && (this.status === 'done' || this.status === 'error') ? '<button type="button" class="btn btn-outline btn-sm" id="found-scan"><i data-lucide="refresh-cw"></i> Scan again</button>' : ''}
+              ${this.mode === 'pick' ? '<button type="button" class="btn btn-outline btn-sm" id="found-remove"><i data-lucide="trash-2"></i> Remove</button>' : ''}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      body = `<div class="found-drop" id="found-drop" tabindex="0" role="button" aria-label="Choose a photo">
+          <span class="found-drop-icon"><i data-lucide="camera"></i></span>
+          <span class="found-drop-text">
+            <strong>Add a photo of the pet</strong>
+            <p>Drop it here, or choose one. A clear photo of the face and body works best.</p>
+          </span>
+          <span class="found-drop-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="found-upload"><i data-lucide="upload"></i> Upload photo</button>
+            <button type="button" class="btn btn-outline btn-sm" id="found-camera"><i data-lucide="camera"></i> Take photo</button>
+          </span>
+        </div>`;
+    }
     return `
       <section class="glass-card found-card found-photo-card">
-        <h3 class="found-card-title">Photo of the pet${this.mode === 'pick' ? ' <span class="found-optional">(optional)</span>' : ''}</h3>
-        ${this.photo
-          ? `<div class="found-photo"><img src="${this.esc(this.photo)}" alt="The pet you found" />
-              ${scanning ? '<div class="found-scanline" aria-hidden="true"></div>' : ''}</div>
-              <div class="found-photo-actions">
-                <button type="button" class="btn btn-outline btn-sm" id="found-change" ${scanning ? 'disabled' : ''}><i data-lucide="image"></i> Change photo</button>
-                ${this.status === 'done' || this.status === 'error' ? '<button type="button" class="btn btn-outline btn-sm" id="found-scan"><i data-lucide="refresh-cw"></i> Scan again</button>' : ''}
-              </div>`
-          : `<div class="found-drop" id="found-drop" tabindex="0" role="button" aria-label="Choose a photo">
-              <span class="found-drop-icon"><i data-lucide="camera"></i></span>
-              <strong>Add a photo of the pet</strong>
-              <p>Drop it here, or choose one. A clear photo of the face and body works best.</p>
-              <div class="found-drop-actions">
-                <button type="button" class="btn btn-primary btn-sm" id="found-upload"><i data-lucide="upload"></i> Upload photo</button>
-                <button type="button" class="btn btn-outline btn-sm" id="found-camera"><i data-lucide="camera"></i> Take photo</button>
-              </div>
-            </div>`}
+        <h3 class="found-card-title"><i data-lucide="camera"></i> Photo of the pet${optional}</h3>
+        ${body}
         <input type="file" id="found-file" accept="image/*" hidden />
         <input type="file" id="found-cam" accept="image/*" capture="environment" hidden />
       </section>`;
@@ -113,22 +136,29 @@ class FoundView {
 
   modeHtml() {
     const tab = (key, icon, label) => `<button type="button" class="found-mode-btn${this.mode === key ? ' is-active' : ''}" data-mode="${key}" role="tab" aria-selected="${this.mode === key}"><i data-lucide="${icon}"></i> ${label}</button>`;
-    return `<div class="found-mode" role="tablist" aria-label="How do you want to find the pet?">${tab('pick', 'list', 'Choose a missing pet')}${tab('scan', 'scan-search', 'Scan a photo')}</div>`;
+    return `<div class="found-mode" role="tablist" aria-label="How do you want to find the pet?">${tab('pick', 'list', 'Choose a missing pet')}${tab('scan', 'scan-search', 'Scan a pet')}</div>`;
   }
 
   // The whole list of missing pets, one per row, filtered by the search box
   missingPets() {
     const q = this.query.trim().toLowerCase();
-    return window.pawStore.getPets()
+    return window.pawStore.getMapPets()
       .filter((p) => p.name && p.status === 'lost')
-      .filter((p) => !q || [p.name, p.species, p.breed, p.color, p.lastSeenLocation].filter(Boolean).join(' ').toLowerCase().includes(q));
+      .filter((p) => !this.species || (this.species === 'Other' ? !['Dog', 'Cat'].includes(p.species) : p.species === this.species))
+      .filter((p) => !q || [p.name, p.species, p.breed, p.color, p.lastSeenLocation].filter(Boolean).join(' ').toLowerCase().includes(q))
+      .sort((a, b) => (new Date(b.lastSeenDate).getTime() || 0) - (new Date(a.lastSeenDate).getTime() || 0));
+  }
+
+  // A missing pet by id: a registered pet, or one reported without registering (it exists only as its report)
+  missingPet(id) {
+    return window.pawStore.getMapPets().find((p) => String(p.id) === String(id)) || null;
   }
 
   pickRowsHtml() {
     const pets = this.missingPets();
     if (!pets.length) {
-      const any = window.pawStore.getPets().some((p) => p.status === 'lost');
-      return `<div class="found-nomatch"><i data-lucide="search-x"></i><p>${any ? 'No missing pet matches your search.' : 'No pets are reported missing right now.'}</p></div>`;
+      const any = window.pawStore.getMapPets().some((p) => p.status === 'lost');
+      return `<div class="found-nomatch"><i data-lucide="search-x"></i><p>${any ? 'No missing pet matches your search or filter.' : 'No pets are reported missing right now.'}</p></div>`;
     }
     return pets.map((pet) => {
       const picked = String(this.selectedId) === String(pet.id);
@@ -146,22 +176,27 @@ class FoundView {
   }
 
   pickHtml() {
-    const total = window.pawStore.getPets().filter((p) => p.name && p.status === 'lost').length;
+    const total = window.pawStore.getMapPets().filter((p) => p.name && p.status === 'lost').length;
+    const chip = (key, label) => `<button type="button" class="found-chip${this.species === key ? ' is-active' : ''}" data-species="${key}" aria-pressed="${this.species === key}">${label}</button>`;
     return `
       <section class="glass-card found-card">
         <div class="found-section-head">
-          <h3 class="found-card-title">Missing pets</h3>
+          <h3 class="found-card-title"><i data-lucide="list"></i> Choose a missing pet</h3>
           <span>${total} reported</span>
         </div>
-        <p class="found-hint">Pick the pet you found. You can add a photo on the left if you have one.</p>
-        <input type="search" class="form-control" id="found-search" placeholder="Search by name, breed, color or area" value="${this.esc(this.query)}" autocomplete="off" />
+        <p class="found-hint">Tap the pet you found. Newest reports are first.</p>
+        <div class="found-filter">
+          <label class="found-search"><i data-lucide="search"></i>
+            <input type="search" class="form-control" id="found-search" placeholder="Search by name, breed, color or area" value="${this.esc(this.query)}" autocomplete="off" aria-label="Search missing pets" />
+          </label>
+          <div class="found-chips" role="group" aria-label="Filter by species">${chip('', 'All')}${chip('Dog', 'Dogs')}${chip('Cat', 'Cats')}${chip('Other', 'Other')}</div>
+        </div>
         <div class="found-matches" id="found-pick-list" role="radiogroup" aria-label="Missing pets">${this.pickRowsHtml()}</div>
       </section>`;
   }
 
   mainHtml() {
-    const body = this.mode === 'pick' ? `${this.pickHtml()}${this.alertHtml()}` : this.scanHtml();
-    return this.modeHtml() + body;
+    return this.mode === 'pick' ? `${this.pickHtml()}${this.alertHtml()}` : this.scanHtml();
   }
 
   scanHtml() {
@@ -236,7 +271,7 @@ class FoundView {
 
   alertHtml() {
     if (!this.selectedId) return '';
-    const pet = this.selectedId === 'none' ? null : window.pawStore.getPetById(this.selectedId);
+    const pet = this.selectedId === 'none' ? null : this.missingPet(this.selectedId);
     return `
       <section class="glass-card found-card found-alert" id="found-alert">
         <div class="found-alert-head">
@@ -244,9 +279,28 @@ class FoundView {
             : `<span class="found-match-img found-match-blank"><i data-lucide="eye"></i></span><div><span class="found-alert-kicker">No match selected</span><h3>Post a sighting</h3></div>`}
         </div>
         <form id="found-form" class="found-form" novalidate>
-          <div class="form-group">
-            <label class="form-label" for="found-location">Where did you find it? *</label>
-            <input type="text" class="form-control" id="found-location" placeholder="e.g. Near the park gate, Brgy. Commonwealth" value="${this.esc(this.form.location)}" autocomplete="off" />
+          <div class="form-group found-where" id="found-where-group">
+            <span class="form-label">Where did you find it? *</span>
+            <div class="report-location-search-wrap found-place-wrap" id="found-place-wrap">
+              <div class="report-location-search-box">
+                <svg class="report-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="found-place-input" class="report-location-search-input" placeholder="Search a street, barangay or landmark..." autocomplete="off" aria-label="Search for the place" />
+              </div>
+              <div id="found-place-suggestions" class="report-location-suggestions" style="display: none;"></div>
+              <button type="button" class="use-location-btn" id="found-use-location">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+                <span>Use my current location</span>
+              </button>
+            </div>
+            <div class="found-map-wrap">
+              <div id="found-pin-map" aria-label="Map: tap or drag the pin to where you found the pet"></div>
+              <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">Tap the map or drag the pin to where you found the pet</div>
+            </div>
+            <label class="form-label found-place-label" for="found-location">Place name *</label>
+            <input type="text" class="form-control found-place-name" id="found-location" placeholder="Drop the pin on the map to fill this in" value="${this.esc(this.form.location)}" readonly tabindex="-1" aria-readonly="true" />
+            <small class="found-fine">Set by the pin on the map.</small>
+            <label class="form-label found-place-label" for="found-placedesc">Place description <span class="found-optional">(optional)</span></label>
+            <input type="text" class="form-control" id="found-placedesc" maxlength="150" placeholder="e.g. Near the park gate, beside the sari-sari store" value="${this.esc(this.form.placedesc)}" autocomplete="off" />
           </div>
           <div class="form-group">
             <label class="form-label" for="found-phone">Your phone number *</label>
@@ -255,7 +309,7 @@ class FoundView {
           </div>
           <div class="form-group">
             <label class="form-label" for="found-notes">Notes <span class="found-optional">(optional)</span></label>
-            <textarea class="form-control" id="found-notes" rows="2" placeholder="How the pet looks, where it is now...">${this.esc(this.form.notes)}</textarea>
+            <textarea class="form-control" id="found-notes" rows="2" placeholder="e.g. Friendly, wearing a red collar, now staying with me...">${this.esc(this.form.notes)}</textarea>
           </div>
           <button type="submit" class="btn btn-primary found-send"><i data-lucide="send"></i> ${pet ? `This is ${this.esc(pet.name)}. Notify the owner` : 'Post the sighting'}</button>
         </form>
@@ -296,8 +350,15 @@ class FoundView {
 
   bind() {
     const $ = (id) => document.getElementById(id);
+    $('found-place-input')?.addEventListener('input', (e) => this.searchPlace(e.target.value));
+    $('found-place-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { const l = $('found-place-suggestions'); if (l) { l.style.display = 'none'; l.innerHTML = ''; } }
+      if (e.key === 'Enter') { e.preventDefault(); if ((this.places || []).length) this.pickPlace(0); else this.searchPlace(e.target.value, { allowOsm: true }); }
+    });
+    $('found-use-location')?.addEventListener('click', () => this.useMyLocation());
     $('found-upload')?.addEventListener('click', (e) => { e.stopPropagation(); $('found-file').click(); });
     $('found-change')?.addEventListener('click', () => $('found-file').click());
+    $('found-remove')?.addEventListener('click', () => { this.keepForm(); this.token++; this.photo = null; this.status = 'idle'; this.render(); });
     $('found-camera')?.addEventListener('click', (e) => { e.stopPropagation(); $('found-cam').click(); });
     ['found-file', 'found-cam'].forEach((id) => $(id)?.addEventListener('change', (e) => this.pickPhoto(e.target.files[0])));
     $('found-scan')?.addEventListener('click', () => this.scan());
@@ -306,13 +367,16 @@ class FoundView {
     $('found-form')?.addEventListener('submit', (e) => { e.preventDefault(); this.send(); });
     this.container.querySelectorAll('.found-match').forEach((b) => b.addEventListener('click', () => this.select(b.dataset.pet)));
     this.container.querySelectorAll('.found-mode-btn').forEach((b) => b.addEventListener('click', () => this.setMode(b.dataset.mode)));
-    $('found-search')?.addEventListener('input', (e) => {
-      this.query = e.target.value;
-      const list = $('found-pick-list');
-      list.innerHTML = this.pickRowsHtml();
-      list.querySelectorAll('.found-match').forEach((b) => b.addEventListener('click', () => this.select(b.dataset.pet)));
-      if (window.lucide) window.lucide.createIcons({ root: list });
-    });
+    $('found-search')?.addEventListener('input', (e) => { this.query = e.target.value; this.refreshList(); });
+    this.container.querySelectorAll('.found-chip').forEach((b) => b.addEventListener('click', () => {
+      this.species = b.dataset.species;
+      this.container.querySelectorAll('.found-chip').forEach((c) => {
+        const on = c.dataset.species === this.species;
+        c.classList.toggle('is-active', on);
+        c.setAttribute('aria-pressed', String(on));
+      });
+      this.refreshList();
+    }));
 
     const drop = $('found-drop');
     if (drop) {
@@ -322,6 +386,15 @@ class FoundView {
       ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-over'); }));
       drop.addEventListener('drop', (e) => this.pickPhoto(e.dataTransfer && e.dataTransfer.files[0]));
     }
+  }
+
+  // Redraws only the list, so typing in the search box keeps its focus
+  refreshList() {
+    const list = document.getElementById('found-pick-list');
+    if (!list) return;
+    list.innerHTML = this.pickRowsHtml();
+    list.querySelectorAll('.found-match').forEach((b) => b.addEventListener('click', () => this.select(b.dataset.pet)));
+    if (window.lucide) window.lucide.createIcons({ root: list });
   }
 
   setMode(mode) {
@@ -392,6 +465,139 @@ class FoundView {
     this.render();
   }
 
+  // ---------- where it was found: map and pin ----------
+
+  async initPinMap() {
+    await window.PawMapsReady;
+    const el = document.getElementById('found-pin-map');
+    if (!el || !window.L) return;
+    if (this.map) { try { this.map.remove(); } catch (e) {} this.map = null; }
+    // Start on the pin already placed, else on where the chosen pet was last seen, else central Quezon City
+    const pet = this.selectedId && this.selectedId !== 'none' ? this.missingPet(this.selectedId) : null;
+    const start = this.pin
+      || (pet && Array.isArray(pet.lastSeenCoords) ? { lat: +pet.lastSeenCoords[0], lng: +pet.lastSeenCoords[1] } : null)
+      || { lat: 14.6500, lng: 121.0400 };
+    this.map = window.L.map(el, { scrollWheelZoom: true, zoomControl: true, doubleClickZoom: false, cursor: 'crosshair' })
+      .setView([start.lat, start.lng], this.pin ? 16 : 14);
+    window.L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '&copy; Google Maps' }).addTo(this.map);
+    this.marker = window.L.marker([start.lat, start.lng], { icon: this.pinIcon(), draggable: true, autoPan: true }).addTo(this.map);
+    this.marker.on('dragstart', () => { this.pinDragging = true; });
+    this.marker.on('dragend', (e) => {
+      const at = e.target.getLatLng();
+      this.placePin(at.lat, at.lng);
+      setTimeout(() => { this.pinDragging = false; }, 250); // the map also reports a click when a drag ends
+    });
+    this.map.on('click', (e) => {
+      if (this.pinDragging) return;
+      this.placePin(e.latlng.lat, e.latlng.lng);
+    });
+    setTimeout(() => this.map && this.map.invalidateSize(), 200);
+  }
+
+  pinIcon() {
+    return window.L.divIcon({
+      className: 'custom-report-pin',
+      html: `<div class="pin-drop" style="position:relative; transform:translate(-50%, -100%); cursor:grab; touch-action:none; user-select:none;">
+          <div style="position:absolute; inset:-14px;"></div>
+          <div style="width:38px; height:38px; border-radius:50% 50% 50% 0; background:linear-gradient(135deg, #16a34a, #0f5132); transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(0,0,0,0.45); border:2px solid #fff;">
+            <svg style="transform:rotate(45deg);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div style="width:10px; height:4px; border-radius:50%; background:rgba(0,0,0,0.4); margin:2px auto 0; filter:blur(1px);"></div>
+        </div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+  }
+
+  // The finder placed the pin. The place name comes only from the map (it is read-only): the search result's
+  // name, or the address looked up for the pin, or its coordinates when no address can be found.
+  async placePin(lat, lng, name = null) {
+    const pin = { lat: +lat.toFixed(6), lng: +lng.toFixed(6) };
+    this.pin = pin;
+    this.pinChosen = true;
+    if (this.marker) this.marker.setLatLng([lat, lng]);
+    const group = document.getElementById('found-where-group');
+    if (group && group.classList.contains('has-error')) { group.classList.remove('has-error'); group.querySelector('.field-error')?.remove(); }
+    const box = document.getElementById('found-location');
+    if (!box) return;
+    if (name) { box.value = name; return; }
+    box.value = 'Finding the address...';
+    const found = window.reportManager && window.reportManager.reverseGeocode ? await window.reportManager.reverseGeocode(lat, lng).catch(() => '') : '';
+    if (this.pin !== pin) return; // the pin moved again while looking this one up
+    // The page may have been redrawn meanwhile, so write to the field as it is now and to the saved form
+    this.form.location = found || `Pinned spot (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)})`;
+    const now = document.getElementById('found-location');
+    if (now) now.value = this.form.location;
+  }
+
+  // Search box above the map: live places (the same search as the report form)
+  searchPlace(query, { allowOsm = false } = {}) {
+    const list = document.getElementById('found-place-suggestions');
+    if (!list) return;
+    const q = query.trim();
+    clearTimeout(this.placeTimer);
+    if (q.length < 2) { list.style.display = 'none'; list.innerHTML = ''; return; }
+    list.innerHTML = '<div class="report-suggestion-status">Searching places...</div>';
+    list.style.display = 'block';
+    this.placeTimer = setTimeout(async () => {
+      let places = [];
+      let failed = false;
+      try { places = await searchPlaces(q, { allowOsm }); } catch (e) { failed = true; }
+      const input = document.getElementById('found-place-input');
+      if (!input || input.value.trim() !== q) return; // the text changed while searching
+      if (places === null) { // no live search without Google: one search when Enter is pressed
+        this.places = [];
+        list.innerHTML = '<div class="report-suggestion-status">Press Enter to search for this place.</div>';
+        return;
+      }
+      this.places = places;
+      const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary, #ea9d1e); flex-shrink:0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+      list.innerHTML = places.length
+        ? places.map((pl, i) => `<div class="report-suggestion-item" data-index="${i}">
+            <div class="report-suggestion-main">${pinSvg}<span class="report-suggestion-text"><span class="report-suggestion-name">${this.esc(pl.title)}</span>${pl.subtitle ? `<span class="report-suggestion-sub">${this.esc(pl.subtitle)}</span>` : ''}</span></div>
+            <span class="report-suggestion-badge">Place</span>
+          </div>`).join('')
+        : `<div class="report-suggestion-status">${failed ? 'Place search is not available right now. Drop the pin on the map instead.' : 'No places found. Try a street, barangay or landmark, or drop the pin on the map.'}</div>`;
+      list.querySelectorAll('.report-suggestion-item').forEach((row) => row.addEventListener('click', () => this.pickPlace(+row.dataset.index)));
+    }, allowOsm ? 0 : 350);
+  }
+
+  async pickPlace(i) {
+    const pl = (this.places || [])[i];
+    const list = document.getElementById('found-place-suggestions');
+    if (!pl) return;
+    if (list) { list.style.display = 'none'; list.innerHTML = ''; }
+    try {
+      const at = pl.lat != null ? { lat: pl.lat, lng: pl.lng, name: [pl.title, pl.subtitle].filter(Boolean).join(', ') } : await pl.resolve();
+      const input = document.getElementById('found-place-input');
+      if (input) input.value = at.name;
+      if (this.map) this.map.setView([at.lat, at.lng], 17);
+      this.placePin(at.lat, at.lng, at.name);
+    } catch (e) {
+      window.notifManager?.showToast('That place could not be opened. Try another result or drop the pin.', 'warning', 3500);
+    }
+  }
+
+  useMyLocation() {
+    const btn = document.getElementById('found-use-location');
+    const toast = (msg, kind) => window.notifManager?.showToast(msg, kind, 5000);
+    if (!navigator.geolocation || !window.isSecureContext) {
+      toast('Your location is not available here. Tap the map to place the pin instead.', 'warning');
+      return;
+    }
+    const busy = (on) => { if (btn) { btn.disabled = on; btn.classList.toggle('is-loading', on); btn.querySelector('span').textContent = on ? 'Finding your location…' : 'Use my current location'; } };
+    busy(true);
+    navigator.geolocation.getCurrentPosition((pos) => {
+      busy(false);
+      const { latitude, longitude } = pos.coords;
+      if (this.map) this.map.setView([latitude, longitude], 17);
+      this.placePin(latitude, longitude);
+    }, () => {
+      busy(false);
+      toast('Your location could not be found. Allow location access, or tap the map to place the pin.', 'warning');
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+  }
+
   // ---------- sending ----------
 
   fieldError(id, message) {
@@ -409,12 +615,13 @@ class FoundView {
     el.addEventListener('input', () => { group.classList.remove('has-error'); group.querySelector('.field-error')?.remove(); }, { once: true });
   }
 
-  send() {
+  async send() {
     this.keepForm();
     document.querySelectorAll('#found-form .has-error').forEach((g) => { g.classList.remove('has-error'); g.querySelector('.field-error')?.remove(); });
-    const { location, phone, notes } = this.form;
+    const { location, placedesc, phone, notes } = this.form;
     const problems = [];
-    if (!location.trim()) problems.push(['found-location', 'Say where you found the pet.']);
+    if (!this.pinChosen) problems.push(['found-pin-map', 'Drop the pin on the map where you found the pet.']);
+    else if (!location.trim() || location === 'Finding the address...') problems.push(['found-location', 'Wait a moment while the address for the pin is found.']);
     if (!phone.trim()) problems.push(['found-phone', 'Add a phone number the owner can call.']);
     if (problems.length) {
       problems.forEach(([id, msg]) => this.fieldError(id, msg));
@@ -424,20 +631,23 @@ class FoundView {
       return;
     }
 
+    // The address from the pin, plus the finder's own description of the spot when they gave one
+    const where = placedesc.trim() ? `${location.trim()} (${placedesc.trim()})` : location.trim();
     const store = window.pawStore;
-    const pet = this.selectedId === 'none' ? null : store.getPetById(this.selectedId);
+    const pet = this.selectedId === 'none' ? null : this.missingPet(this.selectedId);
     const t = this.traits || {};
-    const coords = (pet && pet.lastSeenCoords) || [14.6760, 121.0437];
+    const coords = [this.pin.lat, this.pin.lng]; // where the finder dropped the pin
     const now = new Date().toISOString();
     const comments = [this.description, notes.trim()].filter(Boolean).join(' | ');
     const evidence = this.photo || (pet && (pet.photoUrl || pet.photo)) || '';
 
+    let alerted = false;
     try {
       store.addSighting({
         id: 'SIGHT-' + Date.now().toString().slice(-6),
         species: pet ? pet.species : (t.species && t.species !== 'Unknown' ? t.species : 'Other'),
         breed: pet ? pet.breed : (t.breed && t.breed !== 'Unknown' ? t.breed : 'Mixed Breed'),
-        location: location.trim(),
+        location: where,
         coords,
         nfcTag: pet ? (pet.nfcTag || '') : '',
         reporterPhone: phone.trim(),
@@ -448,60 +658,41 @@ class FoundView {
         photo: evidence,
         photoUrl: evidence,
         reportType: 'found',
-        ...(pet ? { matchedPetId: pet.id } : {})
+        ...(pet ? { matchedPetId: pet.id } : {}),
+        ...(pet && pet.missingReportId ? { missing_report_id: pet.missingReportId } : {})
       });
 
       if (pet) {
-        store.addNotification({
-          id: 'notif-match-' + Date.now(),
-          title: `GOOD SAMARITAN FOUND YOUR PET: "${String(pet.name).toUpperCase()}"!`,
-          message: `Your pet was found and reported near ${location.trim()}. Finder Contact: ${phone.trim()}. Notes: "${comments}"`,
-          type: 'pet_found_match',
-          petId: pet.id,
-          petName: pet.name,
-          nfcTag: pet.nfcTag,
-          finderName: 'Community Good Samaritan',
-          finderPhone: phone.trim(),
-          finderNotes: comments,
-          location: location.trim(),
-          coords,
-          photoUrl: evidence,
-          timestamp: now,
-          read: false
-        });
-        window.pawApp?.alertOwnerFound(pet.id, phone.trim(), location.trim(), comments);
+        // The owner (whoever filed the pet's missing report) is alerted through Supabase, on their own device
+        const submitBtn = document.querySelector('#found-form .found-send');
+        if (submitBtn) submitBtn.disabled = true;
+        alerted = pet.missingReportId
+          ? await store.notifyReporter(pet.missingReportId, 'found', { phone: phone.trim(), location: where, notes: comments })
+          : false;
+        if (submitBtn) submitBtn.disabled = false;
         store.addCaseTimelineEvent(pet.id, {
           type: 'sighting',
           title: 'Pet Located by Good Samaritan',
-          location: location.trim(),
+          location: where,
           finder: `Community Good Samaritan (${phone.trim()})`,
           notes: comments,
           photoUrl: evidence,
           timestamp: now
         });
-      } else {
-        store.addNotification({
-          id: 'notif-sight-' + Date.now(),
-          title: `Sighting Pinned: ${t.breed && t.breed !== 'Unknown' ? t.breed : 'Pet'} (${t.species || 'Pet'})`,
-          message: `Community sighting logged at ${location.trim()}. Notes: "${comments}"`,
-          type: 'sighting',
-          location: location.trim(),
-          coords,
-          finderPhone: phone.trim(),
-          finderName: 'Community Good Samaritan',
-          finderNotes: comments,
-          photoUrl: evidence,
-          timestamp: now,
-          read: false
-        });
       }
+      // A sighting of no particular pet gets no notification: it is not about anyone's own pet
     } catch (err) {
       console.error('[Found] send failed:', err);
       window.notifManager?.showToast(`Could not send the alert: ${err.message || 'unknown error'}. Please try again.`, 'error', 6000);
       return;
     }
 
-    window.notifManager?.showToast(pet ? `${pet.name}'s owner has been alerted.` : 'Sighting posted.', 'success', 4500);
+    if (pet && !alerted) {
+      // The sighting is on the map, but the owner could not be reached (the store already explained why)
+      window.notifManager?.showToast(`Your report of ${pet.name} is on the map, but the owner could not be alerted.`, 'warning', 6000);
+    } else {
+      window.notifManager?.showToast(pet ? `${pet.name}'s owner has been alerted.` : 'Sighting posted.', 'success', 4500);
+    }
     const sent = { name: pet ? pet.name : '' };
     this.reset();
     this.sent = sent;

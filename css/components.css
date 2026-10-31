@@ -965,6 +965,23 @@
   border: none;
 }
 
+/* Count on a stack of pins at the same spot (zoomed out); tapping it zooms in so they fan out */
+.pin-stack-wrap { background: transparent; border: none; }
+.pin-stack-count {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1e293b;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
 .map-pin-pill {
   display: inline-flex;
   align-items: center;
@@ -4177,6 +4194,10 @@
   margin-top: 2px;
 }
 
+/* The report form's search sits above its map: space below it, and its dropdown opens over the map */
+#report-location-search-wrap { margin: 0 0 10px; z-index: 1100; }
+#report-location-search-wrap .use-location-btn { margin-top: 8px; }
+
 .report-location-search-box {
   position: relative;
   display: flex;
@@ -4247,8 +4268,9 @@
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-glass, rgba(234, 157, 30, 0.35));
   border-radius: 10px;
-  max-height: 210px;
+  max-height: min(340px, 50vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   padding: 4px;
   animation: dropdownIn 0.15s ease-out;
@@ -4284,6 +4306,15 @@
   text-overflow: ellipsis;
   font-weight: 600;
 }
+
+/* The card holding an open location dropdown sits above the cards after it (see liftForDropdown) */
+.has-open-dropdown { position: relative; z-index: 60; }
+
+/* A result: pin icon, then the place name with its area on a second line */
+.report-suggestion-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.report-suggestion-text { display: grid; min-width: 0; }
+.report-suggestion-sub { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.report-suggestion-status { padding: 8px 10px; font-size: 0.75rem; color: var(--text-muted); }
 
 .report-suggestion-badge {
   font-size: 9.5px;
@@ -4447,6 +4478,10 @@
   padding: 4px 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
+
+/* Google draws its logo and attribution along the bottom edge (the logo must stay visible): sit above them */
+.google-maps-active .gmap-layer-dock { bottom: 30px; }
+.google-maps-active .report-gmap-layer-dock { bottom: 28px; }
 
 .gmap-layer-btn {
   display: flex;
@@ -7090,6 +7125,119 @@ body.auth-locked {
   line-height: 1.45;
   color: var(--text-muted);
 }
+
+/* Report form, "Another pet": is it the reporter's own pet or someone else's */
+.report-whose { display: grid; gap: 6px; margin-top: 10px; }
+.report-whose-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.report-whose-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-subtle, var(--border-glass));
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.report-whose-option:hover { border-color: var(--primary); }
+.report-whose-option:has(input:checked) { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--bg-surface-elevated)); }
+.report-whose-option:has(input:focus-visible) { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+/* Plain radio buttons. The global input rule in main.css (width 100%, padding, min-height, border, focus glow)
+   is meant for text fields; each of its properties is undone here so the radios render at their normal size */
+.report-whose .report-whose-option input[type="radio"],
+.report-whose .report-whose-option input[type="radio"]:focus {
+  appearance: auto;
+  -webkit-appearance: radio;
+  flex: none;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  margin: 3px 0 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.report-whose-option span { display: grid; gap: 1px; }
+.report-whose-option strong { font-size: 0.84rem; }
+.report-whose-option small { font-size: 0.74rem; color: var(--text-muted); }
+.report-whose-note { font-size: 0.72rem; color: var(--text-muted); }
+.report-whose.has-error .report-whose-option { border-color: var(--danger); }
+
+/* "Your pet" tag on the guardian's own pets in the missing list */
+.pet-mine-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 99px);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+/* Mark as found (the guardian's own missing pet) */
+.mark-found-box { max-width: 440px; }
+.mark-found-body { display: grid; gap: 14px; padding: 1.1rem 1.4rem; }
+.mark-found-pet {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle, var(--border-glass));
+}
+.mark-found-pet img { flex: none; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; }
+.mark-found-pet > div { display: grid; gap: 2px; min-width: 0; }
+.mark-found-pet strong { font-size: 1rem; }
+.mark-found-pet span { font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark-found-seen { display: flex; align-items: center; gap: 4px; }
+.mark-found-seen i, .mark-found-seen svg { flex: none; width: 13px; height: 13px; }
+.mark-found-question { margin: 0; font-family: var(--font-heading); font-size: 1.05rem; font-weight: 700; }
+.mark-found-effects { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mark-found-effects li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.84rem; line-height: 1.45; color: var(--text-muted); }
+.mark-found-effects i, .mark-found-effects svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: #16a34a; }
+.mark-found-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 1.4rem; }
+.mark-found-footer .btn-primary { background: #16a34a; border-color: #16a34a; }
+
+/* After-sending notes: privacy, then the starting status of the sighting */
+.sighting-next {
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle, var(--border-glass));
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+}
+.sighting-next-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+}
+.sighting-next-row + .sighting-next-row { border-top: 1px solid var(--border-subtle, var(--border-glass)); }
+.sighting-next-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+.sighting-next-icon.is-status { color: #ea9d1e; background: color-mix(in srgb, #ea9d1e 15%, transparent); }
+.sighting-next-text { display: grid; gap: 1px; min-width: 0; }
+.sighting-next-text strong { font-size: 0.84rem; color: var(--text-main); }
+.sighting-next-text span { font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
 
 .sighting-submission-box .modal-footer {
   position: sticky;

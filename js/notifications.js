@@ -16,6 +16,14 @@ class NotificationManager {
     return false;
   }
 
+  // When the panel opens on a tab with nothing unread but the other tab has unread alerts, show that tab
+  pickCategoryWithUnread() {
+    const notifs = window.pawStore ? window.pawStore.getMyNotifications() : [];
+    const unread = (priority) => notifs.some(n => !n.read && this.isPriority(n) === priority);
+    const onPriority = this.activeCategory === 'priority';
+    if (!unread(onPriority) && unread(!onPriority)) this.activeCategory = onPriority ? 'others' : 'priority';
+  }
+
   setCategory(category) {
     this.activeCategory = (category === 'priority') ? 'priority' : 'others';
     this.renderNotifDropdown();
@@ -74,7 +82,7 @@ class NotificationManager {
 
     if (!listElem) return;
 
-    const notifs = window.pawStore ? window.pawStore.getNotifications() : [];
+    const notifs = window.pawStore ? window.pawStore.getMyNotifications() : [];
     const unreadCount = notifs.filter(n => !n.read).length;
 
     // Filter Priority (Official Impound Alerts) vs Others (Good Samaritan matches, sightings, general)

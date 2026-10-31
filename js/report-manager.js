@@ -72,6 +72,51 @@ const PRESET_LOCATIONS = [
   { name: 'QC - Unang Sigaw / Balintawak MRT', lat: 14.6580, lng: 121.0050, group: 'QC District 6' }
 ];
 
+
+// Live place search for the location boxes (report form and sighting form): Google Places (New) when Google Maps
+// is loaded, otherwise OpenStreetMap Nominatim. Covers the whole Philippines, biased toward Metro Manila.
+// Each result is { title, subtitle } plus either lat/lng or resolve(), which looks up the place's position.
+// OpenStreetMap's usage policy does not allow search-as-you-type, so without Google this returns null (no live
+// results) unless allowOsm is set, which callers do only when the person presses Enter.
+async function searchPlaces(query, { allowOsm = false } = {}) {
+  if (document.documentElement.classList.contains('google-maps-active') && window.google && google.maps && google.maps.importLibrary) {
+    try {
+      const { AutocompleteSuggestion, AutocompleteSessionToken } = await google.maps.importLibrary('places');
+      searchPlaces.token = searchPlaces.token || new AutocompleteSessionToken();
+      const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: query,
+        sessionToken: searchPlaces.token,
+        includedRegionCodes: ['ph'],
+        locationBias: { center: { lat: 14.6, lng: 121.03 }, radius: 50000 }
+      });
+      return suggestions.filter((sg) => sg.placePrediction).slice(0, 6).map(({ placePrediction: pr }) => {
+        const title = pr.mainText ? pr.mainText.text : pr.text.text;
+        const subtitle = pr.secondaryText ? pr.secondaryText.text : '';
+        return {
+          title,
+          subtitle,
+          resolve: async () => {
+            const place = pr.toPlace();
+            await place.fetchFields({ fields: ['location'] });
+            searchPlaces.token = null; // picking a place ends the autocomplete session
+            return { lat: place.location.lat(), lng: place.location.lng(), name: [title, subtitle].filter(Boolean).join(', ') };
+          }
+        };
+      });
+    } catch (err) {
+      console.warn('[Places] Google search failed:', err.message);
+    }
+  }
+  if (!allowOsm) return null;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ph&limit=6&viewbox=120.85,14.85,121.25,14.35&q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  const data = await res.json();
+  return (Array.isArray(data) ? data : []).map((r) => {
+    const parts = String(r.display_name || '').split(',').map((x) => x.trim());
+    return { title: parts[0], subtitle: parts.slice(1, 3).join(', '), lat: +r.lat, lng: +r.lon };
+  });
+}
+
 class ReportManager {
   constructor() {
     this.currentType = 'found'; // 'found' or 'missing'
@@ -126,6 +171,8 @@ class ReportManager {
     type = 'missing'; // this form only reports missing pets; there is no found-pet tab any more
     this.currentType = type;
     this.formReady = true;
+    this.pinChosen = false; // set once the owner places the pin (map tap, drag, search pick or current location)
+    document.querySelectorAll('input[name="report-whose"]').forEach((r) => { r.checked = false; });
 
     this.removeUploadedPhoto(false);
     this.setType(type);
@@ -575,12 +622,18 @@ class ReportManager {
     if (photoRow) photoRow.style.display = (isUnregistered || noNfc) ? '' : 'none';
     if (isUnregistered || noNfc) this.removeUploadedPhoto(false);
 
+    const customDesc = document.getElementById('report-missing-custom-desc');
     if (isUnregistered) {
       if (customWrap) customWrap.style.display = 'block';
       if (customInput) customInput.required = true;
+      if (customDesc) customDesc.required = true;
       this.updateMissingPhotoStatus(null, false);
     } else {
       if (customWrap) customWrap.style.display = 'none';
+      if (customDesc) {
+        customDesc.required = false;
+        customDesc.value = '';
+      }
       if (customInput) {
         customInput.required = false;
         customInput.value = '';
@@ -589,10 +642,8 @@ class ReportManager {
         const pets = window.pawStore.getPets();
         const pet = pets.find(p => String(p.id) === String(petId));
         if (pet) {
-          const locInput = document.getElementById('report-missing-location');
-          if (locInput && pet.lastSeenLocation) {
-            locInput.value = pet.lastSeenLocation;
-          }
+          // The last-seen location is not copied from the pet's previous incident: a new disappearance
+          // needs a new spot, and the old one was often just the map's default pin
           if (noNfc) {
             this.updateMissingPhotoStatus(null, false);
           } else if (pet.photoUrl || pet.photo) {
@@ -761,7 +812,15 @@ class ReportManager {
       }
     });
 
+    // Place the pin without writing the default spot into the location fields: the owner must pick where the
+    // pet was last seen, otherwise every report silently got the default pin's address and coordinates
+    const locationIds = ['report-location-search-input', 'report-missing-location', 'report-found-location'];
+    const before = locationIds.map(id => (document.getElementById(id) || {}).value || '');
     this.updatePinnedCoords(this.pinnedLat, this.pinnedLng);
+    this.pinChosen = false;
+    locationIds.forEach((id, i) => { const el = document.getElementById(id); if (el) el.value = before[i]; });
+    const clearBtn = document.getElementById('report-search-clear-btn');
+    if (clearBtn && !before[0]) clearBtn.style.display = 'none';
     setTimeout(() => {
       if (this.map) this.map.invalidateSize();
     }, 200);
@@ -917,6 +976,18 @@ class ReportManager {
   }
 
   async reverseGeocode(lat, lng) {
+    if (document.documentElement.classList.contains('google-maps-active') && window.google && google.maps && google.maps.importLibrary) {
+      try {
+        const { Geocoder } = await google.maps.importLibrary('geocoding');
+        const { results } = await new Geocoder().geocode({ location: { lat, lng } });
+        if (results && results[0]) {
+          // "790 EDSA, Diliman, Quezon City, 1100 Metro Manila, Philippines" -> "790 EDSA, Diliman, Quezon City"
+          return results[0].formatted_address.replace(/,\s*Philippines$/i, '').replace(/,\s*(\d{4}\s+)?Metro Manila$/i, '');
+        }
+      } catch (e) {
+        console.warn('[Places] Google address lookup failed:', e.message);
+      }
+    }
     try {
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
@@ -936,6 +1007,7 @@ class ReportManager {
   }
 
   updatePinnedCoords(lat, lng, name = null) {
+    this.pinChosen = true;
     this.pinnedLat = parseFloat(lat.toFixed(5));
     this.pinnedLng = parseFloat(lng.toFixed(5));
 
@@ -1012,6 +1084,7 @@ class ReportManager {
     if (trimmed.length < 1) {
       suggestionsBox.style.display = 'none';
       suggestionsBox.innerHTML = '';
+      this.liftForDropdown(suggestionsBox, false);
       this.selectedSuggestionIndex = -1;
       return;
     }
@@ -1024,48 +1097,94 @@ class ReportManager {
     this.renderSuggestions(matches, trimmed);
   }
 
+  // The two location boxes: the report form's and the sighting form's
+  placeBox(kind) {
+    return kind === 'sighting'
+      ? { box: 'sighting-location-suggestions', input: 'sighting-location-input', list: 'sightingSuggestions', index: 'selectedSightingSuggestionIndex',
+          select: (lat, lng, name) => this.selectSightingLocation(lat, lng, name) }
+      : { box: 'report-location-suggestions', input: 'report-location-search-input', list: 'currentSuggestions', index: 'selectedSuggestionIndex',
+          select: (lat, lng, name) => this.selectLocation(lat, lng, name) };
+  }
+
+  // Built-in areas that match show at once; real places from the live search are added below them a moment later
+  renderPlaceSuggestions(kind, matches, query) {
+    const cfg = this.placeBox(kind);
+    const box = document.getElementById(cfg.box);
+    if (!box) return;
+    const presets = matches.slice(0, 5).map((loc) => ({ title: loc.name, subtitle: '', badge: loc.group, lat: loc.lat, lng: loc.lng }));
+    this[cfg.list] = presets;
+    this[cfg.index] = -1;
+    const searching = query.length >= 2;
+    this.drawPlaceSuggestions(kind, searching ? 'searching' : '');
+    if (!searching) return;
+
+    clearTimeout(this.placeTimers && this.placeTimers[kind]);
+    this.placeTimers = this.placeTimers || {};
+    this.placeTimers[kind] = setTimeout(async () => {
+      let places = [];
+      let failed = false;
+      try { places = await searchPlaces(query); } catch (e) { failed = true; }
+      const input = document.getElementById(cfg.input);
+      if (!input || input.value.trim() !== query) return; // the text changed while searching
+      if (places === null) { this.drawPlaceSuggestions(kind, presets.length ? '' : 'enter'); return; }
+      this[cfg.list] = [...presets, ...places.map((pl) => ({ ...pl, badge: 'Place' }))];
+      this.drawPlaceSuggestions(kind, failed ? 'failed' : (this[cfg.list].length ? '' : 'none'));
+    }, 350);
+  }
+
+  drawPlaceSuggestions(kind, status) {
+    const cfg = this.placeBox(kind);
+    const box = document.getElementById(cfg.box);
+    if (!box) return;
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const pin = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary, #ea9d1e); flex-shrink:0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+    const rows = this[cfg.list].map((it, i) => `
+      <div class="report-suggestion-item" data-index="${i}" onclick="window.reportManager.pickPlaceSuggestion('${kind}', ${i})">
+        <div class="report-suggestion-main">
+          ${pin}
+          <span class="report-suggestion-text">
+            <span class="report-suggestion-name">${esc(it.title)}</span>
+            ${it.subtitle ? `<span class="report-suggestion-sub">${esc(it.subtitle)}</span>` : ''}
+          </span>
+        </div>
+        <span class="report-suggestion-badge">${esc(it.badge)}</span>
+      </div>`).join('');
+    const note = {
+      searching: 'Searching places...',
+      enter: 'Press Enter to search for this place.',
+      none: 'No places found. Try a street, barangay or landmark, or drop the pin on the map.',
+      failed: 'Place search is not available right now. Drop the pin on the map instead.'
+    }[status];
+    box.innerHTML = rows + (note ? `<div class="report-suggestion-status">${note}</div>` : '');
+    box.style.display = rows || note ? 'block' : 'none';
+    this.liftForDropdown(box, !!(rows || note));
+  }
+
+  // The card around a location box makes its own stacking layer, so the next card used to paint over the open
+  // dropdown and hide most results. While the dropdown is open, that card is raised above its neighbours.
+  liftForDropdown(box, open) {
+    const card = box && box.closest('.glass-card, .report-section, .modal-box');
+    if (card) card.classList.toggle('has-open-dropdown', open);
+  }
+
+  async pickPlaceSuggestion(kind, i) {
+    const cfg = this.placeBox(kind);
+    const it = (this[cfg.list] || [])[i];
+    if (!it) return;
+    if (it.lat != null && it.lng != null) {
+      cfg.select(it.lat, it.lng, [it.title, it.subtitle].filter(Boolean).join(', '));
+      return;
+    }
+    try {
+      const at = await it.resolve();
+      cfg.select(at.lat, at.lng, at.name);
+    } catch (e) {
+      if (window.notifManager) window.notifManager.showToast('That place could not be opened. Try another result or drop the pin.', 'warning', 3500);
+    }
+  }
+
   renderSuggestions(matches, query) {
-    const suggestionsBox = document.getElementById('report-location-suggestions');
-    if (!suggestionsBox) return;
-
-    this.currentSuggestions = matches;
-    this.selectedSuggestionIndex = -1;
-
-    let html = '';
-
-    if (matches.length > 0) {
-      html += matches.slice(0, 8).map((loc, idx) => `
-        <div class="report-suggestion-item" data-index="${idx}" onclick="window.reportManager.selectLocation(${loc.lat}, ${loc.lng}, '${loc.name.replace(/'/g, "\\'")}')">
-          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary, #ea9d1e); flex-shrink:0;">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span class="report-suggestion-name">${loc.name}</span>
-          </div>
-          <span class="report-suggestion-badge">${loc.group}</span>
-        </div>
-      `).join('');
-    }
-
-    // Dynamic online geocoder option for any custom street, barangay, or landmark
-    if (query && query.length >= 2) {
-      html += `
-        <div class="report-suggestion-item report-suggestion-online" onclick="window.reportManager.searchOnlineNominatim('${query.replace(/'/g, "\\'")}')">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#38bdf8;">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <span>Search exact place online: "<strong>${query}</strong>"</span>
-          </div>
-          <span class="report-suggestion-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">Live GPS</span>
-        </div>
-      `;
-    }
-
-    suggestionsBox.innerHTML = html;
-    suggestionsBox.style.display = 'block';
+    this.renderPlaceSuggestions('report', matches, query);
   }
 
   handleSearchKeydown(e) {
@@ -1081,7 +1200,7 @@ class ReportManager {
       return;
     }
 
-    const items = suggestionsBox.querySelectorAll('.report-suggestion-item:not(.report-suggestion-online)');
+    const items = suggestionsBox.querySelectorAll('.report-suggestion-item[data-index]');
     if (items.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -1095,8 +1214,7 @@ class ReportManager {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (this.selectedSuggestionIndex >= 0 && this.currentSuggestions && this.currentSuggestions[this.selectedSuggestionIndex]) {
-        const sel = this.currentSuggestions[this.selectedSuggestionIndex];
-        this.selectLocation(sel.lat, sel.lng, sel.name);
+        this.pickPlaceSuggestion('report', this.selectedSuggestionIndex);
       } else {
         const input = document.getElementById('report-location-search-input');
         if (input && input.value) {
@@ -1140,6 +1258,7 @@ class ReportManager {
     if (suggestionsBox) {
       suggestionsBox.style.display = 'none';
       suggestionsBox.innerHTML = '';
+      this.liftForDropdown(suggestionsBox, false);
     }
     this.selectedSuggestionIndex = -1;
   }
@@ -1149,11 +1268,11 @@ class ReportManager {
     if (!query) return;
 
     if (window.notifManager) {
-      window.notifManager.showToast(`Locating "${query}" in Quezon City...`, 'info', 2000);
+      window.notifManager.showToast(`Locating "${query}"...`, 'info', 2000);
     }
 
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Quezon City, Philippines')}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&viewbox=120.85,14.85,121.25,14.35&q=${encodeURIComponent(query)}&limit=1`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
       if (data && data.length > 0) {
@@ -1170,7 +1289,7 @@ class ReportManager {
         if (match) {
           this.selectLocation(match.lat, match.lng, match.name);
         } else if (window.notifManager) {
-          window.notifManager.showToast(`Location "${query}" not found in Quezon City. Try another landmark or drag pin.`, 'warning', 3500);
+          window.notifManager.showToast(`Location "${query}" was not found. Try another landmark or drag the pin.`, 'warning', 3500);
         }
       }
     } catch (err) {
@@ -1325,7 +1444,7 @@ class ReportManager {
     }
   }
 
-  handleSubmit(e) {
+  async handleSubmit(e) {
     e.preventDefault();
     if (!window.pawStore) return;
 
@@ -1334,7 +1453,7 @@ class ReportManager {
       if (this.currentType === 'found') {
         this.submitFoundReport();
       } else {
-        this.submitMissingReport();
+        await this.submitMissingReport();
       }
     } catch (err) {
       console.error('[Report] submit failed:', err);
@@ -1437,8 +1556,9 @@ class ReportManager {
         read: false
       };
 
-      window.pawStore.addNotification(ownerNotif);
-      if (window.pawApp) window.pawApp.alertOwnerFound(matchedPet.id, phone, location, notes);
+      // The owner is alerted through Supabase (whoever filed the pet's open missing report)
+      const openReport = window.pawStore.getActiveMissingReportForPet(matchedPet.id);
+      if (openReport) window.pawStore.notifyReporter(openReport.id, 'found', { phone, location, notes });
 
       // Add timeline event to pet case if available
       window.pawStore.addCaseTimelineEvent(matchedPet.id, {
@@ -1458,23 +1578,7 @@ class ReportManager {
         }, 600);
       }
     } else {
-      // Standard general notification
-      window.pawStore.addNotification({
-        id: 'notif-sight-' + Date.now(),
-        title: `Sighting Pinned: ${breed} (${species})`,
-        message: `Community sighting logged at ${location} [${this.pinnedLat}, ${this.pinnedLng}]. ${nfc ? 'Collar NFC: ' + nfc + '.' : ''} Notes: "${notes}"`,
-        type: 'sighting',
-        nfcTag: nfc,
-        location: location,
-        coords: [this.pinnedLat, this.pinnedLng],
-        finderPhone: phone,
-        finderName: 'Community Good Samaritan',
-        finderNotes: notes,
-        photoUrl: finalPhoto,
-        timestamp: new Date().toISOString(),
-        read: false
-      });
-
+      // No notification: a sighting that matches no pet is not about anyone's own pet
       if (window.notifManager) {
         window.notifManager.showToast(`Sighting recorded & pinned to Incident Map at [${this.pinnedLat}, ${this.pinnedLng}].`, 'success', 5000);
       }
@@ -1523,10 +1627,11 @@ class ReportManager {
     document.querySelectorAll('#report-pet-modal .form-group.has-error').forEach((g) => this.clearFieldError(g));
   }
 
-  submitMissingReport() {
+  async submitMissingReport() {
     const select = document.getElementById('report-missing-pet-select');
     const petId = (select?.value || '').trim();
     const customName = (document.getElementById('report-missing-custom-name')?.value || '').trim();
+    const customDesc = (document.getElementById('report-missing-custom-desc')?.value || '').trim();
     const location = (document.getElementById('report-missing-location')?.value || '').trim();
     const date = (document.getElementById('report-missing-date')?.value || '').trim();
     // The phone falls back to the account's, then to the one saved on the pet
@@ -1545,13 +1650,18 @@ class ReportManager {
     const condition = (document.getElementById('report-missing-condition')?.value || '').trim();
     const problems = [];
     if (!petId) problems.push(['report-missing-pet-picker', 'Choose which pet is missing, or pick Another pet.']);
-    if (isUnregistered && !customName) problems.push(['report-missing-custom-name', "Enter the pet's name and a short description."]);
+    if (isUnregistered && !customName) problems.push(['report-missing-custom-name', "Enter the pet's name."]);
+    if (isUnregistered && !customDesc) problems.push(['report-missing-custom-desc', 'Describe the pet so finders can recognise it (breed, size, colours, collar).']);
+    // "Another pet": is it the reporter's own pet or someone else's? The reporter is the contact either way
+    const whose = (document.querySelector('input[name="report-whose"]:checked') || {}).value || '';
+    if (isUnregistered && !whose) problems.push(['report-missing-whose', 'Say whether this is your pet or someone else\'s.']);
     // A pet with no NFC tag needs a current photo and its condition, since nobody can tap a tag to identify it
     if (untagged && !untagged.nfcTag) {
       if (!this.uploadedPhotoData) problems.push(['report-missing-photo-row', `${untagged.name} has no NFC tag. Add a current photo so others can recognise it.`]);
       if (!condition) problems.push(['report-missing-condition', `Describe how ${untagged.name} looks right now (injuries, collar, behaviour).`]);
     }
     if (!location) problems.push(['report-missing-location', 'Enter where the pet was last seen, or drop the pin on the map.']);
+    else if (!this.pinChosen) problems.push(['report-missing-location', 'Drop the pin on the map where the pet was last seen, so it shows in the right place.']);
     if (!date) problems.push(['report-missing-date', 'Choose the date and time the pet went missing.']);
     if (!phone) problems.push(['report-missing-phone', 'Enter a phone number where you can be reached.']);
     if (problems.length) {
@@ -1588,29 +1698,21 @@ class ReportManager {
       petName = customName || 'Beloved Pet';
     }
 
-    const finalPhoto = this.uploadedPhotoData || (pet ? (pet.photoUrl || pet.photo) : null) || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500';
+    const finalPhoto = this.uploadedPhotoData || (pet ? (pet.photoUrl || pet.photo) : null) || '';
 
-    if (pet) {
-      window.pawStore.updatePetStatus(pet.id, 'lost', {
-        lastSeenLocation: location,
-        lastSeenDate: date,
-        lastSeenCoords: [this.pinnedLat, this.pinnedLng],
-        ownerPhone: phone,
-        notes: reportNotes,
-        // The current photo of an untagged pet belongs to this report; its profile photo stays as it was
-        ...(condition ? {} : { photoUrl: finalPhoto, photo: finalPhoto })
-      });
-    }
-
-    // Create First-Class Missing Report Entity
-    const missingReport = window.pawStore.createMissingReport({
-      petId: pet ? pet.id : 'pet-temp',
+    // Saved in Supabase (missing_pets); the registered pet's status becomes 'missing' there too
+    const submitBtn = document.getElementById('report-submit-btn');
+    if (submitBtn) submitBtn.disabled = true;
+    const missingReport = await window.pawStore.createMissingReport({
+      petId: pet ? pet.id : null,
       petName: petName,
-      species: pet ? pet.species : 'Pet',
-      breed: pet ? pet.breed : 'Mixed Breed',
+      species: pet ? pet.species : 'Other',
+      breed: pet ? pet.breed : '',
+      gender: pet ? pet.gender : '',
+      color: pet ? pet.color : '',
       photoUrl: finalPhoto,
       photo: finalPhoto,
-      ownerEmail: pet && pet.owner ? pet.owner.email : 'user@gmail.com',
+      ownerEmail: (pet && pet.owner && pet.owner.email) || (account && account.email) || '',
       ownerPhone: phone,
       community: (pet && pet.community) ? pet.community : (pet && pet.owner && pet.owner.address ? pet.owner.address : 'Metro Manila'),
       lastSeenLocation: location,
@@ -1618,8 +1720,13 @@ class ReportManager {
       lastSeenDate: date,
       notes: reportNotes,
       condition: condition,
+      // For a pet reported without registering: false when the reporter is not its owner (a neighbour's pet,
+      // a stray they look after). Finders notify the reporter either way, through ownerEmail and ownerPhone.
+      ...(pet ? {} : { reportedByOwner: whose !== 'other', description: customDesc }),
       status: 'active'
     });
+    if (submitBtn) submitBtn.disabled = false;
+    if (!missingReport) return; // the store already said what went wrong; the form stays open
 
     // Add Missing Pet Alert to Cases and Notifications
     const newCase = {
@@ -1648,22 +1755,12 @@ class ReportManager {
     };
     window.pawStore.saveCase(newCase);
 
-    window.pawStore.addNotification({
-      title: `Emergency Alert: "${petName}" Missing`,
-      message: `Guardian reported ${petName}${nfc ? ` (${nfc})` : ''} missing near ${location}. Checkpoints & public map notified.`,
-      type: 'missing',
-      missingReportId: missingReport.id,
-      petId: pet ? pet.id : null,
-      photoUrl: finalPhoto,
-      timestamp: new Date().toISOString()
-    });
+    // No notification for a newly missing pet: the guardian filed it themselves, and notifications are only
+    // for news about the guardian's own pets (sightings, finds, impounds)
 
     if (window.notifManager) {
       window.notifManager.showToast(`Emergency Alert Broadcasted for "${petName}". Pinned on Incident Map.`, 'danger', 5000);
     }
-
-    // Save the missing status to the database too, so the pet's tap page shows the missing alert
-    if (pet && window.petsView) window.petsView.setStatus(pet.id, 'missing');
 
     this.closeModal();
 
@@ -1744,22 +1841,25 @@ class ReportManager {
         const thumb = document.getElementById('sighting-prefill-pet-thumb');
         const nameEl = document.getElementById('sighting-prefill-pet-name');
         const metaEl = document.getElementById('sighting-prefill-pet-meta');
-        if (thumb) thumb.src = targetPet ? targetPet.photoUrl : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80';
+        // A pet reported without registering exists only as its report, so its photo and details come from there
+        const shown = targetPet || targetReport;
+        if (thumb) thumb.src = (targetPet && (targetPet.photoUrl || targetPet.photo)) || (targetReport && (targetReport.photoUrl || targetReport.photo)) || window.PET_PHOTO_PLACEHOLDER || '';
         if (nameEl) nameEl.textContent = resolvedPetName;
         if (metaEl) {
-          const where = targetPet ? (targetPet.lastSeenLocation || 'Metro Manila') : (targetReport ? targetReport.lastSeenLocation : 'Area');
-          const when = targetPet && targetPet.lastSeenDate ? ` · ${this.timeAgoLabel(targetPet.lastSeenDate)}` : '';
-          metaEl.textContent = `${targetPet ? targetPet.breed : 'Registered Pet'} · Last seen: ${where}${when}`;
+          const where = shown.lastSeenLocation || 'Metro Manila';
+          const when = shown.lastSeenDate ? ` · ${this.timeAgoLabel(shown.lastSeenDate)}` : '';
+          const kind = targetPet ? targetPet.breed : [targetReport.description || targetReport.breed, 'Not registered'].filter(Boolean).join(' · ');
+          metaEl.textContent = `${kind} · Last seen: ${where}${when}`;
         }
       }
 
-      // Default pinned coords to last seen location
+      // Start the pin on the last seen location; the finder moves it to where they saw the pet
       if (targetPet && targetPet.lastSeenCoords) {
-        this.sightingPinnedLat = targetPet.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
-        this.sightingPinnedLng = targetPet.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
+        this.sightingPinnedLat = targetPet.lastSeenCoords[0];
+        this.sightingPinnedLng = targetPet.lastSeenCoords[1];
       } else if (targetReport && targetReport.lastSeenCoords) {
-        this.sightingPinnedLat = targetReport.lastSeenCoords[0] + (Math.random() - 0.5) * 0.005;
-        this.sightingPinnedLng = targetReport.lastSeenCoords[1] + (Math.random() - 0.5) * 0.005;
+        this.sightingPinnedLat = targetReport.lastSeenCoords[0];
+        this.sightingPinnedLng = targetReport.lastSeenCoords[1];
       }
 
       const initialLoc = targetPet ? `Near ${targetPet.lastSeenLocation || 'Quezon City'}` : 'Metro Manila';
@@ -1778,8 +1878,8 @@ class ReportManager {
         if (nameEl) nameEl.textContent = context.name;
         if (metaEl) metaEl.textContent = `${context.breed || 'Missing pet'} · Last seen: ${context.place}${context.seenAt ? ' · ' + this.timeAgoLabel(context.seenAt) : ''}`;
       }
-      this.sightingPinnedLat = context.lat + (Math.random() - 0.5) * 0.003;
-      this.sightingPinnedLng = context.lng + (Math.random() - 0.5) * 0.003;
+      this.sightingPinnedLat = context.lat;
+      this.sightingPinnedLng = context.lng;
       this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, `Near ${context.place}`);
     } else {
       // General sighting flow
@@ -1791,6 +1891,14 @@ class ReportManager {
       this.sightingPinnedLng = 121.0400;
       this.updateSightingCoords(this.sightingPinnedLat, this.sightingPinnedLng, 'Quezon City, Metro Manila');
     }
+
+    // The starting pin is only a guess: the finder must place it (tap, drag, search or current location).
+    // Until then the location box stays empty, so a sighting is never saved at a spot nobody chose.
+    this.sightingPinChosen = false;
+    const sightingLoc = document.getElementById('sighting-location-input');
+    if (sightingLoc) sightingLoc.value = '';
+    const sightingClear = document.getElementById('sighting-search-clear-btn');
+    if (sightingClear) sightingClear.style.display = 'none';
 
     modal.classList.add('active');
     modal.style.display = 'flex';
@@ -2017,6 +2125,7 @@ class ReportManager {
   }
 
   updateSightingCoords(lat, lng, name = null) {
+    this.sightingPinChosen = true;
     this.sightingPinnedLat = parseFloat(lat.toFixed(5));
     this.sightingPinnedLng = parseFloat(lng.toFixed(5));
 
@@ -2060,6 +2169,7 @@ class ReportManager {
     if (trimmed.length < 1) {
       suggestionsBox.style.display = 'none';
       suggestionsBox.innerHTML = '';
+      this.liftForDropdown(suggestionsBox, false);
       this.selectedSightingSuggestionIndex = -1;
       return;
     }
@@ -2073,47 +2183,7 @@ class ReportManager {
   }
 
   renderSightingSuggestions(matches, query) {
-    const suggestionsBox = document.getElementById('sighting-location-suggestions');
-    if (!suggestionsBox) return;
-
-    this.sightingSuggestions = matches;
-    this.selectedSightingSuggestionIndex = -1;
-
-    let html = '';
-
-    if (matches.length > 0) {
-      html += matches.slice(0, 8).map((loc, idx) => `
-        <div class="report-suggestion-item" data-index="${idx}" onclick="window.reportManager.selectSightingLocation(${loc.lat}, ${loc.lng}, '${loc.name.replace(/'/g, "\\'")}')">
-          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary, #ea9d1e); flex-shrink:0;">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span class="report-suggestion-name">${loc.name}</span>
-          </div>
-          <span class="report-suggestion-badge">${loc.group}</span>
-        </div>
-      `).join('');
-    }
-
-    // Dynamic online geocoder option for any custom street, barangay, or landmark
-    if (query && query.length >= 2) {
-      html += `
-        <div class="report-suggestion-item report-suggestion-online" onclick="window.reportManager.searchOnlineNominatimSighting('${query.replace(/'/g, "\\'")}')">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#38bdf8;">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <span>Search exact place online: "<strong>${query}</strong>"</span>
-          </div>
-          <span class="report-suggestion-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">Live GPS</span>
-        </div>
-      `;
-    }
-
-    suggestionsBox.innerHTML = html;
-    suggestionsBox.style.display = 'block';
+    this.renderPlaceSuggestions('sighting', matches, query);
   }
 
   handleSightingSearchKeydown(e) {
@@ -2129,7 +2199,7 @@ class ReportManager {
       return;
     }
 
-    const items = suggestionsBox.querySelectorAll('.report-suggestion-item:not(.report-suggestion-online)');
+    const items = suggestionsBox.querySelectorAll('.report-suggestion-item[data-index]');
     if (items.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -2143,8 +2213,7 @@ class ReportManager {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (this.selectedSightingSuggestionIndex >= 0 && this.sightingSuggestions && this.sightingSuggestions[this.selectedSightingSuggestionIndex]) {
-        const sel = this.sightingSuggestions[this.selectedSightingSuggestionIndex];
-        this.selectSightingLocation(sel.lat, sel.lng, sel.name);
+        this.pickPlaceSuggestion('sighting', this.selectedSightingSuggestionIndex);
       } else {
         const input = document.getElementById('sighting-location-input');
         if (input && input.value) {
@@ -2188,6 +2257,7 @@ class ReportManager {
     if (suggestionsBox) {
       suggestionsBox.style.display = 'none';
       suggestionsBox.innerHTML = '';
+      this.liftForDropdown(suggestionsBox, false);
     }
     this.selectedSightingSuggestionIndex = -1;
   }
@@ -2197,11 +2267,11 @@ class ReportManager {
     if (!query) return;
 
     if (window.notifManager) {
-      window.notifManager.showToast(`Locating "${query}" in Quezon City...`, 'info', 2000);
+      window.notifManager.showToast(`Locating "${query}"...`, 'info', 2000);
     }
 
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Quezon City, Philippines')}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&viewbox=120.85,14.85,121.25,14.35&q=${encodeURIComponent(query)}&limit=1`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
       if (data && data.length > 0) {
@@ -2218,7 +2288,7 @@ class ReportManager {
         if (match) {
           this.selectSightingLocation(match.lat, match.lng, match.name);
         } else if (window.notifManager) {
-          window.notifManager.showToast(`Location "${query}" not found in Quezon City. Try another landmark or drag pin.`, 'warning', 3500);
+          window.notifManager.showToast(`Location "${query}" was not found. Try another landmark or drag the pin.`, 'warning', 3500);
         }
       }
     } catch (err) {
@@ -2329,68 +2399,9 @@ class ReportManager {
   }
 
   // Copies a submitted sighting into the Supabase community_sightings table (best effort; the local copy is the source of truth for the app)
-  async saveSightingToSupabase(sighting, matchedPet) {
-    const client = window.pawApp && window.pawApp.supabase;
-    if (!client) return;
-    try {
-      // Photo: shrink the data URL, then store it in the public sighting-photos bucket
-      let photoUrl = null;
-      if (sighting.photoUrl && sighting.photoUrl.startsWith('data:')) {
-        const blob = await this.shrinkImage(sighting.photoUrl);
-        const path = `${sighting.id}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-        const { error: upErr } = await client.storage.from('sighting-photos').upload(path, blob, { contentType: 'image/jpeg' });
-        if (!upErr) photoUrl = client.storage.from('sighting-photos').getPublicUrl(path).data.publicUrl;
-      }
 
-      // Link to the missing_pets row with the same pet name, if there is one
-      let missingPetId = null;
-      if (matchedPet && matchedPet.name) {
-        const { data } = await client.from('missing_pets').select('id').ilike('pet_name', matchedPet.name).limit(1);
-        missingPetId = data && data[0] ? data[0].id : null;
-      }
-
-      const { error } = await client.from('community_sightings').insert({
-        missing_pet_id: missingPetId,
-        species: ['Dog', 'Cat', 'Other'].includes(sighting.species) ? sighting.species : 'Dog',
-        breed: sighting.breed || null,
-        color: sighting.color || null,
-        photo_url: photoUrl,
-        location: sighting.location,
-        lat: sighting.lat,
-        lng: sighting.lng,
-        seen_at: new Date(sighting.dateTimeSeen).toISOString(),
-        notes: (sighting.notes || '').slice(0, 1000) || null,
-        reporter_name: (sighting.reporterName || 'Anonymous').slice(0, 80),
-        status: 'possible_sighting'
-      });
-      if (error) {
-        console.warn('[Sighting] Could not save to Supabase:', error.message);
-        if (/rate limit/i.test(error.message) && window.notifManager) {
-          window.notifManager.showToast('You have sent several sightings recently, so this one was not added to the public list. The owner was still notified.', 'warning', 6000);
-        }
-      }
-    } catch (err) {
-      console.warn('[Sighting] Could not save to Supabase:', err);
-    }
-  }
 
   // Downscales an image data URL to at most 1280px on the long side and returns a JPEG blob
-  shrinkImage(dataUrl) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Image conversion failed'))), 'image/jpeg', 0.82);
-      };
-      img.onerror = () => reject(new Error('Could not read the photo'));
-      img.src = dataUrl;
-    });
-  }
-
   submitCommunitySighting(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -2415,6 +2426,11 @@ class ReportManager {
     if (!location) {
       if (window.notifManager) window.notifManager.showToast('Please describe the location / landmark where the pet was spotted.', 'warning');
       if (locInput) locInput.focus();
+      return;
+    }
+    if (!this.sightingPinChosen) {
+      if (window.notifManager) window.notifManager.showToast('Tap the map or drag the pin to where you saw the pet.', 'warning');
+      document.getElementById('sighting-pin-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -2463,15 +2479,19 @@ class ReportManager {
     }
 
     const sightingId = 'sight-' + Date.now().toString().slice(-6);
+    // The open missing report this sighting is about: its reporter is alerted, and it fills in the pet's details
+    const reportId = missingReportId || (matchedPet ? matchedPet.missingReportId : null) || null;
+    const report = reportId ? window.pawStore.getMissingReportById(reportId) : null;
+    const about = matchedPet || report || {};
 
     const sighting = {
       id: sightingId,
-      missing_report_id: missingReportId || (matchedPet ? (matchedPet.missingReportId || 'mr-' + matchedPet.id) : null),
-      petId: petId || (matchedPet ? matchedPet.id : null),
-      community: matchedPet ? (matchedPet.community || (matchedPet.owner && matchedPet.owner.community) || '') : '',
-      species: matchedPet ? matchedPet.species : 'Dog',
-      breed: matchedPet ? matchedPet.breed : 'Spotted Pet',
-      color: matchedPet ? matchedPet.color : 'Mixed',
+      missing_report_id: reportId,
+      petId: matchedPet ? matchedPet.id : null,
+      community: about.community || '',
+      species: about.species || 'Other',
+      breed: about.breed || null,
+      color: about.color || null,
       location: location,
       coords: [this.sightingPinnedLat, this.sightingPinnedLng],
       lat: this.sightingPinnedLat,
@@ -2487,27 +2507,10 @@ class ReportManager {
       createdAt: new Date().toISOString()
     };
 
-    window.pawStore.addSighting(sighting);
-    this.saveSightingToSupabase(sighting, matchedPet);
+    window.pawStore.addSighting(sighting); // saved to community_sightings with its photo
 
-    // Trigger In-App Notification specifically for the pet owner
-    const petDisplayName = matchedPet ? matchedPet.name : 'COMMUNITY PET';
-    const ownerNotif = {
-      id: 'notif-sight-' + Date.now(),
-      type: 'sighting_verification',
-      title: `POSSIBLE SIGHTING: "${petDisplayName.toUpperCase()}"`,
-      message: `${reporterName} reported a possible sighting of ${petDisplayName} near ${location}. Please review the photo and verify.`,
-      petId: matchedPet ? matchedPet.id : null,
-      ownerEmail: matchedPet && matchedPet.owner ? matchedPet.owner.email : null,
-      missingReportId: sighting.missing_report_id,
-      sightingId: sighting.id,
-      location: location,
-      coords: sighting.coords,
-      photoUrl: this.sightingPhotoData,
-      timestamp: new Date().toISOString(),
-      read: false
-    };
-    window.pawStore.addNotification(ownerNotif);
+    // Alert whoever reported the pet missing, through Supabase (it reaches their own device)
+    if (reportId) window.pawStore.notifyReporter(reportId, 'sighting', { phone, location, notes });
 
     if (window.notifManager) {
       window.notifManager.showToast(`Possible Sighting pinned on Community Map! Notification dispatched to pet owner.`, 'success', 5000);

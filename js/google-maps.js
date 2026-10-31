@@ -1,8 +1,8 @@
 /**
  * Google Maps JavaScript API loader.
  *
- * The API key and Map ID come from the server's environment (GOOGLE_MAPS_API_KEY and
- * GOOGLE_MAPS_MAP_ID) through GET /api/config, so nothing is hard-coded in the browser code.
+ * The API key and Map ID come from the Supabase secrets GOOGLE_MAPS_API_KEY and
+ * GOOGLE_MAPS_MAP_ID through the public-config Edge Function, so nothing is hard-coded in the browser code.
  *
  *   const { Map, AdvancedMarkerElement } = await PawGoogleMaps.load();
  *   PawGoogleMaps.mapId   // Map ID (needed for AdvancedMarkerElement and cloud styling)
@@ -17,7 +17,8 @@
   async function readConfig() {
     if (config) return config;
     try {
-      const response = await fetch('/api/config', { cache: 'no-store' });
+      const cfg = window.PAWTRACK_SUPABASE;
+      const response = await fetch(`${cfg.url}/functions/v1/public-config`, { headers: { apikey: cfg.publishableKey } });
       const data = await response.json();
       config = (data && data.googleMaps) || {};
     } catch (err) {
@@ -37,7 +38,7 @@
       if (loading) return loading;
       loading = (async () => {
         const { apiKey, mapId } = await readConfig();
-        if (!apiKey) throw new Error('Google Maps is not configured. Set GOOGLE_MAPS_API_KEY in .env.');
+        if (!apiKey) throw new Error('Google Maps is not configured. Set the GOOGLE_MAPS_API_KEY secret in Supabase.');
         api.mapId = mapId || '';
 
         if (!(window.google && window.google.maps && window.google.maps.importLibrary)) {

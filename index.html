@@ -1246,24 +1246,7 @@
 
             <!-- CONTAINER 1: Maps View Panel -->
             <div id="report-map-view-container" class="report-panel-container">
-              <div class="report-map-wrapper">
-                <div id="report-pin-map"></div>
-
-                <!-- Quick Recenter GPS Tool -->
-                <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
-                  <button type="button" class="gmap-tool-btn" style="width: 28px; height: 28px;" onclick="window.reportManager.locateMe()" title="Recenter to My Location">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-                    </svg>
-                  </button>
-                </div>
-
-                <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">
-                  <span data-i18n="report.mapHelper">Tap or drag pin to mark exact location</span>
-                </div>
-              </div>
-
-              <!-- Location Quick Search & Autocomplete Bar -->
+              <!-- Location search and "use my location", above the map: find the place first, then fine-tune the pin -->
               <div class="report-location-search-wrap" id="report-location-search-wrap">
                 <div class="report-location-search-box">
                   <svg class="report-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1274,7 +1257,7 @@
                     type="text" 
                     id="report-location-search-input" 
                     class="report-location-search-input" 
-                    placeholder="Search barangay, district, or landmark in Quezon City..." 
+                    placeholder="Search a street, barangay or landmark..." 
                     data-i18n-placeholder="report.searchLocPh"
                     autocomplete="off"
                     oninput="window.reportManager.handleLocationSearch(this.value)"
@@ -1301,6 +1284,23 @@
                 <span>Use my current location</span>
               </button>
               </div>
+              <div class="report-map-wrapper">
+                <div id="report-pin-map"></div>
+
+                <!-- Quick Recenter GPS Tool -->
+                <div class="gmap-quick-tools" style="top: 8px; right: 8px;">
+                  <button type="button" class="gmap-tool-btn" style="width: 28px; height: 28px;" onclick="window.reportManager.locateMe()" title="Recenter to My Location">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="report-map-overlay-helper" style="top: 8px; bottom: auto;">
+                  <span data-i18n="report.mapHelper">Tap or drag pin to mark exact location</span>
+                </div>
+              </div>
+
             </div>
 
             <!-- CONTAINER 2: Upload Photo Panel (Found / Sighted Stray Pet tab) -->
@@ -1400,7 +1400,7 @@
               <div class="report-field-section" data-i18n="report.sectionWhereContact">Where &amp; how to reach you</div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.locationLandmark">Location Landmark / Street *</label>
-                <input type="text" class="form-control" id="report-found-location" placeholder="e.g. Commonwealth Ave near Park Entrance" value="Quezon City, Metro Manila" required style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.locationLandmarkPh" />
+                <input type="text" class="form-control" id="report-found-location" placeholder="e.g. Commonwealth Ave near Park Entrance" value="" required style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.locationLandmarkPh" />
               </div>
 
               <div class="form-group" style="margin-bottom: 8px;">
@@ -1451,8 +1451,31 @@
               </div>
 
               <div class="form-group" id="report-missing-custom-name-wrap" style="display: none; margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.petNameDesc">Pet Name & Description *</label>
-                <input type="text" class="form-control" id="report-missing-custom-name" placeholder="e.g. Brownie (Tricolor Beagle mix)" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petNameDescPh" />
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="report-missing-custom-name" style="font-size: 0.78rem;" data-i18n="report.petName">Pet name *</label>
+                  <input type="text" class="form-control" id="report-missing-custom-name" placeholder="e.g. Brownie" maxlength="60" autocomplete="off" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petNamePh" />
+                </div>
+                <div class="form-group" style="margin: 10px 0 0;">
+                  <label class="form-label" for="report-missing-custom-desc" style="font-size: 0.78rem;" data-i18n="report.petDesc">Description *</label>
+                  <textarea class="form-control" id="report-missing-custom-desc" rows="2" maxlength="300" placeholder="e.g. Tricolor beagle mix, medium size, red collar, white patch on the chest" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.petDescPh"></textarea>
+                  <small style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="report.petDescHint">Breed or mix, size, colours and anything that stands out, so finders can recognise it.</small>
+                </div>
+
+                <!-- Whose pet: the reporter is the contact either way -->
+                <div class="form-group report-whose" id="report-missing-whose" role="radiogroup" aria-labelledby="report-whose-label">
+                  <span class="form-label" id="report-whose-label" style="font-size: 0.78rem;">Is this your pet? *</span>
+                  <div class="report-whose-options">
+                    <label class="report-whose-option">
+                      <input type="radio" name="report-whose" value="owner" />
+                      <span><strong>Yes, it's my pet</strong><small>It just isn't registered yet</small></span>
+                    </label>
+                    <label class="report-whose-option">
+                      <input type="radio" name="report-whose" value="other" />
+                      <span><strong>No, someone else's</strong><small>A neighbour's pet, or a stray I look after</small></span>
+                    </label>
+                  </div>
+                  <small class="report-whose-note">Either way, whoever finds it will notify you.</small>
+                </div>
               </div>
 
               </div><!-- /pet card -->
@@ -1461,7 +1484,7 @@
               <div class="report-field-section report-step-3" data-i18n="report.sectionLastSeen">Last seen &amp; contact</div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label class="form-label" style="font-size: 0.78rem;" data-i18n="report.lastSeenLoc">Last Seen Location *</label>
-                <input type="text" class="form-control" id="report-missing-location" placeholder="e.g. Barangay Commonwealth" value="Brgy. Commonwealth, Quezon City" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.lastSeenLocPh" />
+                <input type="text" class="form-control" id="report-missing-location" placeholder="e.g. Barangay Commonwealth" value="" style="padding: 7px 10px; font-size: 0.85rem;" data-i18n-placeholder="report.lastSeenLocPh" />
               </div>
 
               <div class="report-row-2">
@@ -1713,17 +1736,26 @@
               <input type="tel" id="sighting-reporter-phone" placeholder="e.g. 0917 123 4567" autocomplete="tel" inputmode="tel" required />
             </div>
           </div>
-          <div class="sighting-privacy">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:2px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span>Your name and phone are shared only with the pet's owner.</span>
-          </div>
-
-          <!-- Initial Status Notice Badge (Strictly Possible Sighting) -->
-          <div style="display:flex; align-items:center; gap:8px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25); border-radius:var(--radius-sm); padding:8px 12px; margin-top:0.5rem;">
-            <span style="width:8px; height:8px; border-radius:50%; background:#16a34a; flex-shrink:0;"></span>
-            <span style="font-size:0.78rem; color:var(--text-main);">
-              <strong>Initial Status:</strong> Strictly recorded as <code style="color:#16a34a; font-weight:700;">Possible Sighting</code> until visually verified by the registered guardian.
-            </span>
+          <!-- What happens after sending: who sees the finder's details, and the sighting's starting status -->
+          <div class="sighting-next" role="note">
+            <div class="sighting-next-row">
+              <span class="sighting-next-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <div class="sighting-next-text">
+                <strong>Private to the owner</strong>
+                <span>Your name and phone are shared only with the pet's owner.</span>
+              </div>
+            </div>
+            <div class="sighting-next-row">
+              <span class="sighting-next-icon is-status" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+              <div class="sighting-next-text">
+                <strong>Starts as a possible sighting</strong>
+                <span>It becomes confirmed once the owner checks your photo and says it is their pet.</span>
+              </div>
+            </div>
           </div>
         </div>
 
